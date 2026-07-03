@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 
-// 2Factor setup
 const TwoFactor = require('2factor');
 const API_KEY = process.env.TWO_FACTOR_API_KEY;
 let twoFactorInstance = null;
@@ -12,10 +11,8 @@ if (API_KEY) {
   console.warn('⚠️ 2Factor API key missing – OTP will be printed to console.');
 }
 
-// In-memory OTP store (use Redis in production)
 const otpStore = {};
 
-// Helper to send OTP
 async function sendOtp(phone, otp) {
   const cleanPhone = phone.replace(/\D/g, '');
   if (twoFactorInstance) {
@@ -43,7 +40,6 @@ router.post('/send-otp', async (req, res) => {
   const otp = Math.floor(1000 + Math.random() * 9000).toString();
   otpStore[phone] = otp;
   await sendOtp(phone, otp);
-  // Return OTP for development – remove in production
   res.json({ message: 'OTP sent', otp });
 });
 
@@ -87,7 +83,7 @@ router.post('/register', async (req, res) => {
 // ===== ADMIN OTP =====
 router.post('/admin/send-otp', async (req, res) => {
   const { phone } = req.body;
-  const adminPhone = process.env.ADMIN_PHONE;
+  const adminPhone = process.env.ADMIN_PHONE || '+919019825189';
   if (!phone || phone !== adminPhone) {
     return res.status(403).json({ error: 'Not authorized as admin' });
   }
@@ -99,7 +95,7 @@ router.post('/admin/send-otp', async (req, res) => {
 
 router.post('/admin/verify-otp', async (req, res) => {
   const { phone, otp } = req.body;
-  const adminPhone = process.env.ADMIN_PHONE;
+  const adminPhone = process.env.ADMIN_PHONE || '+919019825189';
   if (phone !== adminPhone) {
     return res.status(403).json({ error: 'Not authorized as admin' });
   }
