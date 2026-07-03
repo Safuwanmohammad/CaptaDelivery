@@ -1,0 +1,247 @@
+/* ===================== GLOBAL ===================== */
+body {
+  font-family: 'Inter', sans-serif;
+  background: #f9fafb;
+  scroll-behavior: smooth;
+  padding-bottom: 72px !important;
+}
+
+/* ===================== BUTTONS ===================== */
+.gradient-btn {
+  background: linear-gradient(135deg, #007BFF 0%, #0056b3 100%);
+  transition: all 0.3s ease;
+}
+.gradient-btn:hover {
+  background: linear-gradient(135deg, #0056b3 0%, #004099 100%);
+  transform: scale(0.98);
+}
+
+/* ===================== CARDS ===================== */
+.product-card,
+.restaurant-card {
+  transition: all 0.3s ease;
+}
+.product-card:hover,
+.restaurant-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 25px -12px rgba(0, 123, 255, 0.2);
+}
+
+.category-card {
+  transition: all 0.3s ease;
+}
+.category-card:hover {
+  transform: translateY(-5px);
+}
+
+.category-modal-item:hover {
+  background: #f0f7ff;
+}
+
+/* ===================== RESPONSIVE UTILITIES ===================== */
+.desktop-only {
+  display: inline-block;
+}
+.mobile-only {
+  display: none;
+}
+@media (max-width: 767px) {
+  .desktop-only {
+    display: none !important;
+  }
+  .mobile-only {
+    display: inline-block !important;
+  }
+}
+
+/* ===================== HIDE OLD NAV (if present) ===================== */
+#mobileNav {
+  display: none !important;
+}
+
+/* ===================== LOGIN OVERLAY & FLOATING ICONS ===================== */
+#loginOverlay {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.floating-icons .floating-icon {
+  position: absolute;
+  animation: float 12s infinite ease-in-out;
+  opacity: 0.15;
+  font-size: 5rem;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-30px) rotate(8deg); }
+}
+.floating-icons .floating-icon:nth-child(1) { animation-delay: 0s; }
+.floating-icons .floating-icon:nth-child(2) { animation-delay: 2s; }
+.floating-icons .floating-icon:nth-child(3) { animation-delay: 4s; }
+.floating-icons .floating-icon:nth-child(4) { animation-delay: 1s; }
+.floating-icons .floating-icon:nth-child(5) { animation-delay: 3s; }
+.floating-icons .floating-icon:nth-child(6) { animation-delay: 5s; }
+.floating-icons .floating-icon:nth-child(7) { animation-delay: 0.5s; }
+.floating-icons .floating-icon:nth-child(8) { animation-delay: 2.5s; }
+
+/* ===================== TABS (Login/Signup) ===================== */
+#loginTabBtn.active,
+#signupTabBtn.active {
+  color: #007BFF;
+  border-bottom-width: 2px;
+  border-color: #007BFF;
+}
+#loginTabBtn.inactive,
+#signupTabBtn.inactive {
+  color: #9ca3af;
+  border-bottom: 2px solid transparent;
+}
+
+/* ===================== BOTTOM NAV – ONLY ON MOBILE ===================== */
+@media (min-width: 768px) {
+  #bottomNav {
+    display: none !important;
+  }
+  body {
+    padding-bottom: 0 !important;
+  }
+}
+@media (max-width: 767px) {
+  #bottomNav {
+    display: flex !important;
+  }
+  body {
+    padding-bottom: 72px !important;
+  }
+}
+
+/* ===================== SEARCH BAR FIXES ===================== */
+.search-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  max-width: 280px;
+}
+@media (max-width: 767px) {
+  .search-wrapper {
+    max-width: none;
+    flex: 1;
+  }
+  .search-wrapper .search-input-desktop {
+    display: none !important;
+  }
+  .search-wrapper .search-input-mobile {
+    display: block !important;
+  }
+}
+@media (min-width: 768px) {
+  .search-wrapper .search-input-desktop {
+    display: block !important;
+  }
+  .search-wrapper .search-input-mobile {
+    display: none !important;
+  }
+}
+
+#searchInput, #searchInputMobile {
+  flex: 1;
+  min-width: 0;
+}
+#searchInput:focus, #searchInputMobile:focus {
+  outline: none;
+  border-color: #007BFF;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+}
+
+/* ===================== BOTTOM NAV TOUCH ANIMATION ===================== */
+.nav-item {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+  user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+  border-radius: 12px;
+  padding: 4px 12px !important;
+}
+
+.nav-item:active {
+  transform: scale(0.88);
+  background: rgba(0, 123, 255, 0.12) !important;
+  color: #007BFF !important;
+}
+
+.nav-item:active i {
+  color: #007BFF !important;
+}
+
+.nav-item:active span {
+  color: #007BFF !important;
+}
+
+/* ===================== ADMIN PANEL ===================== */
+.admin-panel {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+}
+
+.admin-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+.admin-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+.admin-tab-btn {
+  padding: 0.5rem 1.25rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  background: transparent;
+  color: #6b7280;
+}
+.admin-tab-btn.active {
+  background: #007BFF;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+.admin-tab-btn:hover:not(.active) {
+  background: rgba(0, 123, 255, 0.08);
+}
+
+.admin-table th {
+  background: #f3f4f6;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem 1rem;
+}
+.admin-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+.admin-table tr:hover td {
+  background: #f9fafb;
+}
+
+.admin-form input,
+.admin-form select,
+.admin-form textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  transition: border-color 0.2s ease;
+}
+.admin-form input:focus,
+.admin-form select:focus,
+.admin-form textarea:focus {
+  outline: none;
+  border-color: #007BFF;
+  ring: 2px solid rgba(0, 123, 255, 0.2);
+}

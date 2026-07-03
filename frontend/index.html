@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>CaptaDelivery - Fast Delivery</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { primary: '#007BFF', primaryDark: '#0056b3' }
+        }
+      }
+    };
+  </script>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ========== NAVBAR ========== -->
+  <nav id="mainNav" class="sticky top-0 z-50 bg-white shadow-md border-b">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between gap-2">
+      <div id="navLogo" class="flex items-center gap-2 cursor-pointer flex-shrink-0">
+        <img src="https://placehold.co/40x40/007BFF/white?text=CD" alt="CaptaDelivery" class="w-8 h-8 md:w-10 md:h-10 rounded-full" />
+        <span class="font-bold text-xl md:text-2xl text-primary">CaptaDelivery</span>
+      </div>
+
+      <div class="search-wrapper">
+        <input id="searchInput" type="text" placeholder="Search products..." value=""
+               class="search-input-desktop w-full px-4 py-2 rounded-full bg-gray-100 border border-transparent focus:border-primary transition-all text-sm" />
+        <input id="searchInputMobile" type="text" placeholder="Search..." value=""
+               class="search-input-mobile w-full px-4 py-2 rounded-full bg-gray-100 border border-transparent focus:border-primary transition-all text-sm" />
+        <button id="searchToggleBtn" class="md:hidden text-gray-600 hover:text-primary text-xl px-1 flex-shrink-0 ml-1">
+          <i class="fas fa-search"></i>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-3 md:gap-4 flex-shrink-0">
+        <div id="navCart" class="relative cursor-pointer">
+          <i class="fas fa-shopping-cart text-primary text-xl"></i>
+          <span id="cartBadge" style="display:none;position:absolute;top:-2px;right:-2px;background:#ef4444;color:white;border-radius:9999px;width:20px;height:20px;font-size:10px;font-weight:700;align-items:center;justify-content:center;">0</span>
+        </div>
+        <i id="navOrders" class="fas fa-history text-gray-600 text-xl cursor-pointer hover:text-primary desktop-only"></i>
+        <div id="navUser" class="desktop-only flex items-center gap-3"></div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ========== APP CONTENT ========== -->
+  <div id="app" class="min-h-screen bg-gray-50"></div>
+
+  <!-- ========== BOTTOM NAV ========== -->
+  <nav id="bottomNav" style="
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border-top: 3px solid #007BFF;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 6px 0 4px;
+    z-index: 999999;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+    height: 64px;
+    font-family: 'Inter', sans-serif;
+  ">
+    <button class="nav-item" onclick="goHome()" style="display:flex;flex-direction:column;align-items:center;font-size:11px;color:#6b7280;cursor:pointer;padding:4px 10px;min-width:56px;background:none;border:none;">
+      <i class="fas fa-home" style="font-size:22px;margin-bottom:2px;"></i>
+      <span style="font-size:10px;font-weight:500;">Home</span>
+    </button>
+    <button class="nav-item" onclick="toggleCategoryModal()" style="display:flex;flex-direction:column;align-items:center;font-size:11px;color:#6b7280;cursor:pointer;padding:4px 10px;min-width:56px;background:none;border:none;">
+      <i class="fas fa-th-large" style="font-size:22px;margin-bottom:2px;"></i>
+      <span style="font-size:10px;font-weight:500;">Categories</span>
+    </button>
+    <button class="nav-item" onclick="toggleOrders()" style="display:flex;flex-direction:column;align-items:center;font-size:11px;color:#6b7280;cursor:pointer;padding:4px 10px;min-width:56px;background:none;border:none;">
+      <i class="fas fa-history" style="font-size:22px;margin-bottom:2px;"></i>
+      <span style="font-size:10px;font-weight:500;">Orders</span>
+    </button>
+    <button class="nav-item" onclick="toggleAccountDrawer()" style="display:flex;flex-direction:column;align-items:center;font-size:11px;color:#6b7280;cursor:pointer;padding:4px 10px;min-width:56px;background:none;border:none;">
+      <i class="fas fa-user" style="font-size:22px;margin-bottom:2px;"></i>
+      <span style="font-size:10px;font-weight:500;">Account</span>
+    </button>
+  </nav>
+
+  <!-- ========== LOGIN OVERLAY ========== -->
+  <div id="loginOverlay" class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm hidden">
+    <div class="floating-icons absolute inset-0 overflow-hidden pointer-events-none">
+      <i class="fas fa-hamburger text-6xl text-white/10 floating-icon" style="left:10%; top:20%; animation-delay:0s;"></i>
+      <i class="fas fa-lightbulb text-6xl text-white/10 floating-icon" style="left:80%; top:15%; animation-delay:2s;"></i>
+      <i class="fas fa-drumstick-bite text-6xl text-white/10 floating-icon" style="left:20%; top:70%; animation-delay:4s;"></i>
+      <i class="fas fa-carrot text-6xl text-white/10 floating-icon" style="left:70%; top:75%; animation-delay:1s;"></i>
+      <i class="fas fa-apple-alt text-6xl text-white/10 floating-icon" style="left:50%; top:40%; animation-delay:3s;"></i>
+      <i class="fas fa-cheese text-6xl text-white/10 floating-icon" style="left:5%; top:50%; animation-delay:5s;"></i>
+      <i class="fas fa-ice-cream text-6xl text-white/10 floating-icon" style="left:90%; top:50%; animation-delay:0.5s;"></i>
+      <i class="fas fa-pizza-slice text-6xl text-white/10 floating-icon" style="left:30%; top:10%; animation-delay:2.5s;"></i>
+    </div>
+
+    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 md:p-8 z-10">
+      <button onclick="closeLogin()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl">
+        <i class="fas fa-times"></i>
+      </button>
+      <div class="flex border-b mb-6">
+        <button id="loginTabBtn" onclick="switchTab('login')" class="flex-1 py-2 text-center font-semibold text-primary border-b-2 border-primary transition">Login</button>
+        <button id="signupTabBtn" onclick="switchTab('signup')" class="flex-1 py-2 text-center font-semibold text-gray-400 border-b-2 border-transparent transition">Sign Up</button>
+      </div>
+      <div id="loginForm">
+        <h2 class="text-2xl font-bold mb-6 text-center">Welcome Back!</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+            <input type="tel" id="loginPhone" placeholder="Enter phone number" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" />
+          </div>
+          <div id="loginOtpSection" class="hidden">
+            <label class="block text-sm font-medium text-gray-700">OTP</label>
+            <div class="flex gap-2">
+              <input type="text" id="loginOtp" placeholder="Enter OTP" class="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" />
+              <button onclick="verifyLoginOtp()" class="gradient-btn text-white px-6 py-3 rounded-xl font-semibold">Verify</button>
+            </div>
+          </div>
+          <button onclick="sendLoginOtp()" id="loginSendOtpBtn" class="gradient-btn w-full text-white py-3 rounded-xl font-semibold">Send OTP</button>
+        </div>
+        <p class="text-center text-sm text-gray-500 mt-4">Don't have an account? <button onclick="switchTab('signup')" class="text-primary font-semibold">Sign Up</button></p>
+      </div>
+      <div id="signupForm" class="hidden">
+        <h2 class="text-2xl font-bold mb-6 text-center">Create Account</h2>
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">First Name *</label>
+              <input type="text" id="signupFirstName" placeholder="John" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Last Name *</label>
+              <input type="text" id="signupLastName" placeholder="Doe" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Address *</label>
+            <input type="text" id="signupAddress" placeholder="Street, locality" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Pincode *</label>
+            <input type="text" id="signupPincode" placeholder="560001" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Phone Number *</label>
+            <input type="tel" id="signupPhone" placeholder="Enter phone number" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" />
+          </div>
+          <div id="signupOtpSection" class="hidden">
+            <label class="block text-sm font-medium text-gray-700">OTP</label>
+            <div class="flex gap-2">
+              <input type="text" id="signupOtp" placeholder="Enter OTP" class="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" />
+              <button onclick="verifySignupOtp()" class="gradient-btn text-white px-6 py-3 rounded-xl font-semibold">Verify</button>
+            </div>
+          </div>
+          <button onclick="sendSignupOtp()" id="signupSendOtpBtn" class="gradient-btn w-full text-white py-3 rounded-xl font-semibold">Send OTP</button>
+        </div>
+        <p class="text-center text-sm text-gray-500 mt-4">Already have an account? <button onclick="switchTab('login')" class="text-primary font-semibold">Login</button></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
