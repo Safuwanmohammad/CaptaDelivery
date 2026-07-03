@@ -296,6 +296,7 @@ function renderPaymentPage() {
   const content = document.createElement('div');
   content.className = 'max-w-3xl mx-auto bg-white rounded-2xl shadow-xl p-6';
 
+  // Header
   const header = document.createElement('div');
   header.className = 'flex justify-between items-center border-b pb-4 mb-4';
   header.innerHTML = `
@@ -306,6 +307,7 @@ function renderPaymentPage() {
   `;
   content.appendChild(header);
 
+  // Order summary
   const summaryDiv = document.createElement('div');
   summaryDiv.className = 'mb-6';
   const grouped = state.orderSummary.categoryTotals;
@@ -338,13 +340,14 @@ function renderPaymentPage() {
   `;
   content.appendChild(summaryDiv);
 
+  // Payment options
   const paymentDiv = document.createElement('div');
   paymentDiv.className = 'mb-4';
   paymentDiv.innerHTML = `
     <h3 class="font-semibold text-lg mb-2">Choose Payment Method</h3>
     <div class="flex flex-col gap-3">
       <button onclick="confirmPayment('online')" class="gradient-btn text-white py-3 rounded-xl font-semibold w-full">
-        <i class="fas fa-credit-card mr-2"></i> Pay Online (Simulated)
+        <i class="fas fa-credit-card mr-2"></i> UPI / Online Payment (Simulated)
       </button>
       <button onclick="confirmPayment('cod')" class="btn btn-outline py-3 rounded-xl font-semibold w-full border-2 border-primary text-primary hover:bg-primary hover:text-white transition">
         <i class="fas fa-hand-holding-usd mr-2"></i> Cash on Delivery
@@ -353,6 +356,7 @@ function renderPaymentPage() {
   `;
   content.appendChild(paymentDiv);
 
+  // Back button
   const backBtn = document.createElement('button');
   backBtn.className = 'text-gray-600 hover:text-gray-800 font-medium mt-4';
   backBtn.textContent = '← Back to Order Summary';
@@ -368,11 +372,11 @@ function renderPaymentPage() {
 }
 
 // ============================================================
-// CONFIRM PAYMENT & PLACE ORDER
+// CONFIRM PAYMENT
 // ============================================================
 async function confirmPayment(method) {
   if (method === 'online') {
-    showToast('Processing payment...');
+    showToast('Processing UPI payment...');
     await new Promise(resolve => setTimeout(resolve, 1500));
     showToast('✅ Payment successful!');
   }
@@ -387,6 +391,9 @@ function closePayment() {
   renderContent();
 }
 
+// ============================================================
+// PLACE ORDER
+// ============================================================
 async function placeOrder() {
   const orderNumber = 'ORD-' + String(nextOrderNumber).padStart(4, '0');
   nextOrderNumber++;
@@ -453,8 +460,9 @@ async function placeOrder() {
 }
 
 // ============================================================
-// DESKTOP ACCOUNT DROPDOWN
+// USER AUTHENTICATION
 // ============================================================
+// --- DESKTOP ACCOUNT DROPDOWN ---
 let accountDropdownOpen = false;
 
 function toggleAccountDropdown(e) {
@@ -473,7 +481,6 @@ function closeAccountDropdown() {
   }
 }
 
-// Click outside to close
 document.addEventListener('click', function(e) {
   const container = document.getElementById('navUser');
   if (container && !container.contains(e.target)) {
@@ -481,9 +488,6 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// ============================================================
-// CONTACT SUPPORT MODAL
-// ============================================================
 function showContactSupport() {
   closeAccountDropdown();
   openModal(`
@@ -497,9 +501,6 @@ function showContactSupport() {
   `);
 }
 
-// ============================================================
-// USER AUTHENTICATION
-// ============================================================
 function updateNavUser() {
   const navUser = document.getElementById('navUser');
   if (!navUser) return;
@@ -543,7 +544,7 @@ function updateNavUser() {
 }
 
 function openLogin() {
-  closeAccountDropdown(); // close desktop dropdown if open
+  closeAccountDropdown();
   const overlay = document.getElementById('loginOverlay');
   if (!overlay) return;
   overlay.classList.remove('hidden');
@@ -1714,7 +1715,6 @@ window.addToCart = addToCart;
 window.updateQuantity = updateQuantity;
 window.removeItem = removeItem;
 window.toggleAccountDropdown = toggleAccountDropdown;
-window.closeAccountDropdown = closeAccountDropdown;
 window.showContactSupport = showContactSupport;
 
 // ============================================================
