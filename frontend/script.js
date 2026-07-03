@@ -280,6 +280,7 @@ function proceedToPayment() {
   state.showPayment = true;
   state.showOrderSummary = false;
   renderContent();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ============================================================
@@ -288,6 +289,7 @@ function proceedToPayment() {
 function renderPaymentPage() {
   if (!state.showPayment) return null;
 
+  // Ensure delivery charge and grand total are up to date
   updateDeliveryCharge();
 
   const container = document.createElement('div');
