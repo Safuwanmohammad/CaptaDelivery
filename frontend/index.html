@@ -30,28 +30,32 @@
   <!-- ========== NAVBAR ========== -->
   <nav id="mainNav" class="sticky top-0 z-50 bg-white shadow-md border-b">
     <div class="container mx-auto px-4 py-3 flex items-center justify-between gap-2">
+      <!-- Logo -->
       <div id="navLogo" class="flex items-center gap-2 cursor-pointer flex-shrink-0">
         <img src="https://placehold.co/40x40/007BFF/white?text=CD" alt="CaptaDelivery" class="w-8 h-8 md:w-10 md:h-10 rounded-full" />
         <span class="font-bold text-xl md:text-2xl text-primary">CaptaDelivery</span>
       </div>
 
+      <!-- Search -->
       <div class="search-wrapper">
-        <input id="searchInput" type="text" placeholder="Search products..." value=""
-               class="search-input-desktop w-full px-4 py-2 rounded-full bg-gray-100 border border-transparent focus:border-primary transition-all text-sm" />
-        <input id="searchInputMobile" type="text" placeholder="Search..." value=""
-               class="search-input-mobile w-full px-4 py-2 rounded-full bg-gray-100 border border-transparent focus:border-primary transition-all text-sm" />
+        <input id="searchInput" type="text" placeholder="Search products..." class="search-input-desktop w-full px-4 py-2 rounded-full bg-gray-100 border border-transparent focus:border-primary transition-all text-sm" />
+        <input id="searchInputMobile" type="text" placeholder="Search..." class="search-input-mobile w-full px-4 py-2 rounded-full bg-gray-100 border border-transparent focus:border-primary transition-all text-sm" />
         <button id="searchToggleBtn" class="md:hidden text-gray-600 hover:text-primary text-xl px-1 flex-shrink-0 ml-1">
           <i class="fas fa-search"></i>
         </button>
       </div>
 
+      <!-- Right Icons -->
       <div class="flex items-center gap-3 md:gap-4 flex-shrink-0">
+        <!-- Cart -->
         <div id="navCart" class="relative cursor-pointer">
           <i class="fas fa-shopping-cart text-primary text-xl"></i>
           <span id="cartBadge" style="display:none;position:absolute;top:-2px;right:-2px;background:#ef4444;color:white;border-radius:9999px;width:20px;height:20px;font-size:10px;font-weight:700;align-items:center;justify-content:center;">0</span>
         </div>
+        <!-- Orders (desktop only) -->
         <i id="navOrders" class="fas fa-history text-gray-600 text-xl cursor-pointer hover:text-primary desktop-only"></i>
-        <div id="navUser" class="desktop-only flex items-center gap-3"></div>
+        <!-- Desktop Account Dropdown -->
+        <div id="navUser" class="desktop-only relative flex items-center"></div>
       </div>
     </div>
   </nav>

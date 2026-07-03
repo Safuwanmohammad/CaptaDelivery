@@ -245,3 +245,74 @@ body {
   border-color: #007BFF;
   ring: 2px solid rgba(0, 123, 255, 0.2);
 }
+/* ===== Desktop Account Dropdown ===== */
+.account-dropdown {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+.account-dropdown .avatar {
+  font-size: 1.8rem;
+  color: #4b5563;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f3f4f6;
+  border: 2px solid transparent;
+}
+.account-dropdown .avatar:hover {
+  color: #007BFF;
+  border-color: #007BFF;
+}
+.account-dropdown .dropdown-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 110%;
+  min-width: 180px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  padding: 8px 0;
+  z-index: 1000;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+.account-dropdown .dropdown-menu.open {
+  display: block;
+}
+.account-dropdown .dropdown-menu a,
+.account-dropdown .dropdown-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  color: #374151;
+  font-size: 0.9rem;
+  text-decoration: none;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.account-dropdown .dropdown-menu a:hover,
+.account-dropdown .dropdown-menu button:hover {
+  background: #f3f4f6;
+}
+.account-dropdown .dropdown-menu .divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 4px 0;
+}
+.account-dropdown .dropdown-menu .user-info {
+  padding: 8px 16px;
+  font-weight: 600;
+  color: #1f2937;
+  pointer-events: none;
+}
