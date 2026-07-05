@@ -11,8 +11,10 @@ if (API_KEY) {
   console.warn('⚠️ 2Factor API key missing – OTP will be printed to console.');
 }
 
+// OTP store (in-memory – use Redis in production)
 const otpStore = {};
 
+// Helper: send OTP via 2Factor or console fallback
 async function sendOtp(phone, otp) {
   const cleanPhone = phone.replace(/\D/g, '');
   if (twoFactorInstance) {
@@ -31,7 +33,7 @@ async function sendOtp(phone, otp) {
   }
 }
 
-// ===== USER OTP =====
+// ===== USER OTP (unchanged) =====
 router.post('/send-otp', async (req, res) => {
   const { phone } = req.body;
   if (!phone || phone.length < 10) {
@@ -80,11 +82,11 @@ router.post('/register', async (req, res) => {
   res.status(201).json({ message: 'Registration successful', user: result.rows[0] });
 });
 
-// ===== ADMIN OTP =====
+// ===== ADMIN OTP (now supports multiple phones) =====
 router.post('/admin/send-otp', async (req, res) => {
   const { phone } = req.body;
-  const adminPhone = process.env.ADMIN_PHONE || '+919019825189';
-  if (!phone || phone !== adminPhone) {
+  const adminPhones = (process.env.ADMIN_PHONES || '').split(',').map(p => p.trim());
+  if (!phone || !adminPhones.includes(phone)) {
     return res.status(403).json({ error: 'Not authorized as admin' });
   }
   const otp = Math.floor(1000 + Math.random() * 9000).toString();
@@ -95,8 +97,8 @@ router.post('/admin/send-otp', async (req, res) => {
 
 router.post('/admin/verify-otp', async (req, res) => {
   const { phone, otp } = req.body;
-  const adminPhone = process.env.ADMIN_PHONE || '+919019825189';
-  if (phone !== adminPhone) {
+  const adminPhones = (process.env.ADMIN_PHONES || '').split(',').map(p => p.trim());
+  if (!adminPhones.includes(phone)) {
     return res.status(403).json({ error: 'Not authorized as admin' });
   }
   if (otpStore[phone] !== otp) {
