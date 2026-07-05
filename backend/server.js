@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// API Routes
+// ===== API ROUTES =====
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/restaurants', require('./routes/restaurants'));
 app.use('/api/products', require('./routes/products'));
@@ -19,21 +19,25 @@ app.use('/api/offers', require('./routes/offers'));
 app.use('/api/places', require('./routes/places'));
 app.use('/api/customers', require('./routes/customers'));
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/settings', require('./routes/settings'));
+app.use('/api/settings', require('./routes/settings'));   // <-- this must be correctly exported
 
-// Serve static frontend
-const frontendPath = path.join(__dirname, '../frontend');
+// ===== SERVE STATIC FRONTEND (absolute path) =====
+const frontendPath = path.resolve(__dirname, '../frontend');
+console.log(`📁 Serving frontend from: ${frontendPath}`);
 app.use(express.static(frontendPath));
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).send('Page not found');
+// ===== FALLBACK: serve index.html for any unknown route =====
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-// Database test
+// ===== DATABASE CONNECTION TEST =====
 pool.query('SELECT NOW()', (err, result) => {
-  if (err) console.error('❌ Database connection error:', err.message);
-  else console.log('✅ Connected to PostgreSQL at', result.rows[0].now);
+  if (err) {
+    console.error('❌ Database connection error:', err.message);
+  } else {
+    console.log('✅ Connected to PostgreSQL at', result.rows[0].now);
+  }
 });
 
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
