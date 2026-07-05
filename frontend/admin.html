@@ -618,6 +618,15 @@
   const API_BASE = window.location.origin + '/api';
 
   // ============================================================
+  // ADMIN PHONE NUMBERS (all allowed admins)
+  // ============================================================
+  const ADMIN_PHONES = [
+    '+919019825189',
+    '+918277079552',
+    '+919483685462'
+  ];
+
+  // ============================================================
   // DATA HELPERS
   // ============================================================
   async function fetchData(endpoint) {
@@ -814,14 +823,13 @@
   }
 
   // ============================================================
-  // ADMIN LOGIN (using OTP)
+  // ADMIN LOGIN (supports multiple admin numbers)
   // ============================================================
-  const ADMIN_PHONE = '+919019825189'; // must match the phone number in your .env
-
   async function sendAdminOtp() {
     const phone = document.getElementById('adminPhone').value.trim();
-    if (phone !== ADMIN_PHONE) {
-      showToast('Invalid admin phone');
+    // Check if phone is in the allowed admin list
+    if (!ADMIN_PHONES.includes(phone)) {
+      showToast('Not authorized as admin');
       return;
     }
     try {
@@ -844,6 +852,10 @@
     const phone = document.getElementById('adminPhone').value.trim();
     const otp = document.getElementById('adminOtp').value.trim();
     if (!otp) { showToast('Enter OTP'); return; }
+    if (!ADMIN_PHONES.includes(phone)) {
+      showToast('Not authorized as admin');
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/auth/admin/verify-otp`, {
         method: 'POST',
@@ -862,12 +874,8 @@
   }
 
   // ============================================================
-  // RENDER FUNCTIONS (same as before – include all)
+  // RENDER FUNCTIONS (dashboard, catalog, places, customers, orders, etc.)
   // ============================================================
-  // ... (all render functions: renderDashboard, renderCatalog, renderPlaces, etc.)
-  // For brevity, we include them below, but they are identical to your previous version.
-  // I'll paste them quickly.
-
   function renderDashboard(el) {
     const totalOrders = orders.length;
     const delivered = orders.filter(o => o.status === 'Delivered');
