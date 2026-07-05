@@ -1,6 +1,5 @@
 const pool = require('../db');
 
-// Get all settings as a key-value object
 exports.getSettings = async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM settings');
@@ -14,7 +13,6 @@ exports.getSettings = async (req, res) => {
   }
 };
 
-// Update or insert a setting
 exports.updateSetting = async (req, res) => {
   const { key, value } = req.body;
   if (!key) {
