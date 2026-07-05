@@ -85,7 +85,10 @@ router.post('/register', async (req, res) => {
 // ===== ADMIN OTP (now supports multiple phones) =====
 router.post('/admin/send-otp', async (req, res) => {
   const { phone } = req.body;
-  const adminPhones = (process.env.ADMIN_PHONES || '').split(',').map(p => p.trim());
+  const adminPhones = (process.env.ADMIN_PHONES || '')
+    .split(',')
+    .map(p => p.trim())
+    .filter(p => p.length > 0);
   if (!phone || !adminPhones.includes(phone)) {
     return res.status(403).json({ error: 'Not authorized as admin' });
   }
@@ -97,7 +100,10 @@ router.post('/admin/send-otp', async (req, res) => {
 
 router.post('/admin/verify-otp', async (req, res) => {
   const { phone, otp } = req.body;
-  const adminPhones = (process.env.ADMIN_PHONES || '').split(',').map(p => p.trim());
+  const adminPhones = (process.env.ADMIN_PHONES || '')
+    .split(',')
+    .map(p => p.trim())
+    .filter(p => p.length > 0);
   if (!adminPhones.includes(phone)) {
     return res.status(403).json({ error: 'Not authorized as admin' });
   }
@@ -107,5 +113,3 @@ router.post('/admin/verify-otp', async (req, res) => {
   delete otpStore[phone];
   res.json({ message: 'Admin login successful', admin: true });
 });
-
-module.exports = router;
