@@ -234,15 +234,20 @@ function proceedToCheckout() {
     categoryTotals: categoryTotals
   };
 
-  updateDeliveryCharge();
+  // Calculate delivery charge (will be 0 initially, but dropdowns will update)
+  updateDeliveryCharge(); // this no longer calls renderContent()
 
   state.showOrderSummary = true;
   state.showCart = false;
   state.showPayment = false;
+
   renderContent();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ============================================================
+// UPDATE DELIVERY CHARGE (no recursive render call)
+// ============================================================
 function updateDeliveryCharge() {
   const mainArea = state.orderSummary.selectedMainArea;
   const subArea = state.orderSummary.selectedSubArea;
@@ -254,9 +259,8 @@ function updateDeliveryCharge() {
     state.orderSummary.deliveryCharge = 0;
     state.orderSummary.grandTotal = state.orderSummary.subtotal;
   }
-  if (state.showOrderSummary || state.showPayment) {
-    renderContent();
-  }
+  // IMPORTANT: Do NOT call renderContent() here – it causes infinite recursion.
+  // The caller (e.g., dropdown change or renderOrderSummary) will handle re-rendering.
 }
 
 function closeOrderSummary() {
@@ -1021,9 +1025,13 @@ function renderAccountDrawer() {
   return container;
 }
 
+// ============================================================
+// RENDER ORDER SUMMARY (with dropdowns)
+// ============================================================
 function renderOrderSummary() {
   if (!state.showOrderSummary) return null;
 
+  // Recalculate delivery charge (this will NOT trigger re-render)
   updateDeliveryCharge();
 
   const container = document.createElement('div');
@@ -1129,7 +1137,8 @@ function renderOrderSummary() {
         subSelect.appendChild(opt);
       });
     }
-    updateDeliveryCharge();
+    updateDeliveryCharge(); // updates state, then we re-render
+    renderContent();       // re-render the whole page (order summary)
   });
   mainAreaDiv.appendChild(mainSelect);
   addressSection.appendChild(mainAreaDiv);
@@ -1160,7 +1169,8 @@ function renderOrderSummary() {
   }
   subSelect.addEventListener('change', function() {
     state.orderSummary.selectedSubArea = this.value;
-    updateDeliveryCharge();
+    updateDeliveryCharge(); // updates state, then we re-render
+    renderContent();       // re-render the whole page (order summary)
   });
   subAreaDiv.appendChild(subSelect);
   addressSection.appendChild(subAreaDiv);
