@@ -33,7 +33,7 @@ async function sendOtp(phone, otp) {
   }
 }
 
-// ===== USER OTP (unchanged) =====
+// ===== USER OTP =====
 router.post('/send-otp', async (req, res) => {
   const { phone } = req.body;
   if (!phone || phone.length < 10) {
@@ -82,7 +82,7 @@ router.post('/register', async (req, res) => {
   res.status(201).json({ message: 'Registration successful', user: result.rows[0] });
 });
 
-// ===== ADMIN OTP (now supports multiple phones) =====
+// ===== ADMIN OTP (supports multiple phones) =====
 router.post('/admin/send-otp', async (req, res) => {
   const { phone } = req.body;
   const adminPhones = (process.env.ADMIN_PHONES || '')
@@ -113,3 +113,6 @@ router.post('/admin/verify-otp', async (req, res) => {
   delete otpStore[phone];
   res.json({ message: 'Admin login successful', admin: true });
 });
+
+// ✅ THIS WAS MISSING – ADD IT BACK
+module.exports = router;
