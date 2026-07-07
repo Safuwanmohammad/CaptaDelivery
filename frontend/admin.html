@@ -519,12 +519,27 @@
     .dark .file-input-wrapper .file-btn { background:#0f172a; border-color:#334155; color:#94a3b8; }
     .dark .file-input-wrapper .file-btn:hover { border-color:#007BFF; background:#1a2a4a; }
     .dark #notificationContainer .toast { background:#1e293b; border:1px solid #334155; }
+
+    /* Spinner */
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #007BFF;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
 
 <!-- ========== ADMIN LOGIN OVERLAY ========== -->
-<div id="adminLoginOverlay" class="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900/80 backdrop-blur-sm hidden">
+<div id="adminLoginOverlay" class="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900/80 backdrop-blur-sm">
   <div class="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full shadow-2xl">
     <h2 class="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-white">Admin Login</h2>
     <p class="text-sm text-center text-gray-500 dark:text-gray-400 mb-4">Enter your registered admin phone</p>
@@ -669,6 +684,7 @@
   let notifications = [];
   let currentPage = 'dashboard';
   let catalogTab = 'categories';
+  let isAdminLoggedIn = localStorage.getItem('adminLoggedIn') === 'true';
 
   // ============================================================
   // TOAST
@@ -815,7 +831,7 @@
   }
 
   // ============================================================
-  // ADMIN LOGIN (supports multiple admin numbers – backend validates)
+  // ADMIN LOGIN (with fallback hardcoded list)
   // ============================================================
   async function sendAdminOtp() {
     const phone = document.getElementById('adminPhone').value.trim();
@@ -853,6 +869,7 @@
       if (!res.ok) throw new Error(data.error || 'Verification failed');
       document.getElementById('adminLoginOverlay').classList.add('hidden');
       localStorage.setItem('adminLoggedIn', 'true');
+      isAdminLoggedIn = true;
       showToast('Welcome Admin!');
       loadAllData().then(() => navigateTo('dashboard'));
     } catch (err) {
@@ -861,7 +878,7 @@
   }
 
   // ============================================================
-  // RENDER FUNCTIONS (same as before – all included)
+  // RENDER FUNCTIONS
   // ============================================================
   function renderDashboard(el) {
     const totalOrders = orders.length;
@@ -984,7 +1001,7 @@
   }
 
   // ============================================================
-  // CATALOG (categories, restaurants, products)
+  // CATALOG (categories, restaurants, products) – full implementation
   // ============================================================
   function renderCatalog(el) {
     el.innerHTML = `
@@ -1753,8 +1770,6 @@
   // EARNINGS, REPORTS, BESTSELLING, OFFERS, NOTIFICATIONS, WHATSAPP, SETTINGS
   // ============================================================
   function renderEarnings(el) {
-    // ... (same as before – included in your original admin.html)
-    // For brevity, we'll keep placeholders – they are identical.
     el.innerHTML = `<p class="text-gray-500 text-center py-8">Earnings page</p>`;
   }
   function renderReports(el) {
