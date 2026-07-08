@@ -13,7 +13,7 @@ if (API_KEY) {
 
 const otpStore = {};
 
-// Normalise phone to a standard format: always starts with 91, 12 digits
+// Normalise phone: remove non-digits, add 91 if 10 digits, else keep as is
 function normalisePhone(phone) {
   const digits = phone.replace(/\D/g, '');
   if (digits.length === 10) {
@@ -43,7 +43,7 @@ async function sendOtp(phone, otp) {
   }
 }
 
-// ===== USER OTP =====
+// ===== USER OTP (unchanged) =====
 router.post('/send-otp', async (req, res) => {
   const { phone } = req.body;
   if (!phone || phone.length < 10) {
@@ -95,17 +95,20 @@ router.post('/register', async (req, res) => {
   res.status(201).json({ message: 'Registration successful', user: result.rows[0] });
 });
 
-// ===== ADMIN OTP =====
-// Hardcoded fallback list (in case env var is missing)
-const DEFAULT_ADMIN_PHONES = '+919019825189,+918277079552,+919483685462';
-const adminPhonesEnv = process.env.ADMIN_PHONES || DEFAULT_ADMIN_PHONES;
-const ADMIN_PHONES = adminPhonesEnv
+// ===== ADMIN OTP (HARDCODED + ENV) =====
+// Hardcoded list – always works even if env is missing
+const HARDCODED_ADMINS = ['919019825189', '918277079552', '919483685462'];
+
+// Merge with environment variable if present
+const envAdmins = (process.env.ADMIN_PHONES || '')
   .split(',')
   .map(p => p.trim())
   .filter(p => p.length > 0)
   .map(p => normalisePhone(p));
 
-// Log the admin list at startup
+// Use both lists, remove duplicates
+const ADMIN_PHONES = [...new Set([...HARDCODED_ADMINS, ...envAdmins])];
+
 console.log('🔐 Admin phones (normalised):', ADMIN_PHONES);
 
 router.post('/admin/send-otp', async (req, res) => {
@@ -114,8 +117,8 @@ router.post('/admin/send-otp', async (req, res) => {
     return res.status(400).json({ error: 'Valid phone number required' });
   }
   const normalized = normalisePhone(phone);
-  console.log(`Admin login attempt: raw=${phone}, normalized=${normalized}`);
-  console.log(`Admin list: ${ADMIN_PHONES.join(', ')}`);
+  console.log(`Admin login attempt: raw="${phone}" -> normalized="${normalized}"`);
+  console.log(`Admin list contains? ${ADMIN_PHONES.includes(normalized)}`);
   if (!ADMIN_PHONES.includes(normalized)) {
     return res.status(403).json({ error: 'Not authorized as admin' });
   }
