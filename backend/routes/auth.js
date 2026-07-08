@@ -13,8 +13,9 @@ if (API_KEY) {
 
 const otpStore = {};
 
-// Normalise phone: remove non-digits, add 91 if 10 digits, else keep as is
+// Normalise phone: always return 12 digits starting with '91'
 function normalisePhone(phone) {
+  if (!phone) return '';
   const digits = phone.replace(/\D/g, '');
   if (digits.length === 10) {
     return '91' + digits;
@@ -22,29 +23,40 @@ function normalisePhone(phone) {
   if (digits.length === 12 && digits.startsWith('91')) {
     return digits;
   }
-  return digits; // fallback
+  return digits; // fallback (shouldn't happen)
+}
+
+// For 2Factor, we need the 10-digit number without country code
+function getTenDigit(phone) {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return digits.substring(2);
+  }
+  return digits;
 }
 
 async function sendOtp(phone, otp) {
-  const cleanPhone = phone.replace(/\D/g, '');
+  // phone is normalized (12 digits starting with 91)
+  const tenDigit = getTenDigit(phone);
   if (twoFactorInstance) {
     try {
-      const sessionId = await twoFactorInstance.sendOTP(cleanPhone, { otp });
-      console.log(`✅ OTP sent to ${phone} via 2Factor. Session: ${sessionId}`);
+      const sessionId = await twoFactorInstance.sendOTP(tenDigit, { otp });
+      console.log(`✅ OTP sent to ${tenDigit} via 2Factor. Session: ${sessionId}`);
       return true;
     } catch (err) {
       console.error('❌ 2Factor error:', err.message);
-      console.log(`📱 OTP for ${phone}: ${otp}`);
+      console.log(`📱 OTP for ${tenDigit}: ${otp}`);
       return false;
     }
   } else {
-    console.log(`📱 OTP for ${phone}: ${otp}`);
+    console.log(`📱 OTP for ${tenDigit}: ${otp}`);
     return true;
   }
 }
 
-// ===== USER OTP (unchanged) =====
+// ===== USER OTP =====
 router.post('/send-otp', async (req, res) => {
+  console.log('📥 /send-otp called with body:', req.body);
   const { phone } = req.body;
   if (!phone || phone.length < 10) {
     return res.status(400).json({ error: 'Valid phone number required' });
@@ -57,6 +69,7 @@ router.post('/send-otp', async (req, res) => {
 });
 
 router.post('/verify-otp', async (req, res) => {
+  console.log('📥 /verify-otp called with body:', req.body);
   const { phone, otp } = req.body;
   if (!phone || !otp) {
     return res.status(400).json({ error: 'Phone and OTP required' });
@@ -74,6 +87,7 @@ router.post('/verify-otp', async (req, res) => {
 });
 
 router.post('/register', async (req, res) => {
+  console.log('📥 /register called with body:', req.body);
   const { firstName, lastName, address, pincode, phone, otp } = req.body;
   if (!firstName || !lastName || !address || !pincode || !phone || !otp) {
     return res.status(400).json({ error: 'All fields are required' });
@@ -112,6 +126,7 @@ const ADMIN_PHONES = [...new Set([...HARDCODED_ADMINS, ...envAdmins])];
 console.log('🔐 Admin phones (normalised):', ADMIN_PHONES);
 
 router.post('/admin/send-otp', async (req, res) => {
+  console.log('📥 /admin/send-otp called with body:', req.body);
   const { phone } = req.body;
   if (!phone || phone.length < 10) {
     return res.status(400).json({ error: 'Valid phone number required' });
@@ -119,6 +134,7 @@ router.post('/admin/send-otp', async (req, res) => {
   const normalized = normalisePhone(phone);
   console.log(`Admin login attempt: raw="${phone}" -> normalized="${normalized}"`);
   console.log(`Admin list contains? ${ADMIN_PHONES.includes(normalized)}`);
+  console.log(`Full admin list: ${ADMIN_PHONES.join(', ')}`);
   if (!ADMIN_PHONES.includes(normalized)) {
     return res.status(403).json({ error: 'Not authorized as admin' });
   }
@@ -129,6 +145,7 @@ router.post('/admin/send-otp', async (req, res) => {
 });
 
 router.post('/admin/verify-otp', async (req, res) => {
+  console.log('📥 /admin/verify-otp called with body:', req.body);
   const { phone, otp } = req.body;
   const normalized = normalisePhone(phone);
   if (!ADMIN_PHONES.includes(normalized)) {
