@@ -13,20 +13,21 @@ app.use(express.json({ limit: '50mb' }));
 // ===== API ROUTES =====
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/restaurants', require('./routes/restaurants'));
-app.use('/api/products', require('./routes/products'));
+app.use('/api/products', require('./routes/products'));        // ✅ FIXED
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/offers', require('./routes/offers'));
 app.use('/api/places', require('./routes/places'));
 app.use('/api/customers', require('./routes/customers'));
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/settings', require('./routes/settings'));   // <-- this must be correctly exported
+app.use('/api/settings', require('./routes/settings'));
+app.use('/api/whatsapp', require('./routes/whatsapp'));        // ✅ New
 
-// ===== SERVE STATIC FRONTEND (absolute path) =====
+// ===== SERVE STATIC FRONTEND =====
 const frontendPath = path.resolve(__dirname, '../frontend');
 console.log(`📁 Serving frontend from: ${frontendPath}`);
 app.use(express.static(frontendPath));
 
-// ===== FALLBACK: serve index.html for any unknown route =====
+// ===== FALLBACK: serve index.html for unknown routes (SPA support) =====
 app.get('*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });

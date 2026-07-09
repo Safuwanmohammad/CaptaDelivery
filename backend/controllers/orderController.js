@@ -1,12 +1,29 @@
 const pool = require('../db');
 
-// ----- Helper to send WhatsApp (simulated) -----
-async function sendWhatsAppMessage(to, message) {
-  // Replace this with your WhatsApp API (e.g., Twilio, 2Factor WhatsApp, etc.)
-  console.log(`📱 WhatsApp to ${to}: ${message}`);
+// Helper: send WhatsApp and log result
+async function sendWhatsApp(phone, message, orderId, recipientType) {
+  const cleanPhone = phone.replace(/\D/g, '');
+  let status = 'failed';
+  let errorMsg = null;
+
+  try {
+    // Replace with actual WhatsApp API (Twilio, 2Factor, etc.)
+    console.log(`📱 WhatsApp to ${cleanPhone}: ${message}`);
+    status = 'sent';
+  } catch (err) {
+    errorMsg = err.message;
+    status = 'failed';
+  }
+
+  await pool.query(
+    `INSERT INTO whatsapp_logs (order_id, recipient_phone, recipient_type, status, error_message)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [orderId, cleanPhone, recipientType, status, errorMsg]
+  );
+
+  return { status, error: errorMsg };
 }
 
-// ----- Get all orders -----
 exports.getAllOrders = async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM orders ORDER BY date DESC');
@@ -16,12 +33,10 @@ exports.getAllOrders = async (req, res) => {
   }
 };
 
-// ----- Create order + send WhatsApp notifications -----
 exports.createOrder = async (req, res) => {
   const { orderId, customerId, items, productTotal, deliveryCharge, commissionAmount, adminProfit, grandTotal, paymentMethod, paymentStatus, status, deliveryAddress } = req.body;
 
   try {
-    // Insert order
     const result = await pool.query(
       `INSERT INTO orders (order_id, customer_id, items, product_total, delivery_charge, commission_amount, admin_profit, grand_total, payment_method, payment_status, status, delivery_address)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
@@ -29,23 +44,20 @@ exports.createOrder = async (req, res) => {
     );
     const createdOrder = result.rows[0];
 
-    // ----- Fetch active admin phone from settings -----
+    // Fetch active admin phone
     const settingsResult = await pool.query("SELECT value FROM settings WHERE key = 'active_admin_phone'");
-    let adminPhone = settingsResult.rows[0]?.value || process.env.ADMIN_PHONE || '+919019825189';
+    let adminPhone = settingsResult.rows[0]?.value || process.env.ADMIN_PHONES?.split(',')[0] || '+919019825189';
 
-    // ----- Fetch user phone -----
     const userResult = await pool.query('SELECT phone FROM users WHERE id = $1', [customerId]);
     const userPhone = userResult.rows[0]?.phone;
 
-    // ----- Send WhatsApp to user -----
     if (userPhone) {
       const userMsg = `🎉 Thank you for your order!\nOrder #${orderId}\nItems: ${items.map(i => `${i.name}×${i.quantity}`).join(', ')}\nTotal: ₹${grandTotal}\nDelivery Address: ${deliveryAddress}\n\nThank you for shopping with CaptaDelivery! ❤️`;
-      await sendWhatsAppMessage(userPhone, userMsg);
+      await sendWhatsApp(userPhone, userMsg, orderId, 'user');
     }
 
-    // ----- Send WhatsApp to admin -----
-    const adminMsg = `📊 New Order #${orderId}\nCustomer: ${userPhone || 'Guest'}\nItems: ${items.map(i => `${i.name}×${i.quantity}`).join(', ')}\nTotal: ₹${grandTotal}\nDelivery Address: ${deliveryAddress}`;
-    await sendWhatsAppMessage(adminPhone, adminMsg);
+    const adminMsg = `📊 New Order #${orderId}\nCustomer: ${userPhone || 'Guest'}\nItems: ${items.map(i => `${i.name}×${i.quantity}`).join(', ')}\nTotal: ₹${grandTotal}\nAddress: ${deliveryAddress}`;
+    await sendWhatsApp(adminPhone, adminMsg, orderId, 'admin');
 
     res.status(201).json(createdOrder);
   } catch (err) {
@@ -54,7 +66,6 @@ exports.createOrder = async (req, res) => {
   }
 };
 
-// ----- Update order status -----
 exports.updateOrderStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;

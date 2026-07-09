@@ -23,7 +23,7 @@ function normalisePhone(phone) {
   if (digits.length === 12 && digits.startsWith('91')) {
     return digits;
   }
-  return digits; // fallback (shouldn't happen)
+  return digits;
 }
 
 // For 2Factor, we need the 10-digit number without country code
@@ -36,7 +36,6 @@ function getTenDigit(phone) {
 }
 
 async function sendOtp(phone, otp) {
-  // phone is normalized (12 digits starting with 91)
   const tenDigit = getTenDigit(phone);
   if (twoFactorInstance) {
     try {
@@ -110,17 +109,12 @@ router.post('/register', async (req, res) => {
 });
 
 // ===== ADMIN OTP (HARDCODED + ENV) =====
-// Hardcoded list – always works even if env is missing
 const HARDCODED_ADMINS = ['919019825189', '918277079552', '919483685462'];
-
-// Merge with environment variable if present
 const envAdmins = (process.env.ADMIN_PHONES || '')
   .split(',')
   .map(p => p.trim())
   .filter(p => p.length > 0)
   .map(p => normalisePhone(p));
-
-// Use both lists, remove duplicates
 const ADMIN_PHONES = [...new Set([...HARDCODED_ADMINS, ...envAdmins])];
 
 console.log('🔐 Admin phones (normalised):', ADMIN_PHONES);
@@ -134,7 +128,6 @@ router.post('/admin/send-otp', async (req, res) => {
   const normalized = normalisePhone(phone);
   console.log(`Admin login attempt: raw="${phone}" -> normalized="${normalized}"`);
   console.log(`Admin list contains? ${ADMIN_PHONES.includes(normalized)}`);
-  console.log(`Full admin list: ${ADMIN_PHONES.join(', ')}`);
   if (!ADMIN_PHONES.includes(normalized)) {
     return res.status(403).json({ error: 'Not authorized as admin' });
   }

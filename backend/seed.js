@@ -87,6 +87,15 @@ const seed = async () => {
         key TEXT PRIMARY KEY,
         value TEXT
       );
+      CREATE TABLE IF NOT EXISTS whatsapp_logs (
+  id SERIAL PRIMARY KEY,
+  order_id TEXT NOT NULL,
+  recipient_phone TEXT NOT NULL,
+  recipient_type TEXT NOT NULL,
+  status TEXT NOT NULL,
+  error_message TEXT,
+  sent_at TIMESTAMP DEFAULT NOW()
+);
     `);
 
     // Insert default data

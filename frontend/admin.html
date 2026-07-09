@@ -348,6 +348,7 @@
       font-size:0.95rem;
       background:white;
       -webkit-appearance:none;
+      appearance:none;
     }
     .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
       border-color:#007BFF;
@@ -520,7 +521,6 @@
     .dark .file-input-wrapper .file-btn:hover { border-color:#007BFF; background:#1a2a4a; }
     .dark #notificationContainer .toast { background:#1e293b; border:1px solid #334155; }
 
-    /* Spinner */
     .spinner {
       border: 3px solid #f3f3f3;
       border-top: 3px solid #007BFF;
@@ -558,9 +558,6 @@
       <button onclick="sendAdminOtp()" id="adminSendOtpBtn" class="gradient-btn w-full text-white py-3 rounded-xl font-semibold">Send OTP</button>
     </div>
     <p class="text-center text-xs text-gray-400 dark:text-gray-500 mt-4">OTP will be sent to your phone. Check console if not received.</p>
-    <p class="text-center text-xs text-gray-400 dark:text-gray-500 mt-2">
-  Enter with or without country code (e.g., 9483685462 or +919483685462)
-</p>
   </div>
 </div>
 
@@ -834,7 +831,7 @@
   }
 
   // ============================================================
-  // ADMIN LOGIN (with fallback hardcoded list)
+  // ADMIN LOGIN
   // ============================================================
   async function sendAdminOtp() {
     const phone = document.getElementById('adminPhone').value.trim();
@@ -883,6 +880,8 @@
   // ============================================================
   // RENDER FUNCTIONS
   // ============================================================
+
+  // ---- DASHBOARD ----
   function renderDashboard(el) {
     const totalOrders = orders.length;
     const delivered = orders.filter(o => o.status === 'Delivered');
@@ -1003,9 +1002,7 @@
     }, 150);
   }
 
-  // ============================================================
-  // CATALOG (categories, restaurants, products) – full implementation
-  // ============================================================
+  // ---- CATALOG ----
   function renderCatalog(el) {
     el.innerHTML = `
       <div class="tab-group-scroll mb-4" id="catalogTabs">
@@ -1517,9 +1514,7 @@
     }).catch(err => showToast('Error: ' + err.message));
   }
 
-  // ============================================================
-  // PLACES (Delivery Areas)
-  // ============================================================
+  // ---- PLACES ----
   function renderPlaces(el) {
     el.innerHTML = `
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
@@ -1626,9 +1621,7 @@
     }).catch(err => showToast('Error: ' + err.message));
   }
 
-  // ============================================================
-  // CUSTOMERS
-  // ============================================================
+  // ---- CUSTOMERS ----
   function renderCustomers(el) {
     el.innerHTML = `
       <h2 class="text-xl font-bold mb-4">Customers</h2>
@@ -1664,9 +1657,7 @@
     }).catch(err => showToast('Error: ' + err.message));
   }
 
-  // ============================================================
-  // ORDERS
-  // ============================================================
+  // ---- ORDERS ----
   function renderOrders(el) {
     if (orders.length === 0) {
       el.innerHTML = `<p class="text-gray-500 text-center py-8 text-sm">No orders yet. <br class="show-mobile"/> Orders will appear here.</p>`;
@@ -1769,29 +1760,476 @@
     });
   }
 
-  // ============================================================
-  // EARNINGS, REPORTS, BESTSELLING, OFFERS, NOTIFICATIONS, WHATSAPP, SETTINGS
-  // ============================================================
+  // ---- EARNINGS ----
   function renderEarnings(el) {
-    el.innerHTML = `<p class="text-gray-500 text-center py-8">Earnings page</p>`;
+    const filter = document.getElementById('earningsFilter')?.value || 'today';
+    const now = new Date();
+    let startDate = new Date();
+    if (filter === 'today') startDate = new Date(now.setHours(0, 0, 0, 0));
+    else if (filter === 'yesterday') { startDate = new Date(now); startDate.setDate(startDate.getDate() - 1); startDate.setHours(0,0,0,0); }
+    else if (filter === 'week') { startDate = new Date(now); startDate.setDate(startDate.getDate() - 7); }
+    else if (filter === 'month') { startDate = new Date(now.getFullYear(), now.getMonth(), 1); }
+    else if (filter === 'year') { startDate = new Date(now.getFullYear(), 0, 1); }
+    const filtered = orders.filter(o => o.status === 'Delivered' && new Date(o.date) >= startDate);
+    const totalSales = filtered.reduce((s, o) => s + o.grand_total, 0);
+    const totalCommission = filtered.reduce((s, o) => s + (o.commission_amount || 0), 0);
+    const totalDelivery = filtered.reduce((s, o) => s + (o.delivery_charge || 0), 0);
+    const totalProfit = totalCommission + totalDelivery;
+
+    el.innerHTML = `
+      <h2 class="text-xl font-bold mb-4">Earnings</h2>
+      <div class="tab-group-scroll mb-4">
+        <button class="tab-btn ${filter === 'today' ? 'active' : ''}" onclick="setEarningsFilter('today')">Today</button>
+        <button class="tab-btn ${filter === 'yesterday' ? 'active' : ''}" onclick="setEarningsFilter('yesterday')">Yesterday</button>
+        <button class="tab-btn ${filter === 'week' ? 'active' : ''}" onclick="setEarningsFilter('week')">This Week</button>
+        <button class="tab-btn ${filter === 'month' ? 'active' : ''}" onclick="setEarningsFilter('month')">This Month</button>
+        <button class="tab-btn ${filter === 'year' ? 'active' : ''}" onclick="setEarningsFilter('year')">This Year</button>
+        <input type="date" id="customStart" onchange="setCustomEarnings()" class="border rounded-lg px-3 py-1.5 text-sm" />
+        <input type="date" id="customEnd" onchange="setCustomEarnings()" class="border rounded-lg px-3 py-1.5 text-sm" />
+      </div>
+      <div class="stat-grid mb-6">
+        <div class="stat-card"><p class="stat-label">Gross Sales</p><p class="stat-value">₹${totalSales.toFixed(2)}</p></div>
+        <div class="stat-card"><p class="stat-label">Commission</p><p class="stat-value">₹${totalCommission.toFixed(2)}</p></div>
+        <div class="stat-card"><p class="stat-label">Delivery</p><p class="stat-value">₹${totalDelivery.toFixed(2)}</p></div>
+        <div class="stat-card"><p class="stat-label">Profit</p><p class="stat-value">₹${totalProfit.toFixed(2)}</p></div>
+      </div>
+      <div class="card p-4"><div class="chart-container"><canvas id="earningsChart"></canvas></div></div>
+    `;
+    setTimeout(() => {
+      const labels = filtered.map(o => new Date(o.date).toLocaleDateString());
+      const salesData = filtered.map(o => o.grand_total);
+      new Chart(document.getElementById('earningsChart'), {
+        type: 'line',
+        data: { labels: labels.length ? labels : ['No data'], datasets: [{ label: 'Sales', data: labels.length ? salesData : [0], borderColor: '#007BFF', fill: false, tension: 0.3 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+    }, 150);
   }
+
+  function setEarningsFilter(f) {
+    document.getElementById('earningsFilter')?.remove();
+    const input = document.createElement('input');
+    input.id = 'earningsFilter';
+    input.value = f;
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    renderEarnings(document.getElementById('pageContent'));
+  }
+  function setCustomEarnings() {
+    const start = document.getElementById('customStart')?.value;
+    const end = document.getElementById('customEnd')?.value;
+    if (start && end) {
+      const input = document.getElementById('earningsFilter') || document.createElement('input');
+      input.id = 'earningsFilter';
+      input.value = 'custom';
+      input.style.display = 'none';
+      document.body.appendChild(input);
+      renderEarnings(document.getElementById('pageContent'));
+    }
+  }
+
+  // ---- REPORTS ----
   function renderReports(el) {
-    el.innerHTML = `<p class="text-gray-500 text-center py-8">Reports page</p>`;
+    el.innerHTML = `
+      <h2 class="text-xl font-bold mb-4">Reports</h2>
+      <div class="tab-group-scroll mb-4">
+        <button class="tab-btn active" onclick="renderReportTable('daily')">Daily</button>
+        <button class="tab-btn" onclick="renderReportTable('weekly')">Weekly</button>
+        <button class="tab-btn" onclick="renderReportTable('monthly')">Monthly</button>
+        <button class="tab-btn" onclick="renderReportTable('yearly')">Yearly</button>
+      </div>
+      <div id="reportTable" class="card p-4"></div>
+      <div class="flex flex-wrap gap-2 mt-4">
+        <button onclick="exportReport('pdf')" class="btn btn-primary"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button onclick="exportReport('excel')" class="btn btn-success"><i class="fas fa-file-excel"></i> Excel</button>
+        <button onclick="exportReport('csv')" class="btn btn-warning"><i class="fas fa-file-csv"></i> CSV</button>
+      </div>
+    `;
+    renderReportTable('daily');
   }
+
+  function renderReportTable(period) {
+    const now = new Date();
+    let startDate;
+    if (period === 'daily') { startDate = new Date(now); startDate.setHours(0,0,0,0); }
+    else if (period === 'weekly') { startDate = new Date(now); startDate.setDate(startDate.getDate() - 7); }
+    else if (period === 'monthly') { startDate = new Date(now.getFullYear(), now.getMonth(), 1); }
+    else if (period === 'yearly') { startDate = new Date(now.getFullYear(), 0, 1); }
+    const filtered = orders.filter(o => o.status === 'Delivered' && new Date(o.date) >= startDate);
+    const totalOrders = filtered.length;
+    const totalSales = filtered.reduce((s, o) => s + o.grand_total, 0);
+    const totalCommission = filtered.reduce((s, o) => s + (o.commission_amount || 0), 0);
+    const totalDelivery = filtered.reduce((s, o) => s + (o.delivery_charge || 0), 0);
+    const totalProfit = totalCommission + totalDelivery;
+
+    document.querySelectorAll('#reportTable .tab-btn').forEach(b => b?.classList.remove('active'));
+    const btns = document.querySelectorAll('.tab-group-scroll .tab-btn');
+    const labels = ['daily', 'weekly', 'monthly', 'yearly'];
+    const idx = labels.indexOf(period);
+    if (btns[idx]) btns[idx].classList.add('active');
+
+    document.getElementById('reportTable').innerHTML = `
+      <div class="divide-y">
+        <div class="flex justify-between py-2"><span class="text-gray-500">Orders</span><span class="font-semibold">${totalOrders}</span></div>
+        <div class="flex justify-between py-2"><span class="text-gray-500">Sales (₹)</span><span class="font-semibold">${totalSales.toFixed(2)}</span></div>
+        <div class="flex justify-between py-2"><span class="text-gray-500">Commission (₹)</span><span class="font-semibold">${totalCommission.toFixed(2)}</span></div>
+        <div class="flex justify-between py-2"><span class="text-gray-500">Delivery (₹)</span><span class="font-semibold">${totalDelivery.toFixed(2)}</span></div>
+        <div class="flex justify-between py-2 text-primary font-bold"><span>Profit (₹)</span><span>${totalProfit.toFixed(2)}</span></div>
+      </div>
+    `;
+    window._reportData = { period, totalOrders, totalSales, totalCommission, totalDelivery, totalProfit };
+  }
+
+  function exportReport(type) {
+    const data = window._reportData;
+    if (!data) return;
+    const rows = [
+      ['Metric', 'Value'],
+      ['Orders', data.totalOrders],
+      ['Sales', data.totalSales],
+      ['Commission', data.totalCommission],
+      ['Delivery Earnings', data.totalDelivery],
+      ['Profit', data.totalProfit]
+    ];
+    if (type === 'pdf') {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text('Report', 105, 20, { align: 'center' });
+      doc.autoTable({ head: [['Metric','Value']], body: rows.slice(1), startY: 30 });
+      doc.save('report.pdf');
+    } else if (type === 'excel') {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Report');
+      XLSX.writeFile(wb, 'report.xlsx');
+    } else if (type === 'csv') {
+      let csv = rows.map(r => r.join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'report.csv';
+      a.click();
+    }
+  }
+
+  // ---- BEST SELLING ----
   function renderBestSelling(el) {
-    el.innerHTML = `<p class="text-gray-500 text-center py-8">Best Selling page</p>`;
+    const delivered = orders.filter(o => o.status === 'Delivered');
+    const productCounts = {};
+    delivered.forEach(o => {
+      o.items?.forEach(item => {
+        productCounts[item.name] = (productCounts[item.name] || 0) + item.quantity;
+      });
+    });
+    const sorted = Object.entries(productCounts).sort((a,b) => b[1] - a[1]);
+    let html = `<h2 class="text-xl font-bold mb-4">Best Selling Products</h2><div class="card p-3 table-wrap"><table><thead><tr><th>Product</th><th>Sold</th><th class="hide-mobile">Sales (₹)</th><th class="hide-mobile">Commission</th></tr></thead><tbody>`;
+    if (sorted.length === 0) html += `<tr><td colspan="4" class="text-center text-gray-500 py-4">No data</td></tr>`;
+    sorted.slice(0,20).forEach(([name, qty]) => {
+      const totalSales = delivered.filter(o => o.items?.some(i => i.name === name)).reduce((s,o) => s + o.grand_total, 0);
+      const totalComm = delivered.filter(o => o.items?.some(i => i.name === name)).reduce((s,o) => s + (o.commission_amount || 0), 0);
+      html += `<tr><td class="text-truncate" style="max-width:100px;">${name}</td><td>${qty}</td><td class="hide-mobile">₹${totalSales.toFixed(2)}</td><td class="hide-mobile">₹${totalComm.toFixed(2)}</td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+    el.innerHTML = html;
   }
+
+  // ---- OFFERS ----
   function renderOffers(el) {
-    el.innerHTML = `<p class="text-gray-500 text-center py-8">Offers page</p>`;
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h2 class="text-xl font-bold">Manage Offers</h2>
+        <button onclick="openAddOffer()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Offer</button>
+      </div>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>Preview</th><th>Title</th><th>Discount</th><th>Code</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${offers.map(o => `
+              <tr>
+                <td>
+                  <div class="offer-preview" style="background: ${o.bg}; padding: 8px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px; color: white; font-size: 0.8rem;">
+                    <i class="fas ${o.icon}"></i>
+                    <span>${o.discount}</span>
+                  </div>
+                </td>
+                <td>${o.title}</td>
+                <td>${o.discount}</td>
+                <td><code class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-sm">${o.code}</code></td>
+                <td>
+                  <div class="table-actions">
+                    <button class="btn btn-sm btn-primary" onclick="editOffer(${o.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteOffer(${o.id})"><i class="fas fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
   }
+
+  function openAddOffer() {
+    openModal(`
+      <h2>Add New Offer</h2>
+      <form id="offerForm">
+        <div class="form-group"><label>Title</label><input id="oTitle" required placeholder="e.g. Weekend Sale" /></div>
+        <div class="form-group"><label>Discount Text</label><input id="oDiscount" required placeholder="e.g. 20% OFF" /></div>
+        <div class="form-group"><label>Coupon Code</label><input id="oCode" required placeholder="e.g. WEEKEND20" /></div>
+        <div class="form-group"><label>Background</label><input id="oBg" placeholder="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)" /></div>
+        <div class="form-group"><label>Icon</label><input id="oIcon" placeholder="fa-tags" value="fa-tags" /></div>
+        <button type="submit" class="btn btn-primary btn-block">Save Offer</button>
+      </form>
+    `);
+    document.getElementById('offerForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const title = document.getElementById('oTitle').value.trim();
+      const discount = document.getElementById('oDiscount').value.trim();
+      const code = document.getElementById('oCode').value.trim().toUpperCase();
+      const bg = document.getElementById('oBg').value.trim() || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+      const icon = document.getElementById('oIcon').value.trim() || 'fa-tags';
+      if (!title || !discount || !code) { showToast('Title, Discount and Code required'); return; }
+      try {
+        await postData('offers', { title, discount, code, bg, icon });
+        offers = await fetchData('offers');
+        closeModal();
+        showToast('Offer added!');
+        navigateTo('offers');
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function editOffer(id) {
+    const o = offers.find(x => x.id === id);
+    if (!o) return;
+    openModal(`
+      <h2>Edit Offer</h2>
+      <form id="offerForm">
+        <div class="form-group"><label>Title</label><input id="oTitle" value="${o.title}" required /></div>
+        <div class="form-group"><label>Discount</label><input id="oDiscount" value="${o.discount}" required /></div>
+        <div class="form-group"><label>Code</label><input id="oCode" value="${o.code}" required /></div>
+        <div class="form-group"><label>Background</label><input id="oBg" value="${o.bg}" /></div>
+        <div class="form-group"><label>Icon</label><input id="oIcon" value="${o.icon}" /></div>
+        <button type="submit" class="btn btn-primary btn-block">Update Offer</button>
+      </form>
+    `);
+    document.getElementById('offerForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      o.title = document.getElementById('oTitle').value.trim();
+      o.discount = document.getElementById('oDiscount').value.trim();
+      o.code = document.getElementById('oCode').value.trim().toUpperCase();
+      o.bg = document.getElementById('oBg').value.trim() || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+      o.icon = document.getElementById('oIcon').value.trim() || 'fa-tags';
+      try {
+        await putData(`offers/${id}`, o);
+        offers = await fetchData('offers');
+        closeModal();
+        showToast('Offer updated!');
+        navigateTo('offers');
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function deleteOffer(id) {
+    if (!confirm('Delete this offer?')) return;
+    deleteData(`offers/${id}`).then(() => fetchData('offers')).then(data => {
+      offers = data;
+      showToast('Offer deleted');
+      navigateTo('offers');
+    }).catch(err => showToast('Error: ' + err.message));
+  }
+
+  // ---- NOTIFICATIONS ----
   function renderNotifications(el) {
-    el.innerHTML = `<p class="text-gray-500 text-center py-8">Notifications page</p>`;
+    el.innerHTML = `
+      <h2 class="text-xl font-bold mb-4">Notifications</h2>
+      <div class="card p-3 divide-y divide-gray-100 dark:divide-gray-700">
+        ${notifications.length === 0 ? '<p class="text-gray-500 text-center py-4 text-sm">No notifications</p>' : notifications.slice(0,30).map(n => `
+          <div class="flex items-start gap-3 py-2 ${n.read ? 'opacity-60' : ''}">
+            <i class="fas fa-${n.type === 'new_order' ? 'shopping-cart' : n.type === 'order_cancelled' ? 'times-circle' : n.type === 'payment_failed' ? 'exclamation-circle' : 'user-plus'} text-primary mt-1"></i>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm">${n.message}</p>
+              <p class="text-xs text-gray-400">${new Date(n.timestamp).toLocaleString()}</p>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
   }
+
+  // ---- WHATSAPP ----
   function renderWhatsApp(el) {
-    el.innerHTML = `<p class="text-gray-500 text-center py-8">WhatsApp page</p>`;
+    el.innerHTML = `<div class="flex justify-center py-8"><div class="spinner"></div></div>`;
+
+    fetch(`${API_BASE}/whatsapp/logs`)
+      .then(res => res.json())
+      .then(logs => {
+        if (logs.length === 0) {
+          el.innerHTML = `<p class="text-gray-500 text-center py-8">No WhatsApp messages sent yet.</p>`;
+          return;
+        }
+
+        let html = `
+          <h2 class="text-xl font-bold mb-4">📱 WhatsApp Message Logs</h2>
+          <div class="card p-3 table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Recipient</th>
+                  <th>Phone</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Error</th>
+                  <th>Sent At</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+
+        logs.forEach(log => {
+          const statusBadge = log.status === 'sent'
+            ? `<span class="badge badge-success">✅ Sent</span>`
+            : `<span class="badge badge-danger">❌ Failed</span>`;
+
+          html += `
+            <tr>
+              <td><strong>${log.order_id}</strong></td>
+              <td>${log.recipient_type === 'admin' ? '👤 Admin' : '👤 User'}</td>
+              <td>${log.recipient_phone}</td>
+              <td>${log.recipient_type}</td>
+              <td>${statusBadge}</td>
+              <td class="text-sm">${log.error_message || '-'}</td>
+              <td>${new Date(log.sent_at).toLocaleString()}</td>
+            </tr>
+          `;
+        });
+
+        html += `</tbody></table></div>`;
+        el.innerHTML = html;
+      })
+      .catch(err => {
+        el.innerHTML = `<p class="text-red-500 text-center py-8">Failed to load WhatsApp logs: ${err.message}</p>`;
+      });
   }
+
+  // ---- SETTINGS ----
   function renderSettings(el) {
-    el.innerHTML = `<p class="text-gray-500 text-center py-8">Settings page</p>`;
+    fetch(`${API_BASE}/settings`)
+      .then(res => res.json())
+      .then(settings => {
+        const currentPhone = settings.active_admin_phone || '+919019825189';
+
+        el.innerHTML = `
+          <h2 class="text-xl font-bold mb-4">Settings</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="card p-4">
+              <h3 class="font-semibold mb-2 text-sm">Default Commission</h3>
+              <div class="flex gap-2">
+                <input type="number" id="defaultComm" value="${settings.defaultCommission || 10}" class="flex-1 border rounded-lg px-3 py-2 text-sm" />
+                <button onclick="updateSetting('defaultCommission', document.getElementById('defaultComm').value)" class="btn btn-primary">Save</button>
+              </div>
+            </div>
+
+            <div class="card p-4">
+              <h3 class="font-semibold mb-2 text-sm">Order Statuses</h3>
+              <div class="flex gap-2">
+                <input type="text" id="newStatus" placeholder="New status" class="flex-1 border rounded-lg px-3 py-2 text-sm" />
+                <button onclick="addOrderStatus()" class="btn btn-primary">Add</button>
+              </div>
+              <div class="mt-2 flex flex-wrap gap-1">
+                ${(settings.orderStatuses || ['Pending','Processing','Delivered','Cancelled']).map(s => `<span class="badge badge-info">${s} <button onclick="removeOrderStatus('${s}')" class="ml-1 text-red-500">&times;</button></span>`).join('')}
+              </div>
+            </div>
+
+            <div class="card p-4">
+              <h3 class="font-semibold mb-2 text-sm">Business Info</h3>
+              <div class="form-group"><label>Name</label><input id="bizName" value="${settings.business?.name || ''}" /></div>
+              <div class="form-group"><label>Email</label><input id="bizEmail" value="${settings.business?.email || ''}" /></div>
+              <div class="form-group"><label>Phone</label><input id="bizPhone" value="${settings.business?.phone || ''}" /></div>
+              <button onclick="updateBusinessInfo()" class="btn btn-primary btn-block">Save</button>
+            </div>
+
+            <div class="card p-4">
+              <h3 class="font-semibold mb-2 text-sm">WhatsApp</h3>
+              <div class="form-group"><label>Enabled</label><select id="waEnabled"><option value="true" ${settings.whatsapp?.enabled ? 'selected' : ''}>Yes</option><option value="false" ${!settings.whatsapp?.enabled ? 'selected' : ''}>No</option></select></div>
+              <div class="form-group"><label>API Key</label><input id="waApiKey" value="${settings.whatsapp?.apiKey || ''}" /></div>
+              <div class="form-group"><label>Phone</label><input id="waPhone" value="${settings.whatsapp?.phoneNumber || ''}" /></div>
+              <button onclick="updateWhatsAppSettings()" class="btn btn-primary btn-block">Save</button>
+            </div>
+
+            <div class="card p-4 col-span-1 md:col-span-2">
+              <h3 class="font-semibold mb-2 text-sm">Active Admin Phone (Primary Admin)</h3>
+              <p class="text-sm text-gray-500 mb-2">Order WhatsApp notifications will be sent to this number.</p>
+              <select id="adminPhoneSelect" class="w-full border rounded-lg px-3 py-2 text-sm" onchange="updateAdminPhone()">
+                <option value="+919019825189" ${currentPhone === '+919019825189' ? 'selected' : ''}>+91 9019825189</option>
+                <option value="+918277079552" ${currentPhone === '+918277079552' ? 'selected' : ''}>+91 8277079552</option>
+                <option value="+919483685462" ${currentPhone === '+919483685462' ? 'selected' : ''}>+91 9483685462</option>
+              </select>
+              <div id="adminPhoneStatus" class="mt-2 text-sm text-green-600"></div>
+            </div>
+          </div>
+        `;
+        document.getElementById('defaultComm').value = settings.defaultCommission || 10;
+      })
+      .catch(err => {
+        el.innerHTML = `<p class="text-red-500">Error loading settings</p>`;
+        console.error(err);
+      });
+  }
+
+  // ---- Settings helper functions ----
+  function updateSetting(key, value) {
+    settings[key] = value;
+    showToast('Setting updated (local only)');
+  }
+  function addOrderStatus() {
+    const status = document.getElementById('newStatus').value.trim();
+    if (!status) return;
+    if (!settings.orderStatuses) settings.orderStatuses = [];
+    settings.orderStatuses.push(status);
+    showToast('Status added (local only)');
+    navigateTo('settings');
+  }
+  function removeOrderStatus(status) {
+    settings.orderStatuses = settings.orderStatuses.filter(s => s !== status);
+    showToast('Status removed (local only)');
+    navigateTo('settings');
+  }
+  function updateBusinessInfo() {
+    settings.business = {
+      name: document.getElementById('bizName').value.trim(),
+      email: document.getElementById('bizEmail').value.trim(),
+      phone: document.getElementById('bizPhone').value.trim(),
+      logo: settings.business?.logo || ''
+    };
+    showToast('Business info updated (local only)');
+  }
+  function updateWhatsAppSettings() {
+    settings.whatsapp = {
+      enabled: document.getElementById('waEnabled').value === 'true',
+      apiKey: document.getElementById('waApiKey').value.trim(),
+      phoneNumber: document.getElementById('waPhone').value.trim()
+    };
+    showToast('WhatsApp settings updated (local only)');
+  }
+
+  async function updateAdminPhone() {
+    const phone = document.getElementById('adminPhoneSelect').value;
+    try {
+      const res = await fetch(`${API_BASE}/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'active_admin_phone', value: phone })
+      });
+      if (!res.ok) throw new Error('Update failed');
+      document.getElementById('adminPhoneStatus').textContent = '✅ Updated successfully!';
+      setTimeout(() => document.getElementById('adminPhoneStatus').textContent = '', 3000);
+    } catch (err) {
+      document.getElementById('adminPhoneStatus').textContent = '❌ Error updating';
+      console.error(err);
+    }
   }
 
   // ============================================================
@@ -1821,6 +2259,19 @@
   window.showToast = showToast;
   window.sendAdminOtp = sendAdminOtp;
   window.verifyAdminOtp = verifyAdminOtp;
+  window.updateAdminPhone = updateAdminPhone;
+  window.updateSetting = updateSetting;
+  window.addOrderStatus = addOrderStatus;
+  window.removeOrderStatus = removeOrderStatus;
+  window.updateBusinessInfo = updateBusinessInfo;
+  window.updateWhatsAppSettings = updateWhatsAppSettings;
+  window.setEarningsFilter = setEarningsFilter;
+  window.setCustomEarnings = setCustomEarnings;
+  window.renderReportTable = renderReportTable;
+  window.exportReport = exportReport;
+  window.openAddOffer = openAddOffer;
+  window.editOffer = editOffer;
+  window.deleteOffer = deleteOffer;
 
   // ============================================================
   // INIT
