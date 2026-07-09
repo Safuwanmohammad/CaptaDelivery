@@ -1,5 +1,5 @@
 // ============================================================
-// API BASE – automatically uses the current domain
+// API BASE – dynamically uses the current domain
 // ============================================================
 const API_BASE = window.location.origin + '/api';
 
@@ -234,8 +234,7 @@ function proceedToCheckout() {
     categoryTotals: categoryTotals
   };
 
-  // Calculate delivery charge (will be 0 initially, but dropdowns will update)
-  updateDeliveryCharge(); // this no longer calls renderContent()
+  updateDeliveryCharge();
 
   state.showOrderSummary = true;
   state.showCart = false;
@@ -245,9 +244,6 @@ function proceedToCheckout() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ============================================================
-// UPDATE DELIVERY CHARGE (no recursive render call)
-// ============================================================
 function updateDeliveryCharge() {
   const mainArea = state.orderSummary.selectedMainArea;
   const subArea = state.orderSummary.selectedSubArea;
@@ -259,8 +255,9 @@ function updateDeliveryCharge() {
     state.orderSummary.deliveryCharge = 0;
     state.orderSummary.grandTotal = state.orderSummary.subtotal;
   }
-  // IMPORTANT: Do NOT call renderContent() here – it causes infinite recursion.
-  // The caller (e.g., dropdown change or renderOrderSummary) will handle re-rendering.
+  if (state.showOrderSummary || state.showPayment) {
+    renderContent();
+  }
 }
 
 function closeOrderSummary() {
@@ -293,7 +290,6 @@ function proceedToPayment() {
 function renderPaymentPage() {
   if (!state.showPayment) return null;
 
-  // Ensure delivery charge and grand total are up to date
   updateDeliveryCharge();
 
   const container = document.createElement('div');
@@ -302,7 +298,6 @@ function renderPaymentPage() {
   const content = document.createElement('div');
   content.className = 'max-w-3xl mx-auto bg-white rounded-2xl shadow-xl p-6';
 
-  // Header
   const header = document.createElement('div');
   header.className = 'flex justify-between items-center border-b pb-4 mb-4';
   header.innerHTML = `
@@ -313,7 +308,6 @@ function renderPaymentPage() {
   `;
   content.appendChild(header);
 
-  // Order summary
   const summaryDiv = document.createElement('div');
   summaryDiv.className = 'mb-6';
   const grouped = state.orderSummary.categoryTotals;
@@ -346,7 +340,6 @@ function renderPaymentPage() {
   `;
   content.appendChild(summaryDiv);
 
-  // Payment options
   const paymentDiv = document.createElement('div');
   paymentDiv.className = 'mb-4';
   paymentDiv.innerHTML = `
@@ -362,7 +355,6 @@ function renderPaymentPage() {
   `;
   content.appendChild(paymentDiv);
 
-  // Back button
   const backBtn = document.createElement('button');
   backBtn.className = 'text-gray-600 hover:text-gray-800 font-medium mt-4';
   backBtn.textContent = '← Back to Order Summary';
@@ -1026,12 +1018,11 @@ function renderAccountDrawer() {
 }
 
 // ============================================================
-// RENDER ORDER SUMMARY (with dropdowns)
+// RENDER ORDER SUMMARY (with area dropdowns)
 // ============================================================
 function renderOrderSummary() {
   if (!state.showOrderSummary) return null;
 
-  // Recalculate delivery charge (this will NOT trigger re-render)
   updateDeliveryCharge();
 
   const container = document.createElement('div');
@@ -1137,8 +1128,8 @@ function renderOrderSummary() {
         subSelect.appendChild(opt);
       });
     }
-    updateDeliveryCharge(); // updates state, then we re-render
-    renderContent();       // re-render the whole page (order summary)
+    updateDeliveryCharge();
+    renderContent(); // re-render to update totals
   });
   mainAreaDiv.appendChild(mainSelect);
   addressSection.appendChild(mainAreaDiv);
@@ -1169,8 +1160,8 @@ function renderOrderSummary() {
   }
   subSelect.addEventListener('change', function() {
     state.orderSummary.selectedSubArea = this.value;
-    updateDeliveryCharge(); // updates state, then we re-render
-    renderContent();       // re-render the whole page (order summary)
+    updateDeliveryCharge();
+    renderContent(); // re-render to update totals
   });
   subAreaDiv.appendChild(subSelect);
   addressSection.appendChild(subAreaDiv);

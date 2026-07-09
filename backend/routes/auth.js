@@ -11,6 +11,7 @@ if (API_KEY) {
   console.warn('⚠️ 2Factor API key missing – OTP will be printed to console.');
 }
 
+// In-memory OTP store (use Redis in production)
 const otpStore = {};
 
 // Normalise phone: always return 12 digits starting with '91'
@@ -23,7 +24,7 @@ function normalisePhone(phone) {
   if (digits.length === 12 && digits.startsWith('91')) {
     return digits;
   }
-  return digits;
+  return digits; // fallback
 }
 
 // For 2Factor, we need the 10-digit number without country code
@@ -35,6 +36,7 @@ function getTenDigit(phone) {
   return digits;
 }
 
+// Helper: send OTP via 2Factor or console fallback
 async function sendOtp(phone, otp) {
   const tenDigit = getTenDigit(phone);
   if (twoFactorInstance) {
@@ -77,6 +79,7 @@ router.post('/verify-otp', async (req, res) => {
   if (otpStore[normalized] !== otp) {
     return res.status(400).json({ error: 'Invalid OTP' });
   }
+  // Find user in database
   const result = await pool.query('SELECT * FROM users WHERE phone = $1', [normalized]);
   if (result.rows.length === 0) {
     return res.status(404).json({ error: 'No account found. Please sign up.' });
@@ -108,13 +111,16 @@ router.post('/register', async (req, res) => {
   res.status(201).json({ message: 'Registration successful', user: result.rows[0] });
 });
 
-// ===== ADMIN OTP (HARDCODED + ENV) =====
+// ===== ADMIN OTP =====
+// Hardcoded admin numbers (always accepted)
 const HARDCODED_ADMINS = ['919019825189', '918277079552', '919483685462'];
+// Merge with environment variable if present
 const envAdmins = (process.env.ADMIN_PHONES || '')
   .split(',')
   .map(p => p.trim())
   .filter(p => p.length > 0)
   .map(p => normalisePhone(p));
+// Use both lists, remove duplicates
 const ADMIN_PHONES = [...new Set([...HARDCODED_ADMINS, ...envAdmins])];
 
 console.log('🔐 Admin phones (normalised):', ADMIN_PHONES);
@@ -151,4 +157,4 @@ router.post('/admin/verify-otp', async (req, res) => {
   res.json({ message: 'Admin login successful', admin: true });
 });
 
-module.exports = router;
+module.exports = router;  // ✅ Must be present
