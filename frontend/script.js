@@ -18,6 +18,13 @@ let otpCode = null;
 let nextOrderNumber = 1;
 let cart = JSON.parse(localStorage.getItem('swingy_cart') || '[]');
 
+let settings = {
+  rain_fare: 20,
+  delivery_hours: '9:00 AM - 10:00 PM',
+  unavailable_days: [],
+  service_unavailable: false
+};
+
 let state = {
   selectedCategory: '',
   selectedRestaurant: null,
@@ -35,6 +42,7 @@ let state = {
     selectedMainArea: '',
     selectedSubArea: '',
     deliveryCharge: 0,
+    rainFare: 0,
     grandTotal: 0,
     subtotal: 0,
     categoryTotals: {}
@@ -82,19 +90,20 @@ async function putData(endpoint, data) {
 }
 
 // ============================================================
-// LOAD ALL DATA
+// LOAD ALL DATA (including settings)
 // ============================================================
 async function loadAllData() {
   try {
     state.loading = true;
-    const [catsRes, restsRes, prodsRes, offsRes, placesRes, ordersRes, usersRes] = await Promise.all([
+    const [catsRes, restsRes, prodsRes, offsRes, placesRes, ordersRes, usersRes, settingsRes] = await Promise.all([
       fetchData('categories'),
       fetchData('restaurants'),
       fetchData('products'),
       fetchData('offers'),
       fetchData('places'),
       fetchData('orders'),
-      fetchData('customers')
+      fetchData('customers'),
+      fetchData('settings')
     ]);
     categories = catsRes;
     restaurants = restsRes;
@@ -102,6 +111,12 @@ async function loadAllData() {
     offers = offsRes;
     orders = ordersRes;
     users = usersRes;
+
+    // Parse settings
+    settings.rain_fare = parseFloat(settingsRes.rain_fare) || 20;
+    settings.delivery_hours = settingsRes.delivery_hours || '9:00 AM - 10:00 PM';
+    settings.unavailable_days = settingsRes.unavailable_days ? JSON.parse(settingsRes.unavailable_days) : [];
+    settings.service_unavailable = settingsRes.service_unavailable === 'true';
 
     const areas = {};
     placesRes.forEach(p => {
@@ -168,24 +183,41 @@ function updateBadges() {
   }
 }
 
-function addToCart(product, qty) {
-  const existing = cart.find(i => i.id === product.id);
+function addToCart(product, qty, selectedVariant) {
+  const cartItem = {
+    ...product,
+    quantity: qty,
+    selectedVariant: selectedVariant || null
+  };
+  if (selectedVariant && product.variants && product.variants.length > 0) {
+    const variant = product.variants.find(v => v.label === selectedVariant);
+    if (variant) {
+      cartItem.price = variant.price;
+      cartItem.displayName = product.name + ' (' + variant.label + ')';
+      cartItem.variantLabel = variant.label;
+    }
+  } else {
+    cartItem.displayName = product.name;
+    cartItem.variantLabel = null;
+  }
+
+  const existing = cart.find(i => i.id === product.id && i.variantLabel === cartItem.variantLabel);
   if (existing) {
     existing.quantity += qty;
   } else {
-    cart.push({ ...product, quantity: qty });
+    cart.push(cartItem);
   }
   saveCart();
   updateBadges();
-  showToast(`Added ${qty} ${product.name}`);
+  showToast(`Added ${qty} ${cartItem.displayName}`);
   renderContent();
 }
 
-function updateQuantity(id, newQty) {
+function updateQuantity(id, newQty, variantLabel) {
   if (newQty <= 0) {
-    cart = cart.filter(i => i.id !== id);
+    cart = cart.filter(i => !(i.id === id && i.variantLabel === (variantLabel || null)));
   } else {
-    const item = cart.find(i => i.id === id);
+    const item = cart.find(i => i.id === id && i.variantLabel === (variantLabel || null));
     if (item) item.quantity = newQty;
   }
   saveCart();
@@ -193,8 +225,8 @@ function updateQuantity(id, newQty) {
   renderContent();
 }
 
-function removeItem(id) {
-  cart = cart.filter(i => i.id !== id);
+function removeItem(id, variantLabel) {
+  cart = cart.filter(i => !(i.id === id && i.variantLabel === (variantLabel || null)));
   saveCart();
   updateBadges();
   renderContent();
@@ -219,7 +251,7 @@ function proceedToCheckout() {
   const categoryTotals = {};
   let subtotal = 0;
   Object.keys(grouped).forEach(cat => {
-    const total = grouped[cat].reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const total = grouped[cat].reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
     categoryTotals[cat] = total;
     subtotal += total;
   });
@@ -229,12 +261,12 @@ function proceedToCheckout() {
     selectedMainArea: '',
     selectedSubArea: '',
     deliveryCharge: 0,
-    grandTotal: subtotal,
+    rainFare: settings.rain_fare || 0,
+    grandTotal: subtotal + (settings.rain_fare || 0),
     subtotal: subtotal,
     categoryTotals: categoryTotals
   };
 
-  // Calculate initial delivery charge (no area selected -> 0)
   updateDeliveryCharge();
 
   state.showOrderSummary = true;
@@ -251,15 +283,14 @@ function proceedToCheckout() {
 function updateDeliveryCharge() {
   const mainArea = state.orderSummary.selectedMainArea;
   const subArea = state.orderSummary.selectedSubArea;
+  let delivery = 0;
   if (mainArea && subArea && deliveryAreas[mainArea] && deliveryAreas[mainArea].subAreas[subArea]) {
-    const charge = deliveryAreas[mainArea].subAreas[subArea];
-    state.orderSummary.deliveryCharge = charge;
-    state.orderSummary.grandTotal = state.orderSummary.subtotal + charge;
-  } else {
-    state.orderSummary.deliveryCharge = 0;
-    state.orderSummary.grandTotal = state.orderSummary.subtotal;
+    delivery = deliveryAreas[mainArea].subAreas[subArea];
   }
-  // DO NOT call renderContent() here – the caller will handle re-rendering
+  state.orderSummary.deliveryCharge = delivery;
+  const rain = settings.rain_fare || 0;
+  state.orderSummary.rainFare = rain;
+  state.orderSummary.grandTotal = state.orderSummary.subtotal + delivery + rain;
 }
 
 function closeOrderSummary() {
@@ -292,7 +323,6 @@ function proceedToPayment() {
 function renderPaymentPage() {
   if (!state.showPayment) return null;
 
-  // Ensure delivery charge and grand total are up to date
   updateDeliveryCharge();
 
   const container = document.createElement('div');
@@ -321,7 +351,8 @@ function renderPaymentPage() {
     const catTotal = grouped[cat];
     itemsHtml += `<div class="font-semibold text-primary text-sm mt-2">${cat}</div>`;
     catItems.forEach(item => {
-      itemsHtml += `<div class="flex justify-between text-sm py-1"><span>${item.name} × ${item.quantity}</span><span>₹${item.price * item.quantity}</span></div>`;
+      const displayName = item.displayName || item.name;
+      itemsHtml += `<div class="flex justify-between text-sm py-1"><span>${displayName} × ${item.quantity}</span><span>₹${(item.price || 0) * item.quantity}</span></div>`;
     });
     itemsHtml += `<div class="flex justify-between text-sm font-semibold border-b border-gray-100 py-1"><span>Subtotal</span><span>₹${catTotal}</span></div>`;
   });
@@ -335,6 +366,10 @@ function renderPaymentPage() {
     <div class="flex justify-between">
       <span>Delivery</span>
       <span>₹${state.orderSummary.deliveryCharge}</span>
+    </div>
+    <div class="flex justify-between">
+      <span>Rain Fare</span>
+      <span>₹${state.orderSummary.rainFare}</span>
     </div>
     <div class="flex justify-between font-bold text-lg text-primary mt-2 pt-2 border-t">
       <span>Grand Total</span>
@@ -405,19 +440,28 @@ async function placeOrder() {
   }));
   const productTotal = state.orderSummary.subtotal;
   const deliveryCharge = state.orderSummary.deliveryCharge;
+  const rainFare = state.orderSummary.rainFare;
   const commissionAmount = itemsWithCommission.reduce(
     (sum, item) => sum + (item.price * item.quantity * (item.commission || 0) / 100),
     0
   );
-  const adminProfit = commissionAmount + deliveryCharge;
-  const grandTotal = productTotal + deliveryCharge;
+  const adminProfit = commissionAmount + deliveryCharge + rainFare;
+  const grandTotal = productTotal + deliveryCharge + rainFare;
 
   const newOrder = {
     orderId: orderNumber,
     customerId: user ? user.id : 1,
-    items: itemsWithCommission,
+    items: itemsWithCommission.map(item => ({
+      name: item.displayName || item.name,
+      price: item.price,
+      quantity: item.quantity,
+      commission: item.commission || 0,
+      category: item.category || 'Uncategorized',
+      variantLabel: item.variantLabel || null
+    })),
     productTotal,
     deliveryCharge,
+    rainFare,
     commissionAmount,
     adminProfit,
     grandTotal,
@@ -463,7 +507,6 @@ async function placeOrder() {
 // ============================================================
 // USER AUTHENTICATION
 // ============================================================
-// --- DESKTOP ACCOUNT DROPDOWN ---
 let accountDropdownOpen = false;
 
 function toggleAccountDropdown(e) {
@@ -766,33 +809,73 @@ function renderProductCard(product, onAdd) {
   const container = document.createElement('div');
   container.className = 'product-card bg-white rounded-xl shadow-md overflow-hidden';
   let qty = 1;
+  let selectedVariant = null;
+
   const image = document.createElement('img');
   image.src = product.images && product.images.length > 0 ? product.images[0] : 'https://placehold.co/400x400';
   image.alt = product.name;
   image.className = 'w-full h-36 object-cover';
   container.appendChild(image);
+
   const body = document.createElement('div');
   body.className = 'p-3';
-  const ratingDiv = document.createElement('div');
-  ratingDiv.className = 'flex items-center gap-1 mb-1';
-  ratingDiv.innerHTML = `<i class="fas fa-star text-yellow-400 text-xs"></i><span class="text-xs">4.5</span>`;
-  body.appendChild(ratingDiv);
+
   const name = document.createElement('h3');
   name.className = 'font-semibold text-gray-800 text-sm';
   name.textContent = product.name;
   body.appendChild(name);
+
+  // Check if product has variants
+  let hasVariants = product.variants && product.variants.length > 0;
+
+  if (hasVariants) {
+    // Variant dropdown
+    const variantSelect = document.createElement('select');
+    variantSelect.className = 'w-full text-sm border rounded px-2 py-1 mt-1 bg-white';
+    variantSelect.id = `variant-${product.id}`;
+    product.variants.forEach((v, idx) => {
+      const opt = document.createElement('option');
+      opt.value = v.label;
+      opt.textContent = `${v.label} - ₹${v.price}`;
+      if (idx === 0) opt.selected = true;
+      variantSelect.appendChild(opt);
+    });
+    variantSelect.addEventListener('change', function() {
+      selectedVariant = this.value;
+      const variant = product.variants.find(v => v.label === selectedVariant);
+      if (variant) {
+        priceSpan.textContent = `₹${variant.price}`;
+      }
+    });
+    body.appendChild(variantSelect);
+    // Set initial selected variant
+    selectedVariant = product.variants[0].label;
+  }
+
+  const ratingDiv = document.createElement('div');
+  ratingDiv.className = 'flex items-center gap-1 mb-1 mt-1';
+  ratingDiv.innerHTML = `<i class="fas fa-star text-yellow-400 text-xs"></i><span class="text-xs">4.5</span>`;
+  body.appendChild(ratingDiv);
+
   const weight = document.createElement('p');
   weight.className = 'text-gray-400 text-xs';
   weight.textContent = '1 pc';
   body.appendChild(weight);
+
   const bottom = document.createElement('div');
   bottom.className = 'flex items-center justify-between mt-2';
+
   const priceDiv = document.createElement('div');
   const priceSpan = document.createElement('span');
   priceSpan.className = 'text-primary font-bold';
-  priceSpan.textContent = `₹${product.price}`;
+  if (hasVariants) {
+    priceSpan.textContent = `₹${product.variants[0].price}`;
+  } else {
+    priceSpan.textContent = `₹${product.price}`;
+  }
   priceDiv.appendChild(priceSpan);
   bottom.appendChild(priceDiv);
+
   const controls = document.createElement('div');
   controls.className = 'flex items-center gap-1';
   const minusBtn = document.createElement('button');
@@ -803,10 +886,12 @@ function renderProductCard(product, onAdd) {
     qtyDisplay.textContent = qty;
   });
   controls.appendChild(minusBtn);
+
   const qtyDisplay = document.createElement('span');
   qtyDisplay.className = 'w-6 text-center text-sm';
   qtyDisplay.textContent = qty;
   controls.appendChild(qtyDisplay);
+
   const plusBtn = document.createElement('button');
   plusBtn.className = 'w-7 h-7 rounded-full bg-gray-100';
   plusBtn.textContent = '+';
@@ -815,18 +900,24 @@ function renderProductCard(product, onAdd) {
     qtyDisplay.textContent = qty;
   });
   controls.appendChild(plusBtn);
+
   const addBtn = document.createElement('button');
   addBtn.className = 'gradient-btn text-white px-3 py-1 rounded-full text-xs';
   addBtn.textContent = 'Add';
   addBtn.addEventListener('click', () => {
-    onAdd(product, qty);
+    if (hasVariants) {
+      selectedVariant = document.getElementById(`variant-${product.id}`).value;
+    }
+    onAdd(product, qty, selectedVariant);
     qty = 1;
     qtyDisplay.textContent = qty;
   });
   controls.appendChild(addBtn);
+
   bottom.appendChild(controls);
   body.appendChild(bottom);
   container.appendChild(body);
+
   return container;
 }
 
@@ -1026,7 +1117,6 @@ function renderAccountDrawer() {
 function renderOrderSummary() {
   if (!state.showOrderSummary) return null;
 
-  // Calculate delivery charge (will not trigger re-render)
   updateDeliveryCharge();
 
   const container = document.createElement('div');
@@ -1067,11 +1157,12 @@ function renderOrderSummary() {
     `;
     catDiv.appendChild(catHeader);
     catItems.forEach(item => {
+      const displayName = item.displayName || item.name;
       const row = document.createElement('div');
       row.className = 'flex justify-between items-center text-sm py-1 px-2 hover:bg-gray-50 rounded';
       row.innerHTML = `
-        <span>${item.name} × ${item.quantity}</span>
-        <span class="text-gray-600">₹${item.price * item.quantity}</span>
+        <span>${displayName} × ${item.quantity}</span>
+        <span class="text-gray-600">₹${(item.price || 0) * item.quantity}</span>
       `;
       catDiv.appendChild(row);
     });
@@ -1132,8 +1223,8 @@ function renderOrderSummary() {
         subSelect.appendChild(opt);
       });
     }
-    updateDeliveryCharge(); // update state
-    renderContent(); // re-render the page
+    updateDeliveryCharge();
+    renderContent();
   });
   mainAreaDiv.appendChild(mainSelect);
   addressSection.appendChild(mainAreaDiv);
@@ -1164,13 +1255,20 @@ function renderOrderSummary() {
   }
   subSelect.addEventListener('change', function() {
     state.orderSummary.selectedSubArea = this.value;
-    updateDeliveryCharge(); // update state
-    renderContent(); // re-render the page
+    updateDeliveryCharge();
+    renderContent();
   });
   subAreaDiv.appendChild(subSelect);
   addressSection.appendChild(subAreaDiv);
+  const rainFareDiv = document.createElement('div');
+  rainFareDiv.className = 'flex justify-between items-center text-sm text-gray-600 border-t border-gray-100 pt-2 mt-2';
+  rainFareDiv.innerHTML = `
+    <span>Rain Fare</span>
+    <span>₹${state.orderSummary.rainFare}</span>
+  `;
+  addressSection.appendChild(rainFareDiv);
   const deliveryChargeDiv = document.createElement('div');
-  deliveryChargeDiv.className = 'flex justify-between items-center text-sm text-gray-600 border-t border-gray-100 pt-2 mt-2';
+  deliveryChargeDiv.className = 'flex justify-between items-center text-sm text-gray-600 border-t border-gray-100 pt-2';
   deliveryChargeDiv.innerHTML = `
     <span>Delivery Charge</span>
     <span>₹${state.orderSummary.deliveryCharge}</span>
@@ -1402,12 +1500,13 @@ function renderCartSidebar() {
   let subtotal = 0;
   const categoryTotals = {};
   Object.keys(grouped).forEach(cat => {
-    const total = grouped[cat].reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const total = grouped[cat].reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
     categoryTotals[cat] = total;
     subtotal += total;
   });
   const delivery = subtotal > 199 ? 0 : 40;
-  const grandTotal = subtotal + delivery;
+  const rain = settings.rain_fare || 0;
+  const grandTotal = subtotal + delivery + rain;
   const container = document.createElement('div');
   container.className = 'fixed inset-0 z-50';
   const backdrop = document.createElement('div');
@@ -1456,7 +1555,7 @@ function renderCartSidebar() {
         info.className = 'flex-1';
         const name = document.createElement('h4');
         name.className = 'font-semibold text-sm';
-        name.textContent = item.name;
+        name.textContent = item.displayName || item.name;
         info.appendChild(name);
         const price = document.createElement('p');
         price.className = 'text-primary font-bold';
@@ -1467,7 +1566,7 @@ function renderCartSidebar() {
         const minus = document.createElement('button');
         minus.className = 'w-7 h-7 rounded-full bg-white border';
         minus.textContent = '-';
-        minus.addEventListener('click', () => updateQuantity(item.id, item.quantity - 1));
+        minus.addEventListener('click', () => updateQuantity(item.id, item.quantity - 1, item.variantLabel));
         controls.appendChild(minus);
         const qtySpan = document.createElement('span');
         qtySpan.textContent = item.quantity;
@@ -1475,12 +1574,12 @@ function renderCartSidebar() {
         const plus = document.createElement('button');
         plus.className = 'w-7 h-7 rounded-full bg-white border';
         plus.textContent = '+';
-        plus.addEventListener('click', () => updateQuantity(item.id, item.quantity + 1));
+        plus.addEventListener('click', () => updateQuantity(item.id, item.quantity + 1, item.variantLabel));
         controls.appendChild(plus);
         const trash = document.createElement('button');
         trash.className = 'ml-auto text-red-500';
         trash.innerHTML = '<i class="fas fa-trash"></i>';
-        trash.addEventListener('click', () => removeItem(item.id));
+        trash.addEventListener('click', () => removeItem(item.id, item.variantLabel));
         controls.appendChild(trash);
         info.appendChild(controls);
         row.appendChild(info);
@@ -1498,6 +1597,10 @@ function renderCartSidebar() {
     deliveryRow.className = 'flex justify-between text-sm py-1';
     deliveryRow.innerHTML = `<span>Delivery</span><span>${delivery === 0 ? 'Free' : `₹${delivery}`}</span>`;
     summary.appendChild(deliveryRow);
+    const rainRow = document.createElement('div');
+    rainRow.className = 'flex justify-between text-sm py-1';
+    rainRow.innerHTML = `<span>Rain Fare</span><span>₹${rain}</span>`;
+    summary.appendChild(rainRow);
     const totalRow = document.createElement('div');
     totalRow.className = 'flex justify-between font-bold text-lg pt-2 border-t border-gray-300';
     totalRow.innerHTML = `<span>Grand Total</span><span>₹${grandTotal}</span>`;
@@ -1595,9 +1698,21 @@ function renderOrdersModal() {
 
 function handleOrderAgain(orderItems) {
   orderItems.forEach(item => {
-    const existing = cart.find(i => i.id === item.id);
+    const originalProduct = products.find(p => p.name === item.name);
+    const cartItem = {
+      ...item,
+      id: originalProduct ? originalProduct.id : Date.now(),
+      displayName: item.name,
+      variantLabel: item.variantLabel || null,
+      price: item.price,
+      images: originalProduct ? originalProduct.images : ['https://placehold.co/400x400'],
+      category: item.category || 'Uncategorized',
+      commission: item.commission || 0,
+      variants: originalProduct ? originalProduct.variants : []
+    };
+    const existing = cart.find(i => i.id === cartItem.id && i.variantLabel === cartItem.variantLabel);
     if (existing) existing.quantity += item.quantity;
-    else cart.push({ ...item });
+    else cart.push(cartItem);
   });
   saveCart();
   updateBadges();
@@ -1627,6 +1742,30 @@ function renderContent() {
     app.appendChild(loadingDiv);
     return;
   }
+
+  // Add service unavailable banner if applicable
+  if (settings.service_unavailable) {
+    const banner = document.createElement('div');
+    banner.className = 'bg-red-600 text-white text-center py-2 text-sm font-semibold';
+    banner.textContent = '⚠️ Service is currently unavailable. Please check back later.';
+    app.appendChild(banner);
+  } else {
+    // Show delivery hours banner
+    const hoursBanner = document.createElement('div');
+    hoursBanner.className = 'bg-blue-50 text-gray-700 text-center py-1 text-xs border-b border-blue-200';
+    hoursBanner.textContent = `🕒 Delivery Hours: ${settings.delivery_hours}`;
+    app.appendChild(hoursBanner);
+  }
+
+  // Check if today is an unavailable day
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  if (settings.unavailable_days && settings.unavailable_days.includes(today)) {
+    const closedBanner = document.createElement('div');
+    closedBanner.className = 'bg-orange-500 text-white text-center py-2 text-sm font-semibold';
+    closedBanner.textContent = `📢 Closed on ${today}. Orders will be processed on the next working day.`;
+    app.appendChild(closedBanner);
+  }
+
   if (state.showPayment) {
     const paymentPage = renderPaymentPage();
     if (paymentPage) app.appendChild(paymentPage);
@@ -1694,7 +1833,8 @@ const categoryIcons = {
   'Snacks': { icon: 'fa-cookie-bite', color: 'bg-amber-100', iconColor: 'text-amber-600' },
   'Drinks': { icon: 'fa-mug-hot', color: 'bg-blue-100', iconColor: 'text-blue-600' },
   'Fruits': { icon: 'fa-apple', color: 'bg-red-100', iconColor: 'text-red-600' },
-  'Grocery': { icon: 'fa-shopping-basket', color: 'bg-purple-100', iconColor: 'text-purple-600' }
+  'Grocery': { icon: 'fa-shopping-basket', color: 'bg-purple-100', iconColor: 'text-purple-600' },
+  'Cool Drinks': { icon: 'fa-cocktail', color: 'bg-cyan-100', iconColor: 'text-cyan-600' }
 };
 
 // ============================================================

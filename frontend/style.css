@@ -245,7 +245,8 @@ body {
   border-color: #007BFF;
   ring: 2px solid rgba(0, 123, 255, 0.2);
 }
-/* ===== Desktop Account Dropdown ===== */
+
+/* ===================== DESKTOP ACCOUNT DROPDOWN ===================== */
 .account-dropdown {
   position: relative;
   display: inline-block;
@@ -315,4 +316,190 @@ body {
   font-weight: 600;
   color: #1f2937;
   pointer-events: none;
+}
+
+/* ===================== MOBILE RESPONSIVE FIXES ===================== */
+@media (max-width: 767px) {
+  /* Product cards – full width & visible buttons */
+  .product-card {
+    width: 100% !important;
+    margin-bottom: 12px !important;
+  }
+  .product-card .w-full.h-36 {
+    height: 140px !important;
+  }
+  .product-card .p-3 {
+    padding: 10px !important;
+  }
+  .product-card .text-sm {
+    font-size: 0.8rem !important;
+  }
+  .product-card .gradient-btn {
+    font-size: 0.7rem !important;
+    padding: 4px 10px !important;
+  }
+  .product-card .w-7.h-7 {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.8rem !important;
+  }
+  .product-card select {
+    font-size: 0.75rem !important;
+    padding: 4px 6px !important;
+  }
+
+  /* Product grid on mobile */
+  .grid.grid-cols-2.md\:grid-cols-3.lg\:grid-cols-4 {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Admin tables – stack rows, no horizontal scroll */
+  .table-wrap {
+    overflow-x: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .table-wrap table {
+    min-width: auto !important;
+    width: 100% !important;
+    font-size: 0.7rem !important;
+  }
+  .table-wrap th,
+  .table-wrap td {
+    padding: 6px 8px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+  .table-wrap .hide-mobile {
+    display: none !important;
+  }
+  .table-wrap table,
+  .table-wrap thead,
+  .table-wrap tbody,
+  .table-wrap tr,
+  .table-wrap td {
+    display: block !important;
+  }
+  .table-wrap thead {
+    display: none !important;
+  }
+  .table-wrap tr {
+    margin-bottom: 12px !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 8px !important;
+    padding: 8px !important;
+    background: white !important;
+  }
+  .table-wrap td {
+    border: none !important;
+    padding: 4px 8px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+  }
+  .table-wrap td:last-child {
+    border-bottom: none !important;
+  }
+  .table-wrap td::before {
+    content: attr(data-label) !important;
+    font-weight: 600 !important;
+    color: #6b7280 !important;
+    margin-right: 12px !important;
+    flex-shrink: 0 !important;
+  }
+  .table-wrap .table-actions {
+    justify-content: flex-end !important;
+    gap: 4px !important;
+  }
+  .table-wrap .btn-sm {
+    font-size: 0.65rem !important;
+    padding: 2px 8px !important;
+  }
+
+  /* Admin stat cards – 2 columns */
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  .stat-card {
+    padding: 10px !important;
+  }
+  .stat-card .stat-value {
+    font-size: 1rem !important;
+  }
+  .stat-card .stat-label {
+    font-size: 0.6rem !important;
+  }
+  .stat-card .icon {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 0.8rem !important;
+  }
+
+  /* Admin top bar */
+  .top-bar .page-title h1 {
+    font-size: 1rem !important;
+  }
+  .top-bar .right-actions .theme-btn {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 0.9rem !important;
+  }
+  .top-bar .right-actions .admin-badge {
+    font-size: 0.6rem !important;
+    padding: 4px 10px !important;
+  }
+
+  /* Admin sidebar – better touch targets */
+  .sidebar a {
+    padding: 10px 16px !important;
+    font-size: 0.85rem !important;
+  }
+  .sidebar a i {
+    font-size: 1rem !important;
+  }
+
+  /* Modal on mobile */
+  .modal-box {
+    margin: 8px !important;
+    padding: 16px !important;
+    max-width: 100% !important;
+  }
+  .modal-box h2 {
+    font-size: 1.1rem !important;
+  }
+
+  /* Form elements on mobile */
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 0.85rem !important;
+    padding: 8px 12px !important;
+  }
+  .btn {
+    font-size: 0.8rem !important;
+    padding: 6px 12px !important;
+  }
+  .btn-block {
+    font-size: 0.9rem !important;
+    padding: 10px !important;
+  }
+}
+
+/* ===== VERY SMALL SCREENS (<= 400px) ===== */
+@media (max-width: 400px) {
+  .stat-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .grid.grid-cols-2.md\:grid-cols-3.lg\:grid-cols-4 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .product-card .w-full.h-36 {
+    height: 120px !important;
+  }
+  .top-bar .page-title h1 {
+    font-size: 0.9rem !important;
+  }
 }
