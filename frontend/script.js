@@ -234,6 +234,7 @@ function proceedToCheckout() {
     categoryTotals: categoryTotals
   };
 
+  // Calculate initial delivery charge (no area selected -> 0)
   updateDeliveryCharge();
 
   state.showOrderSummary = true;
@@ -244,6 +245,9 @@ function proceedToCheckout() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ============================================================
+// UPDATE DELIVERY CHARGE (NO renderContent call!)
+// ============================================================
 function updateDeliveryCharge() {
   const mainArea = state.orderSummary.selectedMainArea;
   const subArea = state.orderSummary.selectedSubArea;
@@ -255,9 +259,7 @@ function updateDeliveryCharge() {
     state.orderSummary.deliveryCharge = 0;
     state.orderSummary.grandTotal = state.orderSummary.subtotal;
   }
-  if (state.showOrderSummary || state.showPayment) {
-    renderContent();
-  }
+  // DO NOT call renderContent() here – the caller will handle re-rendering
 }
 
 function closeOrderSummary() {
@@ -290,6 +292,7 @@ function proceedToPayment() {
 function renderPaymentPage() {
   if (!state.showPayment) return null;
 
+  // Ensure delivery charge and grand total are up to date
   updateDeliveryCharge();
 
   const container = document.createElement('div');
@@ -1018,11 +1021,12 @@ function renderAccountDrawer() {
 }
 
 // ============================================================
-// RENDER ORDER SUMMARY (with area dropdowns)
+// RENDER ORDER SUMMARY (FIXED – no infinite loop)
 // ============================================================
 function renderOrderSummary() {
   if (!state.showOrderSummary) return null;
 
+  // Calculate delivery charge (will not trigger re-render)
   updateDeliveryCharge();
 
   const container = document.createElement('div');
@@ -1128,8 +1132,8 @@ function renderOrderSummary() {
         subSelect.appendChild(opt);
       });
     }
-    updateDeliveryCharge();
-    renderContent(); // re-render to update totals
+    updateDeliveryCharge(); // update state
+    renderContent(); // re-render the page
   });
   mainAreaDiv.appendChild(mainSelect);
   addressSection.appendChild(mainAreaDiv);
@@ -1160,8 +1164,8 @@ function renderOrderSummary() {
   }
   subSelect.addEventListener('change', function() {
     state.orderSummary.selectedSubArea = this.value;
-    updateDeliveryCharge();
-    renderContent(); // re-render to update totals
+    updateDeliveryCharge(); // update state
+    renderContent(); // re-render the page
   });
   subAreaDiv.appendChild(subSelect);
   addressSection.appendChild(subAreaDiv);
