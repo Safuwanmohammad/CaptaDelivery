@@ -1,125 +1,125 @@
 const pool = require('../db');
 
-// Get commission reports aggregated by period
+/**
+ * GET /api/reports/commission?period=daily|weekly|monthly
+ */
 exports.getCommissionReport = async (req, res) => {
-  const { period } = req.query; // 'daily', 'weekly', 'monthly'
-  let interval;
-  const now = new Date();
-  let startDate;
-
-  switch (period) {
-    case 'weekly':
-      startDate = new Date(now);
-      startDate.setDate(startDate.getDate() - 7);
-      interval = 'day';
-      break;
-    case 'monthly':
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-      interval = 'day';
-      break;
-    case 'daily':
-    default:
-      startDate = new Date(now);
-      startDate.setHours(0, 0, 0, 0);
-      interval = 'hour';
-      break;
-  }
-
   try {
-    const result = await pool.query(
-      `SELECT 
-        date_trunc($1, date) as period_date,
-        SUM(commission_amount) as total_commission,
-        SUM(grand_total) as total_sales,
-        COUNT(*) as order_count
-       FROM orders
-       WHERE status = 'Delivered' AND date >= $2
-       GROUP BY period_date
-       ORDER BY period_date ASC`,
-      [interval, startDate]
-    );
+    const { period = 'daily' } = req.query;
+    let interval;
+    if (period === 'weekly') interval = '7 days';
+    else if (period === 'monthly') interval = '30 days';
+    else interval = '1 day';
 
-    const labels = result.rows.map(r => new Date(r.period_date).toLocaleDateString());
-    const commissionData = result.rows.map(r => parseFloat(r.total_commission) || 0);
-    const salesData = result.rows.map(r => parseFloat(r.total_sales) || 0);
-    const orderCounts = result.rows.map(r => parseInt(r.order_count) || 0);
+    const query = `
+      SELECT
+        DATE_TRUNC('day', date) AS day,
+        COUNT(*) AS orders,
+        SUM(grand_total) AS sales,
+        SUM(commission_amount) AS commission
+      FROM orders
+      WHERE status = 'Delivered'
+        AND date > NOW() - INTERVAL '${interval}'
+      GROUP BY day
+      ORDER BY day ASC
+    `;
+    const result = await pool.query(query);
+
+    const labels = result.rows.map(row => row.day.toLocaleDateString());
+    const orderCounts = result.rows.map(row => parseInt(row.orders));
+    const salesData = result.rows.map(row => parseFloat(row.sales));
+    const commissionData = result.rows.map(row => parseFloat(row.commission));
+
+    const totalCommission = commissionData.reduce((a, b) => a + b, 0);
+    const totalSales = salesData.reduce((a, b) => a + b, 0);
+    const totalOrders = orderCounts.reduce((a, b) => a + b, 0);
 
     res.json({
-      period,
       labels,
-      commissionData,
-      salesData,
       orderCounts,
-      totalCommission: commissionData.reduce((a, b) => a + b, 0),
-      totalSales: salesData.reduce((a, b) => a + b, 0),
-      totalOrders: orderCounts.reduce((a, b) => a + b, 0)
+      salesData,
+      commissionData,
+      totalCommission,
+      totalSales,
+      totalOrders
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Get report for a specific restaurant
+/**
+ * GET /api/reports/restaurant/:id
+ * Returns orders that contain items from that restaurant.
+ */
 exports.getRestaurantReport = async (req, res) => {
-  const { id } = req.params;
   try {
-    // Since items JSONB may not have restaurant_id, we need to get orders that contain items from this restaurant.
-    // We'll query orders where any item has the restaurant_id.
-    // We'll use a JSONB query that checks if any item in the items array has restaurant_id = id
-    const result = await pool.query(
-      `SELECT 
+    const restaurantId = parseInt(req.params.id);
+    const query = `
+      SELECT
         o.order_id,
         o.date,
         o.grand_total,
         o.commission_amount,
         o.delivery_charge,
         o.rain_fare,
-        (o.grand_total - o.commission_amount - o.delivery_charge - o.rain_fare) as restaurant_revenue,
         o.items
-       FROM orders o
-       WHERE o.status = 'Delivered'
-         AND EXISTS (
-           SELECT 1 FROM jsonb_array_elements(o.items) as item
-           WHERE item->>'restaurant_id' = $1::text
-         )
-       ORDER BY o.date DESC`,
-      [id.toString()]
-    );
+      FROM orders o
+      WHERE o.status = 'Delivered'
+        AND EXISTS (
+          SELECT 1
+          FROM jsonb_array_elements(o.items) AS item
+          WHERE (item->>'restaurant_id')::int = $1
+        )
+      ORDER BY o.date DESC
+    `;
+    const result = await pool.query(query, [restaurantId]);
 
-    const orders = result.rows;
-    const totalOrders = orders.length;
-    const totalRevenue = orders.reduce((s, o) => s + parseFloat(o.grand_total || 0), 0);
-    const totalCommission = orders.reduce((s, o) => s + parseFloat(o.commission_amount || 0), 0);
-    const totalDelivery = orders.reduce((s, o) => s + parseFloat(o.delivery_charge || 0), 0);
-    const totalRain = orders.reduce((s, o) => s + parseFloat(o.rain_fare || 0), 0);
-    const restaurantRevenue = orders.reduce((s, o) => s + parseFloat(o.restaurant_revenue || 0), 0);
+    let totalRevenue = 0;
+    let totalCommission = 0;
+    let ordersDetail = result.rows.map(row => {
+      const grandTotal = parseFloat(row.grand_total);
+      const commission = parseFloat(row.commission_amount) || 0;
+      const delivery = parseFloat(row.delivery_charge) || 0;
+      const rain = parseFloat(row.rain_fare) || 0;
+      const restaurantRevenue = grandTotal - commission - delivery - rain;
+      totalRevenue += grandTotal;
+      totalCommission += commission;
+      return {
+        orderId: row.order_id,
+        date: row.date,
+        grandTotal,
+        commission,
+        delivery,
+        rain,
+        restaurantRevenue
+      };
+    });
 
     res.json({
-      restaurantId: id,
-      totalOrders,
+      totalOrders: result.rows.length,
       totalRevenue,
       totalCommission,
-      totalDelivery,
-      totalRain,
-      restaurantRevenue,
-      orders: orders.map(o => ({
-        orderId: o.order_id,
-        date: o.date,
-        grandTotal: o.grand_total,
-        commission: o.commission_amount,
-        restaurantRevenue: o.restaurant_revenue
-      }))
+      restaurantRevenue: totalRevenue - totalCommission - 
+        ordersDetail.reduce((s, o) => s + (o.delivery || 0) + (o.rain || 0), 0),
+      orders: ordersDetail
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Toggle restaurant status
+/**
+ * PUT /api/reports/restaurant/:id/toggle
+ * Toggle restaurant status between 'Active' and 'Inactive'
+ */
 exports.toggleRestaurantStatus = async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body; // 'Active' or 'Inactive'
   try {
+    const id = parseInt(req.params.id);
+    const { status } = req.body;
+    if (!['Active', 'Inactive'].includes(status)) {
+      return res.status(400).json({ error: 'Status must be "Active" or "Inactive"' });
+    }
     const result = await pool.query(
       'UPDATE restaurants SET status = $1 WHERE id = $2 RETURNING *',
       [status, id]

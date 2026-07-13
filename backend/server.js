@@ -13,14 +13,15 @@ app.use(express.json({ limit: '50mb' }));
 // ===== API ROUTES =====
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/restaurants', require('./routes/restaurants'));
-app.use('/api/products', require('./routes/products'));        // ✅ FIXED
+app.use('/api/products', require('./routes/products'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/offers', require('./routes/offers'));
 app.use('/api/places', require('./routes/places'));
 app.use('/api/customers', require('./routes/customers'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/settings', require('./routes/settings'));
-app.use('/api/whatsapp', require('./routes/whatsapp'));        // ✅ New
+app.use('/api/whatsapp', require('./routes/whatsapp'));
+app.use('/api/reports', require('./routes/reports'));   // <-- ADDED
 
 // ===== SERVE STATIC FRONTEND =====
 const frontendPath = path.resolve(__dirname, '../frontend');
