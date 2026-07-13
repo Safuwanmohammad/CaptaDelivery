@@ -318,7 +318,7 @@ function proceedToPayment() {
 }
 
 // ============================================================
-// RENDER PAYMENT PAGE
+// RENDER PAYMENT PAGE (UPDATED: COD + Razorpay placeholder)
 // ============================================================
 function renderPaymentPage() {
   if (!state.showPayment) return null;
@@ -341,6 +341,7 @@ function renderPaymentPage() {
   `;
   content.appendChild(header);
 
+  // Order summary
   const summaryDiv = document.createElement('div');
   summaryDiv.className = 'mb-6';
   const grouped = state.orderSummary.categoryTotals;
@@ -378,16 +379,17 @@ function renderPaymentPage() {
   `;
   content.appendChild(summaryDiv);
 
+  // Payment options
   const paymentDiv = document.createElement('div');
   paymentDiv.className = 'mb-4';
   paymentDiv.innerHTML = `
     <h3 class="font-semibold text-lg mb-2">Choose Payment Method</h3>
     <div class="flex flex-col gap-3">
-      <button onclick="confirmPayment('online')" class="gradient-btn text-white py-3 rounded-xl font-semibold w-full">
-        <i class="fas fa-credit-card mr-2"></i> UPI / Online Payment (Simulated)
-      </button>
-      <button onclick="confirmPayment('cod')" class="btn btn-outline py-3 rounded-xl font-semibold w-full border-2 border-primary text-primary hover:bg-primary hover:text-white transition">
+      <button onclick="confirmPayment('cod')" class="gradient-btn text-white py-3 rounded-xl font-semibold w-full">
         <i class="fas fa-hand-holding-usd mr-2"></i> Cash on Delivery
+      </button>
+      <button onclick="confirmPayment('razorpay')" class="btn btn-outline py-3 rounded-xl font-semibold w-full border-2 border-primary text-primary hover:bg-primary hover:text-white transition">
+        <i class="fas fa-credit-card mr-2"></i> Pay with Razorpay (Coming Soon)
       </button>
     </div>
   `;
@@ -408,14 +410,14 @@ function renderPaymentPage() {
 }
 
 // ============================================================
-// CONFIRM PAYMENT
+// CONFIRM PAYMENT (UPDATED)
 // ============================================================
 async function confirmPayment(method) {
-  if (method === 'online') {
-    showToast('Processing UPI payment...');
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    showToast('✅ Payment successful!');
+  if (method === 'razorpay') {
+    showToast('🔜 Razorpay integration coming soon! Please use Cash on Delivery.');
+    return;
   }
+  // Cash on Delivery – place order immediately
   await placeOrder();
   state.showPayment = false;
   state.showOrderSummary = false;
@@ -465,7 +467,7 @@ async function placeOrder() {
     commissionAmount,
     adminProfit,
     grandTotal,
-    paymentMethod: 'Cash',
+    paymentMethod: 'Cash on Delivery',
     paymentStatus: 'Pending',
     status: 'Pending',
     deliveryAddress: `${state.orderSummary.selectedSubArea}, ${state.orderSummary.selectedMainArea}`
@@ -505,7 +507,7 @@ async function placeOrder() {
 }
 
 // ============================================================
-// USER AUTHENTICATION
+// USER AUTHENTICATION (unchanged)
 // ============================================================
 let accountDropdownOpen = false;
 
@@ -825,11 +827,9 @@ function renderProductCard(product, onAdd) {
   name.textContent = product.name;
   body.appendChild(name);
 
-  // Check if product has variants
   let hasVariants = product.variants && product.variants.length > 0;
 
   if (hasVariants) {
-    // Variant dropdown
     const variantSelect = document.createElement('select');
     variantSelect.className = 'w-full text-sm border rounded px-2 py-1 mt-1 bg-white';
     variantSelect.id = `variant-${product.id}`;
@@ -848,7 +848,6 @@ function renderProductCard(product, onAdd) {
       }
     });
     body.appendChild(variantSelect);
-    // Set initial selected variant
     selectedVariant = product.variants[0].label;
   }
 
