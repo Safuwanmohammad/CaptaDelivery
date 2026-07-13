@@ -548,10 +548,10 @@
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">OTP</label>
         <div class="flex gap-2">
           <input type="text" id="adminOtp" placeholder="Enter OTP" class="flex-1 px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
-          <button onclick="verifyAdminOtp()" class="gradient-btn text-white px-6 py-3 rounded-xl font-semibold">Verify</button>
+          <button onclick="verifyAdminOtp()" class="btn btn-primary px-6 py-3 rounded-xl font-semibold">Verify</button>
         </div>
       </div>
-      <button onclick="sendAdminOtp()" id="adminSendOtpBtn" class="gradient-btn w-full text-white py-3 rounded-xl font-semibold">Send OTP</button>
+      <button onclick="sendAdminOtp()" id="adminSendOtpBtn" class="btn btn-primary w-full text-white py-3 rounded-xl font-semibold">Send OTP</button>
     </div>
     <p class="text-center text-xs text-gray-400 dark:text-gray-500 mt-4">OTP will be sent to your phone. Check console if not received.</p>
   </div>
@@ -580,9 +580,12 @@
     <a href="#" data-page="whatsapp"><i class="fab fa-whatsapp"></i><span>WhatsApp</span></a>
     <a href="#" data-page="settings"><i class="fas fa-cog"></i><span>Settings</span></a>
   </nav>
-  <div class="absolute bottom-4 left-0 w-full px-4">
+  <div class="absolute bottom-4 left-0 w-full px-4 space-y-1">
+    <a href="#" onclick="logoutAdmin()" class="text-red-400 hover:text-red-300 block px-4 py-2 flex items-center gap-3">
+      <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+    </a>
     <a href="index.html" class="text-gray-400 hover:text-white block px-4 py-2 flex items-center gap-3">
-      <i class="fas fa-sign-out-alt"></i> <span>Back to Store</span>
+      <i class="fas fa-store-alt"></i> <span>Back to Store</span>
     </a>
   </div>
 </div>
@@ -620,8 +623,6 @@
 
 <!-- ========== TOAST CONTAINER ========== -->
 <div id="notificationContainer"></div>
-
-<!-- ========== NO BOTTOM NAV ========== -->
 
 <script>
   // ============================================================
@@ -859,8 +860,10 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Verification failed');
-      document.getElementById('adminLoginOverlay').classList.add('hidden');
+      // Persist login
       localStorage.setItem('adminLoggedIn', 'true');
+      localStorage.setItem('adminPhone', phone);
+      document.getElementById('adminLoginOverlay').classList.add('hidden');
       showToast('Welcome Admin!');
       loadAllData().then(() => navigateTo('dashboard'));
     } catch (err) {
@@ -869,10 +872,21 @@
   }
 
   // ============================================================
+  // LOGOUT
+  // ============================================================
+  function logoutAdmin() {
+    if (confirm('Are you sure you want to logout?')) {
+      localStorage.removeItem('adminLoggedIn');
+      localStorage.removeItem('adminPhone');
+      location.reload();
+    }
+  }
+
+  // ============================================================
   // RENDER FUNCTIONS
   // ============================================================
 
-  // ---- DASHBOARD (unchanged) ----
+  // ---- DASHBOARD ----
   function renderDashboard(el) {
     const totalOrders = orders.length;
     const delivered = orders.filter(o => o.status === 'Delivered');
@@ -1213,7 +1227,6 @@
     `;
   }
 
-  // ---- Toggle restaurant status ----
   async function toggleRestaurantStatus(id, isActive) {
     const status = isActive ? 'Active' : 'Inactive';
     try {
@@ -1221,28 +1234,283 @@
       const idx = restaurants.findIndex(r => r.id === id);
       if (idx !== -1) restaurants[idx] = result;
       showToast(`Restaurant ${isActive ? 'activated' : 'deactivated'}`);
-      // Re-render the restaurant list
       renderRestaurantsList(document.getElementById('catalogTabContent'));
     } catch (err) {
       showToast('Error: ' + err.message);
     }
   }
 
-  // ---- Products ----
-  function renderProductsList(el) { /* unchanged – same as previous */ }
+  // ---- Products (unchanged) ----
+  function renderProductsList(el) {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Products</h3>
+        <button onclick="openAddProduct()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Product</button>
+      </div>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>Image</th><th>Name</th><th>Restaurant</th><th>Price</th><th>Category</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${products.map(p => `
+              <tr>
+                <td><img src="${p.image}" class="w-10 h-10 object-cover rounded" /></td>
+                <td class="text-truncate" style="max-width:80px;">${p.name}</td>
+                <td>${p.restaurant}</td>
+                <td>₹${p.price}</td>
+                <td>${p.category}</td>
+                <td>
+                  <div class="table-actions">
+                    <button class="btn btn-sm btn-primary" onclick="editProduct(${p.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})"><i class="fas fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
 
-  // ---- PLACES, CUSTOMERS, ORDERS, EARNINGS, etc. (unchanged) ----
-  function renderPlaces(el) { /* unchanged */ }
-  function renderCustomers(el) { /* unchanged */ }
-  function renderOrders(el) { /* unchanged */ }
-  function renderEarnings(el) { /* unchanged */ }
-  function renderBestSelling(el) { /* unchanged */ }
-  function renderOffers(el) { /* unchanged */ }
-  function renderNotifications(el) { /* unchanged */ }
-  function renderWhatsApp(el) { /* unchanged */ }
-  function renderSettings(el) { /* unchanged */ }
+  // ---- PLACES ----
+  function renderPlaces(el) {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Delivery Places</h3>
+        <button onclick="openAddPlace()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Place</button>
+      </div>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Delivery Charge</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${places.map(p => `
+              <tr>
+                <td>${p.name}</td>
+                <td>₹${p.delivery_charge}</td>
+                <td>
+                  <div class="table-actions">
+                    <button class="btn btn-sm btn-primary" onclick="editPlace(${p.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="deletePlace(${p.id})"><i class="fas fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
 
-  // ---- REPORTS (updated with commission & restaurant reports) ----
+  // ---- CUSTOMERS ----
+  function renderCustomers(el) {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Customers</h3>
+        <span class="text-sm text-gray-500">Total: ${customers.length}</span>
+      </div>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Phone</th><th>Orders</th><th>Blocked</th><th>Toggle</th></tr></thead>
+          <tbody>
+            ${customers.map(c => `
+              <tr>
+                <td>${c.name}</td>
+                <td>${c.phone}</td>
+                <td>${c.orderCount || 0}</td>
+                <td><span class="badge ${c.blocked ? 'badge-danger' : 'badge-success'}">${c.blocked ? 'Blocked' : 'Active'}</span></td>
+                <td>
+                  <button class="btn btn-sm ${c.blocked ? 'btn-success' : 'btn-danger'}" onclick="toggleBlockCustomer(${c.id}, ${!c.blocked})">
+                    ${c.blocked ? 'Unblock' : 'Block'}
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // ---- ORDERS ----
+  function renderOrders(el) {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Orders</h3>
+        <span class="text-sm text-gray-500">Total: ${orders.length}</span>
+      </div>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Customer</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            ${orders.map(o => `
+              <tr>
+                <td>#${o.id}</td>
+                <td>${o.customer_name}</td>
+                <td>₹${o.grand_total}</td>
+                <td><span class="badge ${o.status === 'Delivered' ? 'badge-success' : o.status === 'Cancelled' ? 'badge-danger' : 'badge-warning'}">${o.status}</span></td>
+                <td>
+                  <button class="btn btn-sm btn-primary" onclick="viewOrder(${o.id})"><i class="fas fa-eye"></i></button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // ---- EARNINGS ----
+  function renderEarnings(el) {
+    const delivered = orders.filter(o => o.status === 'Delivered');
+    const totalCommission = delivered.reduce((s, o) => s + (o.commission_amount || 0), 0);
+    const totalDelivery = delivered.reduce((s, o) => s + (o.delivery_charge || 0), 0);
+    const totalRain = delivered.reduce((s, o) => s + (o.rain_fare || 0), 0);
+    const totalProfit = totalCommission + totalDelivery + totalRain;
+
+    el.innerHTML = `
+      <h2 class="text-xl font-bold mb-4">Earnings</h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="stat-card"><p class="stat-label">Commission</p><p class="stat-value">₹${totalCommission.toFixed(2)}</p></div>
+        <div class="stat-card"><p class="stat-label">Delivery Charges</p><p class="stat-value">₹${totalDelivery.toFixed(2)}</p></div>
+        <div class="stat-card"><p class="stat-label">Rain Fare</p><p class="stat-value">₹${totalRain.toFixed(2)}</p></div>
+        <div class="stat-card"><p class="stat-label">Total Profit</p><p class="stat-value">₹${totalProfit.toFixed(2)}</p></div>
+      </div>
+    `;
+  }
+
+  // ---- BESTSELLING ----
+  function renderBestSelling(el) {
+    const delivered = orders.filter(o => o.status === 'Delivered');
+    const productCounts = {};
+    delivered.forEach(o => {
+      o.items?.forEach(item => {
+        productCounts[item.name] = (productCounts[item.name] || 0) + item.quantity;
+      });
+    });
+    const sorted = Object.entries(productCounts).sort((a, b) => b[1] - a[1]);
+
+    el.innerHTML = `
+      <h2 class="text-xl font-bold mb-4">Best Selling Products</h2>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Product</th><th>Quantity Sold</th></tr></thead>
+          <tbody>
+            ${sorted.length === 0 ? '<tr><td colspan="3" class="text-center text-gray-400">No data</td></tr>' :
+            sorted.map(([name, qty], i) => `
+              <tr>
+                <td>${i+1}</td>
+                <td>${name}</td>
+                <td>${qty}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // ---- OFFERS ----
+  function renderOffers(el) {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Offers</h3>
+        <button onclick="openAddOffer()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Offer</button>
+      </div>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>Title</th><th>Discount</th><th>Code</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${offers.map(o => `
+              <tr>
+                <td>${o.title}</td>
+                <td>${o.discount}%</td>
+                <td>${o.code}</td>
+                <td>
+                  <div class="table-actions">
+                    <button class="btn btn-sm btn-primary" onclick="editOffer(${o.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteOffer(${o.id})"><i class="fas fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // ---- NOTIFICATIONS ----
+  function renderNotifications(el) {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Notifications</h3>
+        <button onclick="sendTestNotification()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-bell"></i> Send Test</button>
+      </div>
+      <div class="card p-4">
+        <p class="text-gray-500 text-sm">Notifications will appear here.</p>
+        <div class="mt-2 space-y-2">
+          ${notifications.map(n => `
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg flex justify-between">
+              <span>${n.message}</span>
+              <span class="text-xs text-gray-400">${new Date(n.timestamp).toLocaleString()}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // ---- WHATSAPP ----
+  function renderWhatsApp(el) {
+    el.innerHTML = `
+      <h2 class="text-xl font-bold mb-4">WhatsApp Integration</h2>
+      <div class="card p-6 max-w-xl">
+        <p class="mb-4">Configure WhatsApp settings or send broadcast messages.</p>
+        <div class="flex flex-col gap-3">
+          <input type="text" placeholder="Phone number" class="border rounded-lg px-4 py-2" />
+          <textarea rows="3" placeholder="Message" class="border rounded-lg px-4 py-2"></textarea>
+          <button class="btn btn-success">Send via WhatsApp</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // ---- SETTINGS ----
+  function renderSettings(el) {
+    el.innerHTML = `
+      <h2 class="text-xl font-bold mb-4">Settings</h2>
+      <div class="card p-6 max-w-xl">
+        <h3 class="font-semibold mb-2">Admin Phone</h3>
+        <div class="flex gap-2">
+          <select id="adminPhoneSelect" class="flex-1 border rounded-lg px-4 py-2 bg-white dark:bg-gray-700">
+            ${['+919999999999', '+918888888888', '+917777777777'].map(p => `
+              <option value="${p}" ${settings.active_admin_phone === p ? 'selected' : ''}>${p}</option>
+            `).join('')}
+          </select>
+          <button onclick="updateAdminPhone()" class="btn btn-primary">Update</button>
+        </div>
+        <p id="adminPhoneStatus" class="text-sm mt-2 text-gray-500"></p>
+
+        <hr class="my-6" />
+
+        <h3 class="font-semibold mb-2">Commission Rate</h3>
+        <div class="flex gap-2">
+          <input type="number" id="commissionRate" value="${settings.commission_rate || 10}" class="flex-1 border rounded-lg px-4 py-2" />
+          <button onclick="updateSetting('commission_rate', document.getElementById('commissionRate').value)" class="btn btn-primary">Save</button>
+        </div>
+
+        <hr class="my-6" />
+
+        <h3 class="font-semibold mb-2">Delivery Base Charge</h3>
+        <div class="flex gap-2">
+          <input type="number" id="baseDelivery" value="${settings.base_delivery_charge || 30}" class="flex-1 border rounded-lg px-4 py-2" />
+          <button onclick="updateSetting('base_delivery_charge', document.getElementById('baseDelivery').value)" class="btn btn-primary">Save</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // ---- REPORTS ----
   function renderReports(el) {
     el.innerHTML = `
       <h2 class="text-xl font-bold mb-4">Reports</h2>
@@ -1254,7 +1522,6 @@
       </div>
       <div id="reportContent"></div>
     `;
-    // Default: daily commission
     showCommissionReport('daily');
   }
 
@@ -1302,7 +1569,6 @@
       `;
       container.innerHTML = html;
 
-      // Draw chart
       new Chart(document.getElementById('commissionChart'), {
         type: 'bar',
         data: {
@@ -1392,14 +1658,235 @@
     }
   }
 
-  // ---- Settings helper functions (unchanged) ----
-  function updateSetting(key, value) { /* ... */ }
-  async function updateAdminPhone() { /* ... */ }
+  // ---- Helper functions for settings ----
+  function updateSetting(key, value) {
+    fetch(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, value })
+    })
+    .then(res => res.json())
+    .then(() => {
+      showToast('Setting updated successfully');
+      renderSettings(document.getElementById('pageContent'));
+    })
+    .catch(err => showToast('Error: ' + err.message));
+  }
 
-  // ---- CRUD functions for restaurants (unchanged) ----
-  function openAddRestaurant() { /* ... */ }
-  function editRestaurant(id) { /* ... */ }
-  function deleteRestaurant(id) { /* ... */ }
+  async function updateAdminPhone() {
+    const phone = document.getElementById('adminPhoneSelect').value;
+    try {
+      const res = await fetch(`${API_BASE}/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'active_admin_phone', value: phone })
+      });
+      if (!res.ok) throw new Error('Update failed');
+      document.getElementById('adminPhoneStatus').textContent = '✅ Updated successfully!';
+      setTimeout(() => document.getElementById('adminPhoneStatus').textContent = '', 3000);
+    } catch (err) {
+      document.getElementById('adminPhoneStatus').textContent = '❌ Error updating';
+      console.error(err);
+    }
+  }
+
+  // ---- Place CRUD ----
+  function openAddPlace() {
+    openModal(`
+      <h2>Add Delivery Place</h2>
+      <form id="placeForm">
+        <div class="form-group"><label>Place Name</label><input id="placeName" required placeholder="e.g. Downtown" /></div>
+        <div class="form-group"><label>Delivery Charge (₹)</label><input id="placeCharge" type="number" required placeholder="30" /></div>
+        <button type="submit" class="btn btn-primary btn-block">Save</button>
+      </form>
+    `);
+    document.getElementById('placeForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('placeName').value.trim();
+      const delivery_charge = parseFloat(document.getElementById('placeCharge').value);
+      try {
+        await postData('places', { name, delivery_charge });
+        places = await fetchData('places');
+        closeModal();
+        showToast('Place added!');
+        renderPlaces(document.getElementById('pageContent'));
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function editPlace(id) {
+    const p = places.find(x => x.id === id);
+    if (!p) return;
+    openModal(`
+      <h2>Edit Place</h2>
+      <form id="placeForm">
+        <div class="form-group"><label>Place Name</label><input id="placeName" value="${p.name}" required /></div>
+        <div class="form-group"><label>Delivery Charge (₹)</label><input id="placeCharge" type="number" value="${p.delivery_charge}" required /></div>
+        <button type="submit" class="btn btn-primary btn-block">Update</button>
+      </form>
+    `);
+    document.getElementById('placeForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('placeName').value.trim();
+      const delivery_charge = parseFloat(document.getElementById('placeCharge').value);
+      try {
+        await putData(`places/${id}`, { name, delivery_charge });
+        places = await fetchData('places');
+        closeModal();
+        showToast('Place updated!');
+        renderPlaces(document.getElementById('pageContent'));
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function deletePlace(id) {
+    if (!confirm('Delete this place?')) return;
+    deleteData(`places/${id}`).then(() => fetchData('places')).then(data => {
+      places = data;
+      showToast('Place deleted');
+      renderPlaces(document.getElementById('pageContent'));
+    }).catch(err => showToast('Error: ' + err.message));
+  }
+
+  // ---- Customer block toggle ----
+  async function toggleBlockCustomer(id, block) {
+    try {
+      await putData(`customers/${id}/block`, { blocked: block });
+      customers = await fetchData('customers');
+      showToast(`Customer ${block ? 'blocked' : 'unblocked'}`);
+      renderCustomers(document.getElementById('pageContent'));
+    } catch (err) { showToast('Error: ' + err.message); }
+  }
+
+  // ---- View Order ----
+  function viewOrder(id) {
+    const order = orders.find(o => o.id === id);
+    if (!order) { showToast('Order not found'); return; }
+    openModal(`
+      <h2>Order #${order.id}</h2>
+      <div class="space-y-2">
+        <p><strong>Customer:</strong> ${order.customer_name}</p>
+        <p><strong>Phone:</strong> ${order.customer_phone}</p>
+        <p><strong>Place:</strong> ${order.place}</p>
+        <p><strong>Total:</strong> ₹${order.grand_total}</p>
+        <p><strong>Status:</strong> ${order.status}</p>
+        <p><strong>Date:</strong> ${new Date(order.date).toLocaleString()}</p>
+        <div><strong>Items:</strong>
+          <ul class="list-disc pl-5">
+            ${order.items?.map(item => `<li>${item.name} × ${item.quantity} = ₹${(item.price * item.quantity).toFixed(2)}</li>`).join('') || '<li>No items</li>'}
+          </ul>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn btn-sm btn-success" onclick="updateOrderStatus(${order.id}, 'Delivered')">Deliver</button>
+          <button class="btn btn-sm btn-warning" onclick="updateOrderStatus(${order.id}, 'Processing')">Processing</button>
+          <button class="btn btn-sm btn-danger" onclick="updateOrderStatus(${order.id}, 'Cancelled')">Cancel</button>
+        </div>
+      </div>
+    `);
+  }
+
+  async function updateOrderStatus(id, status) {
+    try {
+      await putData(`orders/${id}/status`, { status });
+      orders = await fetchData('orders');
+      closeModal();
+      showToast(`Order status updated to ${status}`);
+      navigateTo('orders');
+    } catch (err) { showToast('Error: ' + err.message); }
+  }
+
+  // ---- Offer CRUD ----
+  function openAddOffer() {
+    openModal(`
+      <h2>Add Offer</h2>
+      <form id="offerForm">
+        <div class="form-group"><label>Title</label><input id="offerTitle" required placeholder="Summer Sale" /></div>
+        <div class="form-group"><label>Discount (%)</label><input id="offerDiscount" type="number" required placeholder="20" /></div>
+        <div class="form-group"><label>Code</label><input id="offerCode" required placeholder="SUMMER20" /></div>
+        <button type="submit" class="btn btn-primary btn-block">Save</button>
+      </form>
+    `);
+    document.getElementById('offerForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const title = document.getElementById('offerTitle').value.trim();
+      const discount = parseFloat(document.getElementById('offerDiscount').value);
+      const code = document.getElementById('offerCode').value.trim().toUpperCase();
+      try {
+        await postData('offers', { title, discount, code });
+        offers = await fetchData('offers');
+        closeModal();
+        showToast('Offer added!');
+        renderOffers(document.getElementById('pageContent'));
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function editOffer(id) {
+    const o = offers.find(x => x.id === id);
+    if (!o) return;
+    openModal(`
+      <h2>Edit Offer</h2>
+      <form id="offerForm">
+        <div class="form-group"><label>Title</label><input id="offerTitle" value="${o.title}" required /></div>
+        <div class="form-group"><label>Discount (%)</label><input id="offerDiscount" type="number" value="${o.discount}" required /></div>
+        <div class="form-group"><label>Code</label><input id="offerCode" value="${o.code}" required /></div>
+        <button type="submit" class="btn btn-primary btn-block">Update</button>
+      </form>
+    `);
+    document.getElementById('offerForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const title = document.getElementById('offerTitle').value.trim();
+      const discount = parseFloat(document.getElementById('offerDiscount').value);
+      const code = document.getElementById('offerCode').value.trim().toUpperCase();
+      try {
+        await putData(`offers/${id}`, { title, discount, code });
+        offers = await fetchData('offers');
+        closeModal();
+        showToast('Offer updated!');
+        renderOffers(document.getElementById('pageContent'));
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function deleteOffer(id) {
+    if (!confirm('Delete this offer?')) return;
+    deleteData(`offers/${id}`).then(() => fetchData('offers')).then(data => {
+      offers = data;
+      showToast('Offer deleted');
+      renderOffers(document.getElementById('pageContent'));
+    }).catch(err => showToast('Error: ' + err.message));
+  }
+
+  // ---- Notification test ----
+  function sendTestNotification() {
+    showToast('Test notification sent!');
+    notifications.push({ message: 'Test notification at ' + new Date().toLocaleString(), timestamp: new Date().toISOString() });
+    renderNotifications(document.getElementById('pageContent'));
+  }
+
+  // ---- Product CRUD (dummy) ----
+  function openAddProduct() {
+    showToast('Product add form coming soon...');
+  }
+  function editProduct(id) {
+    showToast('Product edit coming soon...');
+  }
+  function deleteProduct(id) {
+    if (!confirm('Delete this product?')) return;
+    showToast('Product deleted (simulated)');
+  }
+
+  // ---- Restaurant CRUD (dummy) ----
+  function openAddRestaurant() {
+    showToast('Restaurant add form coming soon...');
+  }
+  function editRestaurant(id) {
+    showToast('Restaurant edit coming soon...');
+  }
+  function deleteRestaurant(id) {
+    if (!confirm('Delete this restaurant?')) return;
+    showToast('Restaurant deleted (simulated)');
+  }
 
   // ============================================================
   // EXPOSE FUNCTIONS
@@ -1421,7 +1908,10 @@
   window.toggleBlockCustomer = toggleBlockCustomer;
   window.viewOrder = viewOrder;
   window.updateOrderStatus = updateOrderStatus;
-  window.removeExistingImage = window.removeExistingImage;
+  window.openAddOffer = openAddOffer;
+  window.editOffer = editOffer;
+  window.deleteOffer = deleteOffer;
+  window.sendTestNotification = sendTestNotification;
   window.toggleSidebar = toggleSidebar;
   window.closeSidebar = closeSidebar;
   window.closeModal = closeModal;
@@ -1434,11 +1924,18 @@
   window.showCommissionReport = showCommissionReport;
   window.showRestaurantReport = showRestaurantReport;
   window.loadRestaurantReport = loadRestaurantReport;
+  window.logoutAdmin = logoutAdmin;
 
   // ============================================================
   // INIT
   // ============================================================
   document.addEventListener('DOMContentLoaded', function() {
+    // Pre-fill phone if stored
+    const savedPhone = localStorage.getItem('adminPhone');
+    if (savedPhone) {
+      document.getElementById('adminPhone').value = savedPhone;
+    }
+
     if (localStorage.getItem('adminLoggedIn') === 'true') {
       document.getElementById('adminLoginOverlay').classList.add('hidden');
       loadAllData().then(() => navigateTo('dashboard'));

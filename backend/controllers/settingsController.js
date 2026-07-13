@@ -7,6 +7,18 @@ exports.getSettings = async (req, res) => {
     result.rows.forEach(row => {
       settings[row.key] = row.value;
     });
+    // Provide defaults for missing keys
+    const defaults = {
+      active_admin_phone: '+919019825189',
+      default_commission: '10',
+      rain_fare: '20',
+      delivery_hours: '9:00 AM - 10:00 PM',
+      unavailable_days: '[]',
+      service_unavailable: 'false'
+    };
+    Object.keys(defaults).forEach(key => {
+      if (!settings[key]) settings[key] = defaults[key];
+    });
     res.json(settings);
   } catch (err) {
     res.status(500).json({ error: err.message });

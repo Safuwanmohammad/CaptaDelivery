@@ -2,16 +2,15 @@ const pool = require('./db');
 
 const seed = async () => {
   try {
-    // Drop tables (optional – remove for production if you have data)
     await pool.query(`
-      DROP TABLE IF EXISTS products, restaurants, categories, offers, places, orders, users, settings CASCADE;
+      DROP TABLE IF EXISTS products, restaurants, categories, offers, places, orders, users, settings, whatsapp_logs CASCADE;
     `);
 
-    // Create tables
     await pool.query(`
       CREATE TABLE IF NOT EXISTS categories (
         id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL
+        name TEXT NOT NULL,
+        image TEXT
       );
 
       CREATE TABLE IF NOT EXISTS restaurants (
@@ -30,7 +29,8 @@ const seed = async () => {
         price NUMERIC(10,2),
         commission NUMERIC(5,2),
         status TEXT DEFAULT 'Active',
-        images TEXT[]
+        images TEXT[],
+        variants JSONB
       );
 
       CREATE TABLE IF NOT EXISTS places (
@@ -65,6 +65,7 @@ const seed = async () => {
         items JSONB,
         product_total NUMERIC(10,2),
         delivery_charge NUMERIC(10,2),
+        rain_fare NUMERIC(10,2) DEFAULT 0,
         commission_amount NUMERIC(10,2),
         admin_profit NUMERIC(10,2),
         grand_total NUMERIC(10,2),
@@ -87,21 +88,26 @@ const seed = async () => {
         key TEXT PRIMARY KEY,
         value TEXT
       );
+
       CREATE TABLE IF NOT EXISTS whatsapp_logs (
-  id SERIAL PRIMARY KEY,
-  order_id TEXT NOT NULL,
-  recipient_phone TEXT NOT NULL,
-  recipient_type TEXT NOT NULL,
-  status TEXT NOT NULL,
-  error_message TEXT,
-  sent_at TIMESTAMP DEFAULT NOW()
-);
+        id SERIAL PRIMARY KEY,
+        order_id TEXT NOT NULL,
+        recipient_phone TEXT NOT NULL,
+        recipient_type TEXT NOT NULL,
+        status TEXT NOT NULL,
+        error_message TEXT,
+        sent_at TIMESTAMP DEFAULT NOW()
+      );
     `);
 
-    // Insert default data
     await pool.query(`
-      INSERT INTO categories (name) VALUES
-      ('Food'), ('Vegetables'), ('Meat'), ('Dairy'), ('Snacks')
+      INSERT INTO categories (name, image) VALUES
+      ('Food', 'https://placehold.co/100'),
+      ('Vegetables', 'https://placehold.co/100'),
+      ('Meat', 'https://placehold.co/100'),
+      ('Dairy', 'https://placehold.co/100'),
+      ('Snacks', 'https://placehold.co/100'),
+      ('Cool Drinks', 'https://placehold.co/100')
       ON CONFLICT DO NOTHING;
 
       INSERT INTO restaurants (name, category, logo, status) VALUES
@@ -109,10 +115,11 @@ const seed = async () => {
       ('Biryani House', 'Food', 'https://placehold.co/100', 'Active')
       ON CONFLICT DO NOTHING;
 
-      INSERT INTO products (name, category, restaurant_id, price, commission, status, images) VALUES
-      ('Pepperoni Pizza', 'Food', 1, 299, 10, 'Active', ARRAY['https://placehold.co/400x400']),
-      ('Chicken Biryani', 'Food', 2, 249, 10, 'Active', ARRAY['https://placehold.co/400x400']),
-      ('Organic Apples', 'Vegetables', NULL, 99, 8, 'Active', ARRAY['https://placehold.co/400x400'])
+      INSERT INTO products (name, category, restaurant_id, price, commission, status, images, variants) VALUES
+      ('Pepperoni Pizza', 'Food', 1, 299, 10, 'Active', ARRAY['https://placehold.co/400x400'], '[]'),
+      ('Chicken Biryani', 'Food', 2, 249, 10, 'Active', ARRAY['https://placehold.co/400x400'], '[]'),
+      ('Organic Apples', 'Vegetables', NULL, 99, 8, 'Active', ARRAY['https://placehold.co/400x400'], '[]'),
+      ('Cola', 'Cool Drinks', NULL, 0, 5, 'Active', ARRAY['https://placehold.co/400x400'], '[{"label":"750ml","price":40},{"label":"2L","price":100}]')
       ON CONFLICT DO NOTHING;
 
       INSERT INTO offers (title, discount, code, bg, icon) VALUES
@@ -130,9 +137,14 @@ const seed = async () => {
       ('John', 'Doe', '123 Main St', '560001', '9876543210')
       ON CONFLICT (phone) DO NOTHING;
 
-      -- Insert default admin phone into settings
-      INSERT INTO settings (key, value) VALUES ('active_admin_phone', '+919019825189')
-      ON CONFLICT (key) DO UPDATE SET value = '+919019825189';
+      INSERT INTO settings (key, value) VALUES
+      ('active_admin_phone', '+919019825189'),
+      ('default_commission', '10'),
+      ('rain_fare', '20'),
+      ('delivery_hours', '9:00 AM - 10:00 PM'),
+      ('unavailable_days', '["Monday"]'),
+      ('service_unavailable', 'false')
+      ON CONFLICT (key) DO NOTHING;
     `);
 
     console.log('✅ Seed completed');

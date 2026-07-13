@@ -1,26 +1,21 @@
 const pool = require('../db');
 
-// Helper: send WhatsApp and log result
 async function sendWhatsApp(phone, message, orderId, recipientType) {
   const cleanPhone = phone.replace(/\D/g, '');
   let status = 'failed';
   let errorMsg = null;
-
   try {
-    // Replace with actual WhatsApp API (Twilio, 2Factor, etc.)
     console.log(`📱 WhatsApp to ${cleanPhone}: ${message}`);
     status = 'sent';
   } catch (err) {
     errorMsg = err.message;
     status = 'failed';
   }
-
   await pool.query(
     `INSERT INTO whatsapp_logs (order_id, recipient_phone, recipient_type, status, error_message)
      VALUES ($1, $2, $3, $4, $5)`,
     [orderId, cleanPhone, recipientType, status, errorMsg]
   );
-
   return { status, error: errorMsg };
 }
 
@@ -34,17 +29,16 @@ exports.getAllOrders = async (req, res) => {
 };
 
 exports.createOrder = async (req, res) => {
-  const { orderId, customerId, items, productTotal, deliveryCharge, commissionAmount, adminProfit, grandTotal, paymentMethod, paymentStatus, status, deliveryAddress } = req.body;
+  const { orderId, customerId, items, productTotal, deliveryCharge, rainFare, commissionAmount, adminProfit, grandTotal, paymentMethod, paymentStatus, status, deliveryAddress } = req.body;
 
   try {
     const result = await pool.query(
-      `INSERT INTO orders (order_id, customer_id, items, product_total, delivery_charge, commission_amount, admin_profit, grand_total, payment_method, payment_status, status, delivery_address)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-      [orderId, customerId, items, productTotal, deliveryCharge, commissionAmount, adminProfit, grandTotal, paymentMethod, paymentStatus, status, deliveryAddress]
+      `INSERT INTO orders (order_id, customer_id, items, product_total, delivery_charge, rain_fare, commission_amount, admin_profit, grand_total, payment_method, payment_status, status, delivery_address)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      [orderId, customerId, items, productTotal, deliveryCharge, rainFare || 0, commissionAmount, adminProfit, grandTotal, paymentMethod, paymentStatus, status, deliveryAddress]
     );
     const createdOrder = result.rows[0];
 
-    // Fetch active admin phone
     const settingsResult = await pool.query("SELECT value FROM settings WHERE key = 'active_admin_phone'");
     let adminPhone = settingsResult.rows[0]?.value || process.env.ADMIN_PHONES?.split(',')[0] || '+919019825189';
 

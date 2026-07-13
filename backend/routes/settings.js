@@ -5,5 +5,4 @@ const { getSettings, updateSetting } = require('../controllers/settingsControlle
 router.get('/', getSettings);
 router.put('/', updateSetting);
 
-// ✅ Ensure this is correct
 module.exports = router;
