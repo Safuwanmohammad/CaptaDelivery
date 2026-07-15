@@ -18,7 +18,7 @@ exports.getAllProducts = async (req, res) => {
       return res.json([]);
     }
     
-    // Check what columns exist
+    // Check what columns exist in products
     const columns = await pool.query(`
       SELECT column_name 
       FROM information_schema.columns 
@@ -27,26 +27,28 @@ exports.getAllProducts = async (req, res) => {
     const existingColumns = columns.rows.map(r => r.column_name);
     console.log('[Products] Existing columns:', existingColumns);
     
-    // Build SELECT with only existing columns
-    let selectFields = ['id', 'name'];
-    if (existingColumns.includes('price')) selectFields.push('price');
-    if (existingColumns.includes('category')) selectFields.push('category');
-    if (existingColumns.includes('restaurant_id')) selectFields.push('restaurant_id');
-    if (existingColumns.includes('commission')) selectFields.push('commission');
-    if (existingColumns.includes('status')) selectFields.push('status');
-    if (existingColumns.includes('images')) selectFields.push('images');
-    if (existingColumns.includes('variants')) selectFields.push('variants');
-    if (existingColumns.includes('created_at')) selectFields.push('created_at');
+    // Build SELECT with ONLY products columns (prefix with p.)
+    let selectFields = ['p.id', 'p.name'];
+    if (existingColumns.includes('price')) selectFields.push('p.price');
+    if (existingColumns.includes('category')) selectFields.push('p.category');
+    if (existingColumns.includes('restaurant_id')) selectFields.push('p.restaurant_id');
+    if (existingColumns.includes('commission')) selectFields.push('p.commission');
+    if (existingColumns.includes('status')) selectFields.push('p.status');
+    if (existingColumns.includes('images')) selectFields.push('p.images');
+    if (existingColumns.includes('variants')) selectFields.push('p.variants');
+    if (existingColumns.includes('created_at')) selectFields.push('p.created_at');
     
-    // Also try to get restaurant name (it might not exist in products table)
+    // Always try to get restaurant name (from restaurants table)
     const query = `
       SELECT ${selectFields.join(', ')}, 
-             r.name as restaurant_name
+             r.name as restaurant_name,
+             r.id as restaurant_id_ref
       FROM products p
       LEFT JOIN restaurants r ON p.restaurant_id = r.id
       ORDER BY p.id
     `;
     
+    console.log('[Products] Query:', query);
     const result = await pool.query(query);
     
     // Format results safely
@@ -70,7 +72,8 @@ exports.getAllProducts = async (req, res) => {
     console.error('[Products] Error:', err);
     res.status(500).json({ 
       error: 'Failed to fetch products', 
-      details: err.message
+      details: err.message,
+      code: err.code
     });
   }
 };
@@ -150,6 +153,7 @@ exports.createProduct = async (req, res) => {
     const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
     const query = `INSERT INTO products (${fields.join(', ')}) VALUES (${placeholders}) RETURNING *`;
     
+    console.log('[Products] Insert Query:', query);
     const result = await pool.query(query, values);
     console.log('[Products] Created:', result.rows[0]);
     res.status(201).json(result.rows[0]);
@@ -229,6 +233,7 @@ exports.updateProduct = async (req, res) => {
     values.push(id);
     const query = `UPDATE products SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`;
     
+    console.log('[Products] Update Query:', query);
     const result = await pool.query(query, values);
     console.log('[Products] Updated:', result.rows[0]);
     res.json(result.rows[0]);
