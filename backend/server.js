@@ -7,8 +7,10 @@ const pool = require('./db');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true }));
 
 // ===== API ROUTES =====
 app.use('/api/categories', require('./routes/categories'));
@@ -28,7 +30,7 @@ const frontendPath = path.resolve(__dirname, '../frontend');
 console.log(`📁 Serving frontend from: ${frontendPath}`);
 app.use(express.static(frontendPath));
 
-// ===== FALLBACK: serve index.html for unknown routes (SPA support) =====
+// ===== FALLBACK =====
 app.get('*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
@@ -36,10 +38,15 @@ app.get('*', (req, res) => {
 // ===== DATABASE CONNECTION TEST =====
 pool.query('SELECT NOW()', (err, result) => {
   if (err) {
-    console.error('❌ Database connection error:', err.message);
+    console.error('❌ Neon Database connection error:', err.message);
+    console.error('💡 Please check your DATABASE_URL in .env file');
   } else {
-    console.log('✅ Connected to PostgreSQL at', result.rows[0].now);
+    console.log('✅ Connected to Neon PostgreSQL at', result.rows[0].now);
   }
 });
 
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+// ===== START SERVER =====
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📊 Admin panel: http://localhost:${PORT}/admin.html`);
+});

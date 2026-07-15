@@ -2,15 +2,30 @@ const pool = require('./db');
 
 const seed = async () => {
   try {
+    console.log('🌱 Seeding database...');
+
+    // Drop tables in correct order (cascade)
     await pool.query(`
-      DROP TABLE IF EXISTS products, restaurants, categories, offers, places, orders, users, settings, whatsapp_logs CASCADE;
+      DROP TABLE IF EXISTS whatsapp_logs CASCADE;
+      DROP TABLE IF EXISTS orders CASCADE;
+      DROP TABLE IF EXISTS products CASCADE;
+      DROP TABLE IF EXISTS restaurants CASCADE;
+      DROP TABLE IF EXISTS categories CASCADE;
+      DROP TABLE IF EXISTS offers CASCADE;
+      DROP TABLE IF EXISTS places CASCADE;
+      DROP TABLE IF EXISTS users CASCADE;
+      DROP TABLE IF EXISTS settings CASCADE;
     `);
 
+    console.log('✅ Tables dropped');
+
+    // Create tables
     await pool.query(`
       CREATE TABLE IF NOT EXISTS categories (
         id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        image TEXT
+        name TEXT NOT NULL UNIQUE,
+        image TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
       );
 
       CREATE TABLE IF NOT EXISTS restaurants (
@@ -18,7 +33,8 @@ const seed = async () => {
         name TEXT NOT NULL,
         category TEXT,
         logo TEXT,
-        status TEXT DEFAULT 'Active'
+        status TEXT DEFAULT 'Active',
+        created_at TIMESTAMP DEFAULT NOW()
       );
 
       CREATE TABLE IF NOT EXISTS products (
@@ -27,10 +43,11 @@ const seed = async () => {
         category TEXT,
         restaurant_id INTEGER REFERENCES restaurants(id) ON DELETE SET NULL,
         price NUMERIC(10,2),
-        commission NUMERIC(5,2),
+        commission NUMERIC(5,2) DEFAULT 0,
         status TEXT DEFAULT 'Active',
-        images TEXT[],
-        variants JSONB
+        images TEXT[] DEFAULT '{}',
+        variants JSONB DEFAULT '[]',
+        created_at TIMESTAMP DEFAULT NOW()
       );
 
       CREATE TABLE IF NOT EXISTS places (
@@ -40,7 +57,8 @@ const seed = async () => {
         charge NUMERIC(10,2),
         min_order NUMERIC(10,2),
         time TEXT,
-        status TEXT DEFAULT 'Active'
+        status TEXT DEFAULT 'Active',
+        created_at TIMESTAMP DEFAULT NOW()
       );
 
       CREATE TABLE IF NOT EXISTS users (
@@ -72,21 +90,24 @@ const seed = async () => {
         payment_method TEXT,
         payment_status TEXT,
         status TEXT,
-        delivery_address TEXT
+        delivery_address TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
       );
 
       CREATE TABLE IF NOT EXISTS offers (
         id SERIAL PRIMARY KEY,
         title TEXT,
         discount TEXT,
-        code TEXT,
+        code TEXT UNIQUE,
         bg TEXT,
-        icon TEXT
+        icon TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
       );
 
       CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY,
-        value TEXT
+        value TEXT,
+        updated_at TIMESTAMP DEFAULT NOW()
       );
 
       CREATE TABLE IF NOT EXISTS whatsapp_logs (
@@ -100,6 +121,9 @@ const seed = async () => {
       );
     `);
 
+    console.log('✅ Tables created');
+
+    // Insert default data
     await pool.query(`
       INSERT INTO categories (name, image) VALUES
       ('Food', 'https://placehold.co/100'),
@@ -108,7 +132,7 @@ const seed = async () => {
       ('Dairy', 'https://placehold.co/100'),
       ('Snacks', 'https://placehold.co/100'),
       ('Cool Drinks', 'https://placehold.co/100')
-      ON CONFLICT DO NOTHING;
+      ON CONFLICT (name) DO NOTHING;
 
       INSERT INTO restaurants (name, category, logo, status) VALUES
       ('Pizza Hut', 'Food', 'https://placehold.co/100', 'Active'),
@@ -126,7 +150,7 @@ const seed = async () => {
       ('First Order', '₹100 OFF', 'CAPTA100', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 'fa-gift'),
       ('Weekend Sale', '20% OFF', 'WEEKEND20', 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', 'fa-tags'),
       ('Free Delivery', '₹0 Delivery', 'FREESHIP', 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', 'fa-truck')
-      ON CONFLICT DO NOTHING;
+      ON CONFLICT (code) DO NOTHING;
 
       INSERT INTO places (area, sub_area, charge, min_order, time, status) VALUES
       ('Downtown', 'Main Street', 30, 100, '20-30 min', 'Active'),
@@ -134,7 +158,7 @@ const seed = async () => {
       ON CONFLICT DO NOTHING;
 
       INSERT INTO users (first_name, last_name, address, pincode, phone) VALUES
-      ('John', 'Doe', '123 Main St', '560001', '9876543210')
+      ('John', 'Doe', '123 Main St', '560001', '+919876543210')
       ON CONFLICT (phone) DO NOTHING;
 
       INSERT INTO settings (key, value) VALUES
@@ -148,12 +172,14 @@ const seed = async () => {
       ON CONFLICT (key) DO NOTHING;
     `);
 
-    console.log('✅ Seed completed');
+    console.log('✅ Seed completed successfully');
     process.exit(0);
   } catch (err) {
     console.error('❌ Seed failed:', err.message);
+    console.error('Stack:', err.stack);
     process.exit(1);
   }
 };
 
+// Run seed
 seed();

@@ -39,11 +39,13 @@ exports.createCategory = async (req, res) => {
   }
 };
 
-// Update a category
+// Update a category - FIXED
 exports.updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, image } = req.body;
+    
+    console.log(`Updating category ${id} with:`, { name, image });
     
     // Validate input
     if (!name || name.trim() === '') {
@@ -51,7 +53,7 @@ exports.updateCategory = async (req, res) => {
     }
     
     // Check if category exists
-    const exists = await pool.query('SELECT id FROM categories WHERE id = $1', [id]);
+    const exists = await pool.query('SELECT * FROM categories WHERE id = $1', [id]);
     if (exists.rows.length === 0) {
       return res.status(404).json({ error: 'Category not found' });
     }
@@ -65,11 +67,40 @@ exports.updateCategory = async (req, res) => {
       return res.status(400).json({ error: 'Another category with this name already exists' });
     }
     
-    const result = await pool.query(
-      'UPDATE categories SET name = $1, image = $2 WHERE id = $3 RETURNING *',
-      [name.trim(), image || null, id]
-    );
+    // Build update query dynamically
+    let updateFields = [];
+    let params = [];
+    let paramIndex = 1;
     
+    if (name !== undefined) {
+      updateFields.push(`name = $${paramIndex}`);
+      params.push(name.trim());
+      paramIndex++;
+    }
+    
+    if (image !== undefined) {
+      updateFields.push(`image = $${paramIndex}`);
+      params.push(image || null);
+      paramIndex++;
+    }
+    
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+    
+    params.push(id);
+    const query = `UPDATE categories SET ${updateFields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+    
+    console.log('Query:', query);
+    console.log('Params:', params);
+    
+    const result = await pool.query(query, params);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Category not found after update' });
+    }
+    
+    console.log('Updated category:', result.rows[0]);
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Error updating category:', err);
