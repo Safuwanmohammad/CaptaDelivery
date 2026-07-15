@@ -19,15 +19,7 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- jsPDF for PDF export -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-
-  <!-- SheetJS for Excel export -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
   <style>
-    /* ===== CUSTOM STYLES ===== */
     * { -webkit-tap-highlight-color: transparent; }
     body { font-family: 'Inter', sans-serif; background: #f3f4f6; overflow-x: hidden; }
 
@@ -494,8 +486,6 @@
       .hide-mobile { display: table-cell !important; }
     }
 
-    .offer-preview { padding:8px 12px; border-radius:8px; display:inline-flex; align-items:center; gap:8px; color:white; font-size:0.8rem; }
-
     .dark .card { background:#1e293b; color:#e2e8f0; }
     .dark .stat-card { background:#1e293b; color:#e2e8f0; }
     .dark .table-wrap table th { background:#1e293b; color:#94a3b8; }
@@ -676,7 +666,6 @@
   let notifications = [];
   let currentPage = 'dashboard';
   let catalogTab = 'categories';
-  let adminPhonesList = [];
 
   // ============================================================
   // TOAST
@@ -810,13 +799,13 @@
         fetchData('offers'),
         fetchData('settings')
       ]);
-      categories = cats;
-      restaurants = rests;
-      products = prods;
-      places = plcs;
-      customers = custs;
-      orders = ords;
-      offers = offs;
+      categories = cats || [];
+      restaurants = rests || [];
+      products = prods || [];
+      places = plcs || [];
+      customers = custs || [];
+      orders = ords || [];
+      offers = offs || [];
       
       // Parse settings with defaults
       settings = {};
@@ -871,7 +860,6 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Verification failed');
-      // Persist login
       localStorage.setItem('adminLoggedIn', 'true');
       localStorage.setItem('adminPhone', phone);
       document.getElementById('adminLoginOverlay').classList.add('hidden');
@@ -894,28 +882,26 @@
   }
 
   // ============================================================
-  // RENDER FUNCTIONS
+  // DASHBOARD
   // ============================================================
-
-  // ---- DASHBOARD ----
   function renderDashboard(el) {
     const totalOrders = orders.length;
     const delivered = orders.filter(o => o.status === 'Delivered');
     const pending = orders.filter(o => o.status === 'Pending');
     const processing = orders.filter(o => o.status === 'Processing');
     const cancelled = orders.filter(o => o.status === 'Cancelled');
-    const totalSales = delivered.reduce((sum, o) => sum + o.grand_total, 0);
+    const totalSales = delivered.reduce((sum, o) => sum + (o.grand_total || 0), 0);
     const totalCommission = delivered.reduce((sum, o) => sum + (o.commission_amount || 0), 0);
     const totalDelivery = delivered.reduce((sum, o) => sum + (o.delivery_charge || 0), 0);
     const totalRain = delivered.reduce((sum, o) => sum + (o.rain_fare || 0), 0);
     const totalProfit = totalCommission + totalDelivery + totalRain;
     const today = new Date().toDateString();
-    const todayRevenue = delivered.filter(o => new Date(o.date).toDateString() === today).reduce((s, o) => s + o.grand_total, 0);
+    const todayRevenue = delivered.filter(o => new Date(o.date).toDateString() === today).reduce((s, o) => s + (o.grand_total || 0), 0);
     const customersCount = customers.length;
     let bestProduct = { name: 'N/A', count: 0 };
     const productCounts = {};
     delivered.forEach(o => {
-      o.items?.forEach(item => {
+      (o.items || []).forEach(item => {
         productCounts[item.name] = (productCounts[item.name] || 0) + item.quantity;
       });
     });
@@ -982,7 +968,7 @@
         const d = new Date(); d.setDate(d.getDate() - i);
         days.push(d.toLocaleDateString('en-IN', { weekday: 'short' }));
         const dailyTotal = orders.filter(o => new Date(o.date).toDateString() === d.toDateString() && o.status === 'Delivered')
-          .reduce((s, o) => s + o.grand_total, 0);
+          .reduce((s, o) => s + (o.grand_total || 0), 0);
         sales.push(dailyTotal);
       }
       new Chart(document.getElementById('dailyChart'), {
@@ -1011,7 +997,7 @@
 
       const prodCounts = {};
       deliveredOrders.forEach(o => {
-        o.items?.forEach(item => { prodCounts[item.name] = (prodCounts[item.name] || 0) + item.quantity; });
+        (o.items || []).forEach(item => { prodCounts[item.name] = (prodCounts[item.name] || 0) + item.quantity; });
       });
       const sorted = Object.entries(prodCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
       new Chart(document.getElementById('bestSellingChart'), {
@@ -1022,7 +1008,9 @@
     }, 150);
   }
 
-  // ---- CATALOG ----
+  // ============================================================
+  // CATALOG
+  // ============================================================
   function renderCatalog(el) {
     el.innerHTML = `
       <div class="tab-group-scroll mb-4" id="catalogTabs">
@@ -1059,8 +1047,8 @@
         <table>
           <thead><tr><th>Image</th><th>Name</th><th class="hide-mobile">Restaurants</th><th>Actions</th></tr></thead>
           <tbody>
-            ${categories.map(c => {
-              const count = restaurants.filter(r => r.category === c.name).length;
+            ${(categories || []).map(c => {
+              const count = (restaurants || []).filter(r => r.category === c.name).length;
               const img = c.image || 'https://placehold.co/60';
               return `<tr>
                 <td data-label="Image"><img src="${img}" class="w-10 h-10 object-cover rounded" /></td>
@@ -1080,12 +1068,685 @@
     `;
   }
 
-  // ---- Rest of the functions (renderPlaces, renderCustomers, renderOrders, renderEarnings, renderBestSelling, renderOffers, renderNotifications, renderWhatsApp) ----
-  // ... (keep your existing functions, they are unchanged) ...
+  function openAddCategory() {
+    openModal(`
+      <h2>Add Category</h2>
+      <form id="categoryForm">
+        <div class="form-group"><label>Category Name</label><input id="catName" required placeholder="e.g. Beverages" /></div>
+        <div class="form-group"><label>Category Image</label>
+          <div class="file-input-wrapper">
+            <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload Image</div>
+            <input id="catImage" type="file" accept="image/*" />
+          </div>
+          <div id="catImagePreview" class="image-preview-grid"></div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Save Category</button>
+      </form>
+    `);
+    const fileInput = document.getElementById('catImage');
+    const previewContainer = document.getElementById('catImagePreview');
+    fileInput.addEventListener('change', function() {
+      previewContainer.innerHTML = '';
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const div = document.createElement('div');
+          div.className = 'preview-item';
+          div.innerHTML = `<img src="${e.target.result}" />`;
+          previewContainer.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+    document.getElementById('categoryForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('catName').value.trim();
+      if (!name) { showToast('Name required'); return; }
+      let image = null;
+      const file = document.getElementById('catImage').files[0];
+      if (file) {
+        const reader = new FileReader();
+        image = await new Promise(resolve => {
+          reader.onload = e => resolve(e.target.result);
+          reader.readAsDataURL(file);
+        });
+      }
+      try {
+        await postData('categories', { name, image });
+        categories = await fetchData('categories');
+        closeModal();
+        showToast('Category added!');
+        switchCatalogTab('categories');
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
 
-  // ---- SETTINGS ----
+  function editCategory(id) {
+    const c = (categories || []).find(x => x.id === id);
+    if (!c) return;
+    openModal(`
+      <h2>Edit Category</h2>
+      <form id="categoryForm">
+        <div class="form-group"><label>Category Name</label><input id="catName" value="${c.name}" required /></div>
+        <div class="form-group"><label>Current Image</label>
+          ${c.image ? `<img src="${c.image}" class="w-20 h-20 object-cover rounded" />` : '<p class="text-gray-400">No image</p>'}
+        </div>
+        <div class="form-group"><label>Update Image (optional)</label>
+          <div class="file-input-wrapper">
+            <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload New Image</div>
+            <input id="catImage" type="file" accept="image/*" />
+          </div>
+          <div id="catImagePreview" class="image-preview-grid"></div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Update</button>
+      </form>
+    `);
+    const fileInput = document.getElementById('catImage');
+    const previewContainer = document.getElementById('catImagePreview');
+    fileInput.addEventListener('change', function() {
+      previewContainer.innerHTML = '';
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const div = document.createElement('div');
+          div.className = 'preview-item';
+          div.innerHTML = `<img src="${e.target.result}" />`;
+          previewContainer.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+    document.getElementById('categoryForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('catName').value.trim();
+      let image = c.image;
+      const file = document.getElementById('catImage').files[0];
+      if (file) {
+        const reader = new FileReader();
+        image = await new Promise(resolve => {
+          reader.onload = e => resolve(e.target.result);
+          reader.readAsDataURL(file);
+        });
+      }
+      try {
+        await putData(`categories/${id}`, { name, image });
+        categories = await fetchData('categories');
+        closeModal();
+        showToast('Category updated!');
+        switchCatalogTab('categories');
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function deleteCategory(id) {
+    if (!confirm('Delete this category?')) return;
+    deleteData(`categories/${id}`).then(() => fetchData('categories')).then(data => {
+      categories = data;
+      showToast('Category deleted');
+      switchCatalogTab('categories');
+    }).catch(err => showToast('Error: ' + err.message));
+  }
+
+  // ---- Restaurants ----
+  function renderRestaurantsList(el) {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Restaurants</h3>
+        <button onclick="openAddRestaurant()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Restaurant</button>
+      </div>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th class="hide-mobile">Category</th><th>Logo</th><th>Status</th><th>Toggle</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${(restaurants || []).map(r => `
+              <tr>
+                <td data-label="Name" class="text-truncate" style="max-width:80px;">${r.name}</td>
+                <td class="hide-mobile" data-label="Category">${r.category}</td>
+                <td data-label="Logo"><img src="${r.logo || 'https://placehold.co/40'}" class="w-8 h-8 rounded-full object-cover" /></td>
+                <td data-label="Status"><span class="badge ${r.status === 'Active' ? 'badge-success' : 'badge-danger'}">${r.status}</span></td>
+                <td data-label="Toggle">
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="sr-only peer" ${r.status === 'Active' ? 'checked' : ''} onchange="toggleRestaurantStatus(${r.id}, this.checked)">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
+                </td>
+                <td data-label="Actions">
+                  <div class="table-actions">
+                    <button class="btn btn-sm btn-primary" onclick="editRestaurant(${r.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteRestaurant(${r.id})"><i class="fas fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function openAddRestaurant() {
+    showToast('Restaurant add form coming soon...');
+  }
+
+  function editRestaurant(id) {
+    showToast('Restaurant edit coming soon...');
+  }
+
+  function deleteRestaurant(id) {
+    if (!confirm('Delete this restaurant?')) return;
+    showToast('Restaurant deleted (simulated)');
+  }
+
+  async function toggleRestaurantStatus(id, isActive) {
+    const status = isActive ? 'Active' : 'Inactive';
+    try {
+      const result = await putData(`reports/restaurant/${id}/toggle`, { status });
+      const idx = restaurants.findIndex(r => r.id === id);
+      if (idx !== -1) restaurants[idx] = result;
+      showToast(`Restaurant ${isActive ? 'activated' : 'deactivated'}`);
+      renderRestaurantsList(document.getElementById('catalogTabContent'));
+    } catch (err) {
+      showToast('Error: ' + err.message);
+    }
+  }
+
+  // ---- Products ----
+  function renderProductsList(el) {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Products</h3>
+        <button onclick="openAddProduct()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Product</button>
+      </div>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>Image</th><th>Name</th><th>Restaurant</th><th>Price</th><th>Category</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${(products || []).map(p => `
+              <tr>
+                <td><img src="${(p.images && p.images.length > 0) ? p.images[0] : 'https://placehold.co/40'}" class="w-10 h-10 object-cover rounded" /></td>
+                <td class="text-truncate" style="max-width:80px;">${p.name}</td>
+                <td>${p.restaurant_id ? (restaurants.find(r => r.id === p.restaurant_id)?.name || 'N/A') : 'N/A'}</td>
+                <td>₹${p.price}</td>
+                <td>${p.category}</td>
+                <td>
+                  <div class="table-actions">
+                    <button class="btn btn-sm btn-primary" onclick="editProduct(${p.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})"><i class="fas fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function openAddProduct() {
+    showToast('Product add form coming soon...');
+  }
+
+  function editProduct(id) {
+    showToast('Product edit coming soon...');
+  }
+
+  function deleteProduct(id) {
+    if (!confirm('Delete this product?')) return;
+    showToast('Product deleted (simulated)');
+  }
+
+  // ============================================================
+  // PLACES
+  // ============================================================
+  function renderPlaces(el) {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Delivery Places</h3>
+        <button onclick="openAddPlace()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Place</button>
+      </div>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Delivery Charge</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${(places || []).map(p => `
+              <tr>
+                <td>${p.area} - ${p.sub_area}</td>
+                <td>₹${p.charge}</td>
+                <td>
+                  <div class="table-actions">
+                    <button class="btn btn-sm btn-primary" onclick="editPlace(${p.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="deletePlace(${p.id})"><i class="fas fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function openAddPlace() {
+    openModal(`
+      <h2>Add Delivery Place</h2>
+      <form id="placeForm">
+        <div class="form-group"><label>Area</label><input id="placeArea" required placeholder="e.g. Downtown" /></div>
+        <div class="form-group"><label>Sub Area</label><input id="placeSubArea" required placeholder="e.g. Main Street" /></div>
+        <div class="form-group"><label>Delivery Charge (₹)</label><input id="placeCharge" type="number" required placeholder="30" /></div>
+        <button type="submit" class="btn btn-primary btn-block">Save</button>
+      </form>
+    `);
+    document.getElementById('placeForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const area = document.getElementById('placeArea').value.trim();
+      const subArea = document.getElementById('placeSubArea').value.trim();
+      const charge = parseFloat(document.getElementById('placeCharge').value);
+      try {
+        await postData('places', { area, subArea, charge, min_order: 0, time: '20-30 min', status: 'Active' });
+        places = await fetchData('places');
+        closeModal();
+        showToast('Place added!');
+        renderPlaces(document.getElementById('pageContent'));
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function editPlace(id) {
+    const p = (places || []).find(x => x.id === id);
+    if (!p) return;
+    openModal(`
+      <h2>Edit Place</h2>
+      <form id="placeForm">
+        <div class="form-group"><label>Area</label><input id="placeArea" value="${p.area}" required /></div>
+        <div class="form-group"><label>Sub Area</label><input id="placeSubArea" value="${p.sub_area}" required /></div>
+        <div class="form-group"><label>Delivery Charge (₹)</label><input id="placeCharge" type="number" value="${p.charge}" required /></div>
+        <button type="submit" class="btn btn-primary btn-block">Update</button>
+      </form>
+    `);
+    document.getElementById('placeForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const area = document.getElementById('placeArea').value.trim();
+      const subArea = document.getElementById('placeSubArea').value.trim();
+      const charge = parseFloat(document.getElementById('placeCharge').value);
+      try {
+        await putData(`places/${id}`, { area, subArea, charge, min_order: p.min_order, time: p.time, status: p.status });
+        places = await fetchData('places');
+        closeModal();
+        showToast('Place updated!');
+        renderPlaces(document.getElementById('pageContent'));
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function deletePlace(id) {
+    if (!confirm('Delete this place?')) return;
+    deleteData(`places/${id}`).then(() => fetchData('places')).then(data => {
+      places = data;
+      showToast('Place deleted');
+      renderPlaces(document.getElementById('pageContent'));
+    }).catch(err => showToast('Error: ' + err.message));
+  }
+
+  // ============================================================
+  // CUSTOMERS
+  // ============================================================
+  function renderCustomers(el) {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Customers</h3>
+        <span class="text-sm text-gray-500">Total: ${(customers || []).length}</span>
+      </div>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Phone</th><th>Orders</th><th>Blocked</th><th>Toggle</th></tr></thead>
+          <tbody>
+            ${(customers || []).map(c => `
+              <tr>
+                <td>${c.first_name || ''} ${c.last_name || ''}</td>
+                <td>${c.phone}</td>
+                <td>${c.total_orders || 0}</td>
+                <td><span class="badge ${c.blocked ? 'badge-danger' : 'badge-success'}">${c.blocked ? 'Blocked' : 'Active'}</span></td>
+                <td>
+                  <button class="btn btn-sm ${c.blocked ? 'btn-success' : 'btn-danger'}" onclick="toggleBlockCustomer(${c.id}, ${!c.blocked})">
+                    ${c.blocked ? 'Unblock' : 'Block'}
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  async function toggleBlockCustomer(id, block) {
+    try {
+      await putData(`customers/${id}/block`, { blocked: block });
+      customers = await fetchData('customers');
+      showToast(`Customer ${block ? 'blocked' : 'unblocked'}`);
+      renderCustomers(document.getElementById('pageContent'));
+    } catch (err) { showToast('Error: ' + err.message); }
+  }
+
+  // ============================================================
+  // ORDERS
+  // ============================================================
+  function renderOrders(el) {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Orders</h3>
+        <span class="text-sm text-gray-500">Total: ${(orders || []).length}</span>
+      </div>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Customer</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            ${(orders || []).map(o => `
+              <tr>
+                <td>${o.order_id || '#' + o.id}</td>
+                <td>${o.customer_id ? (customers.find(c => c.id === o.customer_id)?.first_name || 'N/A') : 'N/A'}</td>
+                <td>₹${o.grand_total || 0}</td>
+                <td><span class="badge ${o.status === 'Delivered' ? 'badge-success' : o.status === 'Cancelled' ? 'badge-danger' : 'badge-warning'}">${o.status || 'Pending'}</span></td>
+                <td>
+                  <button class="btn btn-sm btn-primary" onclick="viewOrder(${o.id})"><i class="fas fa-eye"></i></button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function viewOrder(id) {
+    const order = (orders || []).find(o => o.id === id);
+    if (!order) { showToast('Order not found'); return; }
+    openModal(`
+      <h2>Order ${order.order_id || '#' + order.id}</h2>
+      <div class="space-y-2">
+        <p><strong>Customer:</strong> ${order.customer_id ? (customers.find(c => c.id === order.customer_id)?.first_name || 'N/A') : 'N/A'}</p>
+        <p><strong>Phone:</strong> ${order.customer_id ? (customers.find(c => c.id === order.customer_id)?.phone || 'N/A') : 'N/A'}</p>
+        <p><strong>Delivery Address:</strong> ${order.delivery_address || 'N/A'}</p>
+        <p><strong>Total:</strong> ₹${order.grand_total || 0}</p>
+        <p><strong>Status:</strong> ${order.status || 'Pending'}</p>
+        <p><strong>Date:</strong> ${new Date(order.date).toLocaleString()}</p>
+        <div><strong>Items:</strong>
+          <ul class="list-disc pl-5">
+            ${(order.items || []).map(item => `<li>${item.name} × ${item.quantity} = ₹${(item.price || 0) * (item.quantity || 0)}</li>`).join('') || '<li>No items</li>'}
+          </ul>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+          <button class="btn btn-sm btn-success" onclick="updateOrderStatus(${order.id}, 'Delivered')">Deliver</button>
+          <button class="btn btn-sm btn-warning" onclick="updateOrderStatus(${order.id}, 'Processing')">Processing</button>
+          <button class="btn btn-sm btn-danger" onclick="updateOrderStatus(${order.id}, 'Cancelled')">Cancel</button>
+        </div>
+      </div>
+    `);
+  }
+
+  async function updateOrderStatus(id, status) {
+    try {
+      await putData(`orders/${id}/status`, { status });
+      orders = await fetchData('orders');
+      closeModal();
+      showToast(`Order status updated to ${status}`);
+      navigateTo('orders');
+    } catch (err) { showToast('Error: ' + err.message); }
+  }
+
+  // ============================================================
+  // EARNINGS
+  // ============================================================
+  function renderEarnings(el) {
+    const delivered = (orders || []).filter(o => o.status === 'Delivered');
+    const totalCommission = delivered.reduce((s, o) => s + (o.commission_amount || 0), 0);
+    const totalDelivery = delivered.reduce((s, o) => s + (o.delivery_charge || 0), 0);
+    const totalRain = delivered.reduce((s, o) => s + (o.rain_fare || 0), 0);
+    const totalProfit = totalCommission + totalDelivery + totalRain;
+
+    el.innerHTML = `
+      <h2 class="text-xl font-bold mb-4">Earnings</h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="stat-card"><p class="stat-label">Commission</p><p class="stat-value">₹${totalCommission.toFixed(2)}</p></div>
+        <div class="stat-card"><p class="stat-label">Delivery Charges</p><p class="stat-value">₹${totalDelivery.toFixed(2)}</p></div>
+        <div class="stat-card"><p class="stat-label">Rain Fare</p><p class="stat-value">₹${totalRain.toFixed(2)}</p></div>
+        <div class="stat-card"><p class="stat-label">Total Profit</p><p class="stat-value">₹${totalProfit.toFixed(2)}</p></div>
+      </div>
+    `;
+  }
+
+  // ============================================================
+  // BEST SELLING
+  // ============================================================
+  function renderBestSelling(el) {
+    const delivered = (orders || []).filter(o => o.status === 'Delivered');
+    const productCounts = {};
+    delivered.forEach(o => {
+      (o.items || []).forEach(item => {
+        productCounts[item.name] = (productCounts[item.name] || 0) + (item.quantity || 0);
+      });
+    });
+    const sorted = Object.entries(productCounts).sort((a, b) => b[1] - a[1]);
+
+    el.innerHTML = `
+      <h2 class="text-xl font-bold mb-4">Best Selling Products</h2>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Product</th><th>Quantity Sold</th></tr></thead>
+          <tbody>
+            ${sorted.length === 0 ? '<tr><td colspan="3" class="text-center text-gray-400">No data</td></tr>' :
+            sorted.map(([name, qty], i) => `
+              <tr>
+                <td>${i+1}</td>
+                <td>${name}</td>
+                <td>${qty}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // ============================================================
+  // OFFERS
+  // ============================================================
+  function renderOffers(el) {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Offers</h3>
+        <button onclick="openAddOffer()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Offer</button>
+      </div>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>Title</th><th>Discount</th><th>Code</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${(offers || []).map(o => `
+              <tr>
+                <td>${o.title}</td>
+                <td>${o.discount}</td>
+                <td>${o.code}</td>
+                <td>
+                  <div class="table-actions">
+                    <button class="btn btn-sm btn-primary" onclick="editOffer(${o.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteOffer(${o.id})"><i class="fas fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function openAddOffer() {
+    openModal(`
+      <h2>Add Offer</h2>
+      <form id="offerForm">
+        <div class="form-group"><label>Title</label><input id="offerTitle" required placeholder="Summer Sale" /></div>
+        <div class="form-group"><label>Discount</label><input id="offerDiscount" required placeholder="20% OFF" /></div>
+        <div class="form-group"><label>Code</label><input id="offerCode" required placeholder="SUMMER20" /></div>
+        <button type="submit" class="btn btn-primary btn-block">Save</button>
+      </form>
+    `);
+    document.getElementById('offerForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const title = document.getElementById('offerTitle').value.trim();
+      const discount = document.getElementById('offerDiscount').value.trim();
+      const code = document.getElementById('offerCode').value.trim().toUpperCase();
+      try {
+        await postData('offers', { title, discount, code, bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', icon: 'fa-gift' });
+        offers = await fetchData('offers');
+        closeModal();
+        showToast('Offer added!');
+        renderOffers(document.getElementById('pageContent'));
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function editOffer(id) {
+    const o = (offers || []).find(x => x.id === id);
+    if (!o) return;
+    openModal(`
+      <h2>Edit Offer</h2>
+      <form id="offerForm">
+        <div class="form-group"><label>Title</label><input id="offerTitle" value="${o.title}" required /></div>
+        <div class="form-group"><label>Discount</label><input id="offerDiscount" value="${o.discount}" required /></div>
+        <div class="form-group"><label>Code</label><input id="offerCode" value="${o.code}" required /></div>
+        <button type="submit" class="btn btn-primary btn-block">Update</button>
+      </form>
+    `);
+    document.getElementById('offerForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const title = document.getElementById('offerTitle').value.trim();
+      const discount = document.getElementById('offerDiscount').value.trim();
+      const code = document.getElementById('offerCode').value.trim().toUpperCase();
+      try {
+        await putData(`offers/${id}`, { title, discount, code, bg: o.bg, icon: o.icon });
+        offers = await fetchData('offers');
+        closeModal();
+        showToast('Offer updated!');
+        renderOffers(document.getElementById('pageContent'));
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function deleteOffer(id) {
+    if (!confirm('Delete this offer?')) return;
+    deleteData(`offers/${id}`).then(() => fetchData('offers')).then(data => {
+      offers = data;
+      showToast('Offer deleted');
+      renderOffers(document.getElementById('pageContent'));
+    }).catch(err => showToast('Error: ' + err.message));
+  }
+
+  // ============================================================
+  // NOTIFICATIONS
+  // ============================================================
+  function renderNotifications(el) {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Notifications</h3>
+        <button onclick="sendTestNotification()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-bell"></i> Send Test</button>
+      </div>
+      <div class="card p-4">
+        <p class="text-gray-500 text-sm">Notifications will appear here.</p>
+        <div class="mt-2 space-y-2">
+          ${(notifications || []).map(n => `
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg flex justify-between">
+              <span>${n.message}</span>
+              <span class="text-xs text-gray-400">${new Date(n.timestamp).toLocaleString()}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function sendTestNotification() {
+    showToast('Test notification sent!');
+    notifications.push({ message: 'Test notification at ' + new Date().toLocaleString(), timestamp: new Date().toISOString() });
+    renderNotifications(document.getElementById('pageContent'));
+  }
+
+  // ============================================================
+  // WHATSAPP
+  // ============================================================
+  function renderWhatsApp(el) {
+    el.innerHTML = `
+      <h2 class="text-xl font-bold mb-4">WhatsApp Integration</h2>
+      <div class="card p-6 max-w-xl">
+        <p class="mb-4">Configure WhatsApp settings or send broadcast messages.</p>
+        <div class="flex flex-col gap-3">
+          <input type="text" id="whatsappPhone" placeholder="Phone number" class="border rounded-lg px-4 py-2" />
+          <textarea id="whatsappMessage" rows="3" placeholder="Message" class="border rounded-lg px-4 py-2"></textarea>
+          <button onclick="sendWhatsAppMessage()" class="btn btn-success">Send via WhatsApp</button>
+        </div>
+        <div class="mt-4">
+          <button onclick="viewWhatsAppLogs()" class="btn btn-outline">
+            <i class="fas fa-history"></i> View Logs
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  async function sendWhatsAppMessage() {
+    const phone = document.getElementById('whatsappPhone').value.trim();
+    const message = document.getElementById('whatsappMessage').value.trim();
+    if (!phone || !message) {
+      showToast('Please enter both phone and message');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/whatsapp/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, message })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send');
+      showToast('WhatsApp message sent!');
+    } catch (err) {
+      showToast('Error: ' + err.message);
+    }
+  }
+
+  function viewWhatsAppLogs() {
+    fetch(`${API_BASE}/whatsapp/logs`)
+      .then(res => res.json())
+      .then(logs => {
+        let html = `
+          <h2 class="text-xl font-bold mb-4">📋 WhatsApp Logs</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Order ID</th><th>Phone</th><th>Status</th><th>Sent At</th></tr></thead>
+              <tbody>
+                ${logs.length === 0 ? '<tr><td colspan="4" class="text-center text-gray-400">No logs found</td></tr>' :
+                logs.map(log => `
+                  <tr>
+                    <td>${log.order_id}</td>
+                    <td>${log.recipient_phone}</td>
+                    <td><span class="badge ${log.status === 'sent' ? 'badge-success' : 'badge-danger'}">${log.status}</span></td>
+                    <td>${new Date(log.sent_at).toLocaleString()}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+        openModal(html);
+      })
+      .catch(err => showToast('Error loading logs: ' + err.message));
+  }
+
+  // ============================================================
+  // SETTINGS
+  // ============================================================
   function renderSettings(el) {
-    // Parse settings with defaults
     const adminPhones = settings.admin_phones 
       ? JSON.parse(settings.admin_phones) 
       : ['+919019825189', '+91827079552', '+919999999999'];
@@ -1100,7 +1761,7 @@
       <h2 class="text-xl font-bold mb-4">⚙️ Settings</h2>
       <div class="space-y-6">
         
-        <!-- ===== SERVICE STATUS ===== -->
+        <!-- Service Status -->
         <div class="card p-6">
           <h3 class="font-semibold text-lg mb-3">🔌 Service Status</h3>
           <div class="flex items-center gap-4">
@@ -1119,12 +1780,9 @@
               ${serviceUnavailable ? '🔴 Service Unavailable' : '🟢 Service Active'}
             </span>
           </div>
-          <p class="text-sm text-gray-500 mt-2">
-            ${serviceUnavailable ? 'Customers will see a service unavailable message.' : 'Customers can place orders normally.'}
-          </p>
         </div>
 
-        <!-- ===== ADMIN PHONE NUMBERS ===== -->
+        <!-- Admin Phone Numbers -->
         <div class="card p-6">
           <h3 class="font-semibold text-lg mb-3">📱 Admin Phone Numbers</h3>
           <p class="text-sm text-gray-500 mb-3">These numbers can receive admin OTPs</p>
@@ -1148,11 +1806,10 @@
           <button onclick="saveAdminPhones()" class="btn btn-primary">
             <i class="fas fa-save"></i> Save Phone Numbers
           </button>
-          
           <p id="adminPhoneStatus" class="text-sm mt-2 text-gray-500"></p>
         </div>
 
-        <!-- ===== ACTIVE ADMIN PHONE ===== -->
+        <!-- Active Admin Phone -->
         <div class="card p-6">
           <h3 class="font-semibold text-lg mb-3">🔑 Active Admin Phone (Login)</h3>
           <div class="flex gap-2">
@@ -1166,25 +1823,7 @@
           <p id="activePhoneStatus" class="text-sm mt-2 text-gray-500"></p>
         </div>
 
-        <!-- ===== WHATSAPP INTEGRATION ===== -->
-        <div class="card p-6">
-          <h3 class="font-semibold text-lg mb-3">💬 WhatsApp Integration</h3>
-          <div class="flex gap-2">
-            <input type="tel" id="whatsappTestPhone" placeholder="+91XXXXXXXXXX" class="flex-1 border rounded-lg px-4 py-2" />
-            <button onclick="sendWhatsAppTest()" class="btn btn-success">
-              <i class="fab fa-whatsapp"></i> Send Test
-            </button>
-          </div>
-          <p class="text-sm text-gray-500 mt-2">Send a test WhatsApp message to verify integration</p>
-          
-          <div class="mt-4">
-            <button onclick="viewWhatsAppLogs()" class="btn btn-outline">
-              <i class="fas fa-history"></i> View Logs
-            </button>
-          </div>
-        </div>
-
-        <!-- ===== COMMISSION RATE ===== -->
+        <!-- Commission Rate -->
         <div class="card p-6">
           <h3 class="font-semibold text-lg mb-3">💰 Commission Rate</h3>
           <div class="flex gap-2">
@@ -1193,7 +1832,7 @@
           </div>
         </div>
 
-        <!-- ===== RAIN FARE ===== -->
+        <!-- Rain Fare -->
         <div class="card p-6">
           <h3 class="font-semibold text-lg mb-3">🌧️ Rain Fare</h3>
           <div class="flex gap-2">
@@ -1202,7 +1841,7 @@
           </div>
         </div>
 
-        <!-- ===== DELIVERY HOURS ===== -->
+        <!-- Delivery Hours -->
         <div class="card p-6">
           <h3 class="font-semibold text-lg mb-3">🕐 Delivery Hours</h3>
           <div class="flex gap-2">
@@ -1211,7 +1850,7 @@
           </div>
         </div>
 
-        <!-- ===== UNAVAILABLE DAYS ===== -->
+        <!-- Unavailable Days -->
         <div class="card p-6">
           <h3 class="font-semibold text-lg mb-3">📅 Unavailable Days</h3>
           <p class="text-sm text-gray-500 mb-3">Days when delivery is not available</p>
@@ -1236,8 +1875,6 @@
   // ============================================================
   // SETTINGS HELPER FUNCTIONS
   // ============================================================
-
-  // ---- Toggle Service Status ----
   function toggleServiceStatus(isChecked) {
     const status = isChecked ? 'true' : 'false';
     fetch(`${API_BASE}/settings`, {
@@ -1258,7 +1895,8 @@
     .catch(err => showToast('Error: ' + err.message));
   }
 
-  // ---- Admin Phone Management ----
+  let adminPhonesList = [];
+
   function addAdminPhone() {
     const container = document.getElementById('adminPhonesList');
     const index = adminPhonesList.length;
@@ -1302,7 +1940,6 @@
       document.getElementById('adminPhoneStatus').textContent = '✅ Phone numbers saved!';
       setTimeout(() => document.getElementById('adminPhoneStatus').textContent = '', 3000);
       showToast('Admin phones updated');
-      // Update dropdown
       const select = document.getElementById('adminPhoneSelect');
       if (select) {
         select.innerHTML = validPhones.map(p => `<option value="${p}">${p}</option>`).join('');
@@ -1346,10 +1983,7 @@
     .catch(err => showToast('Error: ' + err.message));
   }
 
-  // ---- Unavailable Days ----
-  function updateUnavailableDays() {
-    // Just collects checkboxes - save happens on button click
-  }
+  function updateUnavailableDays() {}
 
   function saveUnavailableDays() {
     const checkboxes = document.querySelectorAll('.unavailable-day:checked');
@@ -1367,65 +2001,138 @@
     .catch(err => showToast('Error: ' + err.message));
   }
 
-  // ---- WhatsApp ----
-  async function sendWhatsAppTest() {
-    const phone = document.getElementById('whatsappTestPhone').value.trim();
-    if (!phone || phone.length < 10) {
-      showToast('Please enter a valid phone number');
-      return;
-    }
-    
+  // ============================================================
+  // REPORTS
+  // ============================================================
+  function renderReports(el) {
+    el.innerHTML = `
+      <h2 class="text-xl font-bold mb-4">Reports</h2>
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button class="tab-btn active" onclick="showCommissionReport('daily')">Daily Commission</button>
+        <button class="tab-btn" onclick="showCommissionReport('weekly')">Weekly Commission</button>
+        <button class="tab-btn" onclick="showCommissionReport('monthly')">Monthly Commission</button>
+        <button class="tab-btn" onclick="showRestaurantReport()">Restaurant Report</button>
+      </div>
+      <div id="reportContent"></div>
+    `;
+    showCommissionReport('daily');
+  }
+
+  async function showCommissionReport(period) {
+    const container = document.getElementById('reportContent');
+    container.innerHTML = `<div class="flex justify-center py-8"><div class="spinner"></div></div>`;
+
     try {
-      const res = await fetch(`${API_BASE}/whatsapp/send-order-notification`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId: 'TEST-001',
-          customerPhone: phone,
-          customerName: 'Test Customer',
-          orderTotal: '99.00',
-          deliveryAddress: 'Test Address'
-        })
+      const data = await fetchData(`reports/commission?period=${period}`);
+      let html = `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="stat-card"><p class="stat-label">Total Commission</p><p class="stat-value">₹${data.totalCommission.toFixed(2)}</p></div>
+          <div class="stat-card"><p class="stat-label">Total Sales</p><p class="stat-value">₹${data.totalSales.toFixed(2)}</p></div>
+          <div class="stat-card"><p class="stat-label">Total Orders</p><p class="stat-value">${data.totalOrders}</p></div>
+        </div>
+        <div class="card p-4 mb-4">
+          <h3 class="font-semibold mb-2">Commission Trend (${period})</h3>
+          <div class="chart-container"><canvas id="commissionChart"></canvas></div>
+        </div>
+        <div class="card p-4 table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Orders</th><th>Sales</th><th>Commission</th></tr></thead>
+            <tbody>
+              ${data.labels.map((label, i) => `
+                <tr>
+                  <td>${label}</td>
+                  <td>${data.orderCounts[i]}</td>
+                  <td>₹${data.salesData[i].toFixed(2)}</td>
+                  <td>₹${data.commissionData[i].toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      container.innerHTML = html;
+
+      new Chart(document.getElementById('commissionChart'), {
+        type: 'bar',
+        data: {
+          labels: data.labels,
+          datasets: [
+            { label: 'Commission (₹)', data: data.commissionData, backgroundColor: '#007BFF', borderRadius: 4 },
+            { label: 'Sales (₹)', data: data.salesData, backgroundColor: '#22c55e', borderRadius: 4 }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to send');
-      showToast('WhatsApp link generated! Click the link to send message.');
-      
-      // Open WhatsApp in new window
-      if (data.whatsappUrl) {
-        window.open(data.whatsappUrl, '_blank');
-      }
     } catch (err) {
-      showToast('Error: ' + err.message);
+      container.innerHTML = `<p class="text-red-500">Error loading report: ${err.message}</p>`;
     }
   }
 
-  function viewWhatsAppLogs() {
-    fetch(`${API_BASE}/whatsapp/logs`)
-      .then(res => res.json())
-      .then(logs => {
-        let html = `
-          <h2 class="text-xl font-bold mb-4">📋 WhatsApp Logs</h2>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Order ID</th><th>Phone</th><th>Status</th><th>Sent At</th></tr></thead>
-              <tbody>
-                ${logs.length === 0 ? '<tr><td colspan="4" class="text-center text-gray-400">No logs found</td></tr>' :
-                logs.map(log => `
-                  <tr>
-                    <td>${log.order_id}</td>
-                    <td>${log.recipient_phone}</td>
-                    <td><span class="badge ${log.status === 'sent' ? 'badge-success' : 'badge-danger'}">${log.status}</span></td>
-                    <td>${new Date(log.sent_at).toLocaleString()}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        `;
-        openModal(html);
-      })
-      .catch(err => showToast('Error loading logs: ' + err.message));
+  async function showRestaurantReport() {
+    const container = document.getElementById('reportContent');
+    const foodRestaurants = (restaurants || []).filter(r => r.category === 'Food');
+    if (foodRestaurants.length === 0) {
+      container.innerHTML = `<p class="text-gray-500">No restaurants in Food category.</p>`;
+      return;
+    }
+
+    let options = foodRestaurants.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+    container.innerHTML = `
+      <div class="card p-4 mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Select Restaurant</label>
+        <select id="restaurantSelect" class="w-full border rounded-lg px-3 py-2 text-sm" onchange="loadRestaurantReport()">
+          <option value="">-- Select --</option>
+          ${options}
+        </select>
+      </div>
+      <div id="restaurantReportDetails"></div>
+    `;
+    if (foodRestaurants.length > 0) {
+      document.getElementById('restaurantSelect').value = foodRestaurants[0].id;
+      loadRestaurantReport();
+    }
+  }
+
+  async function loadRestaurantReport() {
+    const select = document.getElementById('restaurantSelect');
+    const id = select.value;
+    if (!id) {
+      document.getElementById('restaurantReportDetails').innerHTML = '';
+      return;
+    }
+    const container = document.getElementById('restaurantReportDetails');
+    container.innerHTML = `<div class="flex justify-center py-8"><div class="spinner"></div></div>`;
+
+    try {
+      const data = await fetchData(`reports/restaurant/${id}`);
+      let html = `
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <div class="stat-card"><p class="stat-label">Total Orders</p><p class="stat-value">${data.totalOrders}</p></div>
+          <div class="stat-card"><p class="stat-label">Total Revenue</p><p class="stat-value">₹${data.totalRevenue.toFixed(2)}</p></div>
+          <div class="stat-card"><p class="stat-label">Commission</p><p class="stat-value">₹${data.totalCommission.toFixed(2)}</p></div>
+          <div class="stat-card"><p class="stat-label">Restaurant Earnings</p><p class="stat-value">₹${data.restaurantRevenue.toFixed(2)}</p></div>
+        </div>
+        <div class="card p-3 table-wrap">
+          <table>
+            <thead><tr><th>Order ID</th><th>Date</th><th>Grand Total</th><th>Commission</th><th>Restaurant Revenue</th></tr></thead>
+            <tbody>
+              ${data.orders.map(o => `
+                <tr>
+                  <td>${o.orderId}</td>
+                  <td>${new Date(o.date).toLocaleDateString()}</td>
+                  <td>₹${o.grandTotal}</td>
+                  <td>₹${o.commission}</td>
+                  <td>₹${o.restaurantRevenue}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      container.innerHTML = html;
+    } catch (err) {
+      container.innerHTML = `<p class="text-red-500">Error loading restaurant report: ${err.message}</p>`;
+    }
   }
 
   // ============================================================
@@ -1452,6 +2159,8 @@
   window.editOffer = editOffer;
   window.deleteOffer = deleteOffer;
   window.sendTestNotification = sendTestNotification;
+  window.sendWhatsAppMessage = sendWhatsAppMessage;
+  window.viewWhatsAppLogs = viewWhatsAppLogs;
   window.toggleSidebar = toggleSidebar;
   window.closeSidebar = closeSidebar;
   window.closeModal = closeModal;
@@ -1464,8 +2173,6 @@
   window.showRestaurantReport = showRestaurantReport;
   window.loadRestaurantReport = loadRestaurantReport;
   window.logoutAdmin = logoutAdmin;
-  
-  // New Settings Functions
   window.toggleServiceStatus = toggleServiceStatus;
   window.addAdminPhone = addAdminPhone;
   window.updateAdminPhone = updateAdminPhone;
@@ -1474,14 +2181,11 @@
   window.updateActiveAdminPhone = updateActiveAdminPhone;
   window.updateUnavailableDays = updateUnavailableDays;
   window.saveUnavailableDays = saveUnavailableDays;
-  window.sendWhatsAppTest = sendWhatsAppTest;
-  window.viewWhatsAppLogs = viewWhatsAppLogs;
 
   // ============================================================
   // INIT
   // ============================================================
   document.addEventListener('DOMContentLoaded', function() {
-    // Pre-fill phone if stored
     const savedPhone = localStorage.getItem('adminPhone');
     if (savedPhone) {
       document.getElementById('adminPhone').value = savedPhone;

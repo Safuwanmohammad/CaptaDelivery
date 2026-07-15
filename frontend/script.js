@@ -121,7 +121,7 @@ async function loadAllData() {
     const areas = {};
     placesRes.forEach(p => {
       if (!areas[p.area]) areas[p.area] = { subAreas: {} };
-      areas[p.area].subAreas[p.sub_area] = p.charge;
+      areas[p.area].subAreas[p.sub_area] = parseFloat(p.charge) || 0;
     });
     deliveryAreas = areas;
 
@@ -187,7 +187,9 @@ function addToCart(product, qty, selectedVariant) {
   const cartItem = {
     ...product,
     quantity: qty,
-    selectedVariant: selectedVariant || null
+    selectedVariant: selectedVariant || null,
+    category: product.category || 'Uncategorized',
+    commission: product.commission || 0
   };
   if (selectedVariant && product.variants && product.variants.length > 0) {
     const variant = product.variants.find(v => v.label === selectedVariant);
@@ -278,14 +280,14 @@ function proceedToCheckout() {
 }
 
 // ============================================================
-// UPDATE DELIVERY CHARGE (NO renderContent call!)
+// UPDATE DELIVERY CHARGE
 // ============================================================
 function updateDeliveryCharge() {
   const mainArea = state.orderSummary.selectedMainArea;
   const subArea = state.orderSummary.selectedSubArea;
   let delivery = 0;
   if (mainArea && subArea && deliveryAreas[mainArea] && deliveryAreas[mainArea].subAreas[subArea]) {
-    delivery = deliveryAreas[mainArea].subAreas[subArea];
+    delivery = parseFloat(deliveryAreas[mainArea].subAreas[subArea]) || 0;
   }
   state.orderSummary.deliveryCharge = delivery;
   const rain = settings.rain_fare || 0;
@@ -458,7 +460,8 @@ async function placeOrder() {
       quantity: item.quantity,
       commission: item.commission || 0,
       category: item.category || 'Uncategorized',
-      variantLabel: item.variantLabel || null
+      variantLabel: item.variantLabel || null,
+      restaurant_id: item.restaurant_id || null
     })),
     productTotal,
     deliveryCharge,
@@ -1114,12 +1117,12 @@ function renderAccountDrawer() {
 }
 
 // ============================================================
-// RENDER ORDER SUMMARY (FIXED – no infinite loop)
+// RENDER ORDER SUMMARY
 // ============================================================
 function renderOrderSummary() {
   if (!state.showOrderSummary) return null;
 
-  // Calculate delivery charge (will not trigger re-render)
+  // Calculate delivery charge
   updateDeliveryCharge();
 
   const container = document.createElement('div');
@@ -1732,10 +1735,28 @@ function renderToast() {
   return toast;
 }
 
+function openModal(html) {
+  const overlay = document.createElement('div');
+  overlay.className = 'fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm';
+  overlay.id = 'customModal';
+  const modal = document.createElement('div');
+  modal.className = 'bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 relative';
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl';
+  closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+  closeBtn.addEventListener('click', () => overlay.remove());
+  modal.appendChild(closeBtn);
+  modal.innerHTML += html;
+  overlay.appendChild(modal);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
 // ============================================================
 // MAIN RENDER
 // ============================================================
 function renderContent() {
+  if (!app) return;
   app.innerHTML = '';
   app.className = 'min-h-screen bg-gray-50';
   if (state.loading) {
@@ -1866,6 +1887,7 @@ window.updateQuantity = updateQuantity;
 window.removeItem = removeItem;
 window.toggleAccountDropdown = toggleAccountDropdown;
 window.showContactSupport = showContactSupport;
+window.openModal = openModal;
 
 // ============================================================
 // INIT
