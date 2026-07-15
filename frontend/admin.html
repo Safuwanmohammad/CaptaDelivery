@@ -666,6 +666,7 @@
   let notifications = [];
   let currentPage = 'dashboard';
   let catalogTab = 'categories';
+  let adminPhonesList = [];
 
   // ============================================================
   // TOAST
@@ -807,7 +808,6 @@
       orders = ords || [];
       offers = offs || [];
       
-      // Parse settings with defaults
       settings = {};
       settings.active_admin_phone = setts.active_admin_phone || '+919019825189';
       settings.admin_phones = setts.admin_phones || '["+919019825189","+91827079552","+919999999999"]';
@@ -1227,16 +1227,102 @@
   }
 
   function openAddRestaurant() {
-    showToast('Restaurant add form coming soon...');
+    const categoryOptions = (categories || []).map(c => 
+      `<option value="${c.name}">${c.name}</option>`
+    ).join('');
+
+    openModal(`
+      <h2>Add Restaurant</h2>
+      <form id="restaurantForm">
+        <div class="form-group"><label>Restaurant Name *</label><input id="restName" required placeholder="e.g. Pizza Hut" /></div>
+        <div class="form-group"><label>Category *</label>
+          <select id="restCategory" required>
+            <option value="">Select Category</option>
+            ${categoryOptions}
+          </select>
+        </div>
+        <div class="form-group"><label>Logo URL</label>
+          <input id="restLogo" placeholder="https://example.com/logo.png" />
+        </div>
+        <div class="form-group"><label>Status</label>
+          <select id="restStatus">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Save Restaurant</button>
+      </form>
+    `);
+    document.getElementById('restaurantForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('restName').value.trim();
+      const category = document.getElementById('restCategory').value;
+      const logo = document.getElementById('restLogo').value.trim() || 'https://placehold.co/100';
+      const status = document.getElementById('restStatus').value;
+      if (!name || !category) { showToast('Name and category required'); return; }
+      try {
+        await postData('restaurants', { name, category, logo, status });
+        restaurants = await fetchData('restaurants');
+        closeModal();
+        showToast('Restaurant added!');
+        switchCatalogTab('restaurants');
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
   }
 
   function editRestaurant(id) {
-    showToast('Restaurant edit coming soon...');
+    const r = (restaurants || []).find(x => x.id === id);
+    if (!r) { showToast('Restaurant not found'); return; }
+    const categoryOptions = (categories || []).map(c => 
+      `<option value="${c.name}" ${r.category === c.name ? 'selected' : ''}>${c.name}</option>`
+    ).join('');
+
+    openModal(`
+      <h2>Edit Restaurant</h2>
+      <form id="restaurantForm">
+        <div class="form-group"><label>Restaurant Name *</label><input id="restName" value="${r.name}" required /></div>
+        <div class="form-group"><label>Category *</label>
+          <select id="restCategory" required>
+            <option value="">Select Category</option>
+            ${categoryOptions}
+          </select>
+        </div>
+        <div class="form-group"><label>Logo URL</label>
+          <input id="restLogo" value="${r.logo || ''}" placeholder="https://example.com/logo.png" />
+        </div>
+        <div class="form-group"><label>Status</label>
+          <select id="restStatus">
+            <option value="Active" ${r.status === 'Active' ? 'selected' : ''}>Active</option>
+            <option value="Inactive" ${r.status === 'Inactive' ? 'selected' : ''}>Inactive</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Update Restaurant</button>
+      </form>
+    `);
+    document.getElementById('restaurantForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('restName').value.trim();
+      const category = document.getElementById('restCategory').value;
+      const logo = document.getElementById('restLogo').value.trim() || 'https://placehold.co/100';
+      const status = document.getElementById('restStatus').value;
+      if (!name || !category) { showToast('Name and category required'); return; }
+      try {
+        await putData(`restaurants/${id}`, { name, category, logo, status });
+        restaurants = await fetchData('restaurants');
+        closeModal();
+        showToast('Restaurant updated!');
+        switchCatalogTab('restaurants');
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
   }
 
   function deleteRestaurant(id) {
     if (!confirm('Delete this restaurant?')) return;
-    showToast('Restaurant deleted (simulated)');
+    deleteData(`restaurants/${id}`).then(() => fetchData('restaurants')).then(data => {
+      restaurants = data;
+      showToast('Restaurant deleted');
+      switchCatalogTab('restaurants');
+    }).catch(err => showToast('Error: ' + err.message));
   }
 
   async function toggleRestaurantStatus(id, isActive) {
@@ -1261,23 +1347,26 @@
       </div>
       <div class="card p-3 table-wrap">
         <table>
-          <thead><tr><th>Image</th><th>Name</th><th>Restaurant</th><th>Price</th><th>Category</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Image</th><th>Name</th><th>Restaurant</th><th>Price</th><th>Category</th><th>Commission</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
-            ${(products || []).map(p => `
-              <tr>
+            ${(products || []).map(p => {
+              const restaurant = restaurants.find(r => r.id === p.restaurant_id);
+              return `<tr>
                 <td><img src="${(p.images && p.images.length > 0) ? p.images[0] : 'https://placehold.co/40'}" class="w-10 h-10 object-cover rounded" /></td>
                 <td class="text-truncate" style="max-width:80px;">${p.name}</td>
-                <td>${p.restaurant_id ? (restaurants.find(r => r.id === p.restaurant_id)?.name || 'N/A') : 'N/A'}</td>
+                <td>${restaurant ? restaurant.name : 'N/A'}</td>
                 <td>₹${p.price}</td>
-                <td>${p.category}</td>
+                <td>${p.category || 'N/A'}</td>
+                <td>${p.commission || 0}%</td>
+                <td><span class="badge ${p.status === 'Active' ? 'badge-success' : 'badge-danger'}">${p.status || 'Active'}</span></td>
                 <td>
                   <div class="table-actions">
                     <button class="btn btn-sm btn-primary" onclick="editProduct(${p.id})"><i class="fas fa-edit"></i></button>
                     <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})"><i class="fas fa-trash"></i></button>
                   </div>
                 </td>
-              </tr>
-            `).join('')}
+              </tr>`;
+            }).join('')}
           </tbody>
         </table>
       </div>
@@ -1285,16 +1374,326 @@
   }
 
   function openAddProduct() {
-    showToast('Product add form coming soon...');
+    const restaurantOptions = (restaurants || []).map(r => 
+      `<option value="${r.id}">${r.name}</option>`
+    ).join('');
+
+    const categoryOptions = (categories || []).map(c => 
+      `<option value="${c.name}">${c.name}</option>`
+    ).join('');
+
+    openModal(`
+      <h2>Add Product</h2>
+      <form id="productForm">
+        <div class="form-group">
+          <label>Product Name *</label>
+          <input id="prodName" required placeholder="e.g. Pepperoni Pizza" />
+        </div>
+        
+        <div class="form-group">
+          <label>Category *</label>
+          <select id="prodCategory" required>
+            <option value="">Select Category</option>
+            ${categoryOptions}
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Restaurant (optional)</label>
+          <select id="prodRestaurant">
+            <option value="">None</option>
+            ${restaurantOptions}
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Price (₹) *</label>
+          <input id="prodPrice" type="number" step="0.01" required placeholder="299" />
+        </div>
+        
+        <div class="form-group">
+          <label>Commission (%)</label>
+          <input id="prodCommission" type="number" step="0.01" value="10" placeholder="10" />
+        </div>
+        
+        <div class="form-group">
+          <label>Status</label>
+          <select id="prodStatus">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Product Images</label>
+          <div class="file-input-wrapper">
+            <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload Images</div>
+            <input id="prodImages" type="file" accept="image/*" multiple />
+          </div>
+          <div id="prodImagePreview" class="image-preview-grid"></div>
+        </div>
+        
+        <div class="form-group">
+          <label>Variants (JSON format)</label>
+          <textarea id="prodVariants" rows="3" placeholder='[{"label":"750ml","price":40},{"label":"2L","price":100}]'></textarea>
+          <p class="text-xs text-gray-400">Leave empty for no variants</p>
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-block">Save Product</button>
+      </form>
+    `);
+
+    const fileInput = document.getElementById('prodImages');
+    const previewContainer = document.getElementById('prodImagePreview');
+    let imageUrls = [];
+
+    fileInput.addEventListener('change', function() {
+      previewContainer.innerHTML = '';
+      imageUrls = [];
+      const files = this.files;
+      for (let i = 0; i < files.length; i++) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          imageUrls.push(e.target.result);
+          const div = document.createElement('div');
+          div.className = 'preview-item';
+          div.innerHTML = `
+            <img src="${e.target.result}" />
+            <button type="button" class="remove-img" onclick="this.parentElement.remove()">
+              <i class="fas fa-times"></i>
+            </button>
+          `;
+          previewContainer.appendChild(div);
+        };
+        reader.readAsDataURL(files[i]);
+      }
+    });
+
+    document.getElementById('productForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('prodName').value.trim();
+      const category = document.getElementById('prodCategory').value;
+      const restaurantId = document.getElementById('prodRestaurant').value || null;
+      const price = parseFloat(document.getElementById('prodPrice').value);
+      const commission = parseFloat(document.getElementById('prodCommission').value) || 0;
+      const status = document.getElementById('prodStatus').value;
+      const variants = document.getElementById('prodVariants').value.trim();
+      
+      if (!name) { showToast('Product name required'); return; }
+      if (!category) { showToast('Category required'); return; }
+      if (!price || isNaN(price)) { showToast('Valid price required'); return; }
+
+      let images = imageUrls;
+      let parsedVariants = [];
+      if (variants) {
+        try {
+          parsedVariants = JSON.parse(variants);
+          if (!Array.isArray(parsedVariants)) throw new Error('Must be an array');
+        } catch (err) {
+          showToast('Invalid variants JSON: ' + err.message);
+          return;
+        }
+      }
+
+      try {
+        await postData('products', { 
+          name, category, restaurantId, price, commission, status, 
+          images, variants: parsedVariants 
+        });
+        products = await fetchData('products');
+        closeModal();
+        showToast('Product added!');
+        switchCatalogTab('products');
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
   }
 
   function editProduct(id) {
-    showToast('Product edit coming soon...');
+    const p = (products || []).find(x => x.id === id);
+    if (!p) { showToast('Product not found'); return; }
+
+    const restaurantOptions = (restaurants || []).map(r => 
+      `<option value="${r.id}" ${p.restaurant_id === r.id ? 'selected' : ''}>${r.name}</option>`
+    ).join('');
+
+    const categoryOptions = (categories || []).map(c => 
+      `<option value="${c.name}" ${p.category === c.name ? 'selected' : ''}>${c.name}</option>`
+    ).join('');
+
+    let imagePreviewHtml = '';
+    if (p.images && p.images.length > 0) {
+      p.images.forEach((img, index) => {
+        imagePreviewHtml += `
+          <div class="preview-item" id="img-container-${index}">
+            <img src="${img}" />
+            <button type="button" class="remove-img" onclick="removeExistingImage(${index}, '${p.id}')">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        `;
+      });
+    }
+
+    openModal(`
+      <h2>Edit Product</h2>
+      <form id="productForm">
+        <div class="form-group">
+          <label>Product Name *</label>
+          <input id="prodName" value="${p.name}" required />
+        </div>
+        
+        <div class="form-group">
+          <label>Category *</label>
+          <select id="prodCategory" required>
+            <option value="">Select Category</option>
+            ${categoryOptions}
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Restaurant (optional)</label>
+          <select id="prodRestaurant">
+            <option value="">None</option>
+            ${restaurantOptions}
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Price (₹) *</label>
+          <input id="prodPrice" type="number" step="0.01" value="${p.price}" required />
+        </div>
+        
+        <div class="form-group">
+          <label>Commission (%)</label>
+          <input id="prodCommission" type="number" step="0.01" value="${p.commission || 0}" />
+        </div>
+        
+        <div class="form-group">
+          <label>Status</label>
+          <select id="prodStatus">
+            <option value="Active" ${p.status === 'Active' ? 'selected' : ''}>Active</option>
+            <option value="Inactive" ${p.status === 'Inactive' ? 'selected' : ''}>Inactive</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Current Images</label>
+          <div id="existingImages" class="image-preview-grid">
+            ${imagePreviewHtml || '<p class="text-gray-400 text-sm">No images</p>'}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Add New Images (optional)</label>
+          <div class="file-input-wrapper">
+            <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload Images</div>
+            <input id="prodImages" type="file" accept="image/*" multiple />
+          </div>
+          <div id="prodImagePreview" class="image-preview-grid"></div>
+        </div>
+        
+        <div class="form-group">
+          <label>Variants (JSON format)</label>
+          <textarea id="prodVariants" rows="3">${p.variants ? JSON.stringify(p.variants, null, 2) : ''}</textarea>
+          <p class="text-xs text-gray-400">Leave empty for no variants</p>
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-block">Update Product</button>
+      </form>
+    `);
+
+    const fileInput = document.getElementById('prodImages');
+    const previewContainer = document.getElementById('prodImagePreview');
+    let newImageUrls = [];
+
+    fileInput.addEventListener('change', function() {
+      previewContainer.innerHTML = '';
+      newImageUrls = [];
+      const files = this.files;
+      for (let i = 0; i < files.length; i++) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          newImageUrls.push(e.target.result);
+          const div = document.createElement('div');
+          div.className = 'preview-item';
+          div.innerHTML = `
+            <img src="${e.target.result}" />
+            <button type="button" class="remove-img" onclick="this.parentElement.remove()">
+              <i class="fas fa-times"></i>
+            </button>
+          `;
+          previewContainer.appendChild(div);
+        };
+        reader.readAsDataURL(files[i]);
+      }
+    });
+
+    document.getElementById('productForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('prodName').value.trim();
+      const category = document.getElementById('prodCategory').value;
+      const restaurantId = document.getElementById('prodRestaurant').value || null;
+      const price = parseFloat(document.getElementById('prodPrice').value);
+      const commission = parseFloat(document.getElementById('prodCommission').value) || 0;
+      const status = document.getElementById('prodStatus').value;
+      const variants = document.getElementById('prodVariants').value.trim();
+      
+      if (!name) { showToast('Product name required'); return; }
+      if (!category) { showToast('Category required'); return; }
+      if (!price || isNaN(price)) { showToast('Valid price required'); return; }
+
+      let existingImages = p.images || [];
+      let allImages = existingImages;
+      if (newImageUrls.length > 0) {
+        allImages = [...allImages, ...newImageUrls];
+      }
+
+      let parsedVariants = [];
+      if (variants) {
+        try {
+          parsedVariants = JSON.parse(variants);
+          if (!Array.isArray(parsedVariants)) throw new Error('Must be an array');
+        } catch (err) {
+          showToast('Invalid variants JSON: ' + err.message);
+          return;
+        }
+      }
+
+      try {
+        await putData(`products/${id}`, { 
+          name, category, restaurantId, price, commission, status, 
+          images: allImages, variants: parsedVariants 
+        });
+        products = await fetchData('products');
+        closeModal();
+        showToast('Product updated!');
+        switchCatalogTab('products');
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function removeExistingImage(index, productId) {
+    if (!confirm('Remove this image?')) return;
+    const p = (products || []).find(x => x.id === parseInt(productId));
+    if (!p) return;
+    if (p.images && p.images.length > index) {
+      p.images.splice(index, 1);
+      const container = document.getElementById(`img-container-${index}`);
+      if (container) container.remove();
+      showToast('Image removed. Save the product to apply changes.');
+    }
   }
 
   function deleteProduct(id) {
     if (!confirm('Delete this product?')) return;
-    showToast('Product deleted (simulated)');
+    deleteData(`products/${id}`)
+      .then(() => fetchData('products'))
+      .then(data => {
+        products = data;
+        showToast('Product deleted');
+        switchCatalogTab('products');
+      })
+      .catch(err => showToast('Error: ' + err.message));
   }
 
   // ============================================================
@@ -1308,11 +1707,12 @@
       </div>
       <div class="card p-3 table-wrap">
         <table>
-          <thead><tr><th>Name</th><th>Delivery Charge</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Area</th><th>Sub Area</th><th>Delivery Charge</th><th>Actions</th></tr></thead>
           <tbody>
             ${(places || []).map(p => `
               <tr>
-                <td>${p.area} - ${p.sub_area}</td>
+                <td>${p.area}</td>
+                <td>${p.sub_area}</td>
                 <td>₹${p.charge}</td>
                 <td>
                   <div class="table-actions">
@@ -1332,9 +1732,9 @@
     openModal(`
       <h2>Add Delivery Place</h2>
       <form id="placeForm">
-        <div class="form-group"><label>Area</label><input id="placeArea" required placeholder="e.g. Downtown" /></div>
-        <div class="form-group"><label>Sub Area</label><input id="placeSubArea" required placeholder="e.g. Main Street" /></div>
-        <div class="form-group"><label>Delivery Charge (₹)</label><input id="placeCharge" type="number" required placeholder="30" /></div>
+        <div class="form-group"><label>Area *</label><input id="placeArea" required placeholder="e.g. Downtown" /></div>
+        <div class="form-group"><label>Sub Area *</label><input id="placeSubArea" required placeholder="e.g. Main Street" /></div>
+        <div class="form-group"><label>Delivery Charge (₹) *</label><input id="placeCharge" type="number" required placeholder="30" /></div>
         <button type="submit" class="btn btn-primary btn-block">Save</button>
       </form>
     `);
@@ -1343,6 +1743,7 @@
       const area = document.getElementById('placeArea').value.trim();
       const subArea = document.getElementById('placeSubArea').value.trim();
       const charge = parseFloat(document.getElementById('placeCharge').value);
+      if (!area || !subArea || isNaN(charge)) { showToast('All fields required'); return; }
       try {
         await postData('places', { area, subArea, charge, min_order: 0, time: '20-30 min', status: 'Active' });
         places = await fetchData('places');
@@ -1359,9 +1760,9 @@
     openModal(`
       <h2>Edit Place</h2>
       <form id="placeForm">
-        <div class="form-group"><label>Area</label><input id="placeArea" value="${p.area}" required /></div>
-        <div class="form-group"><label>Sub Area</label><input id="placeSubArea" value="${p.sub_area}" required /></div>
-        <div class="form-group"><label>Delivery Charge (₹)</label><input id="placeCharge" type="number" value="${p.charge}" required /></div>
+        <div class="form-group"><label>Area *</label><input id="placeArea" value="${p.area}" required /></div>
+        <div class="form-group"><label>Sub Area *</label><input id="placeSubArea" value="${p.sub_area}" required /></div>
+        <div class="form-group"><label>Delivery Charge (₹) *</label><input id="placeCharge" type="number" value="${p.charge}" required /></div>
         <button type="submit" class="btn btn-primary btn-block">Update</button>
       </form>
     `);
@@ -1370,6 +1771,7 @@
       const area = document.getElementById('placeArea').value.trim();
       const subArea = document.getElementById('placeSubArea').value.trim();
       const charge = parseFloat(document.getElementById('placeCharge').value);
+      if (!area || !subArea || isNaN(charge)) { showToast('All fields required'); return; }
       try {
         await putData(`places/${id}`, { area, subArea, charge, min_order: p.min_order, time: p.time, status: p.status });
         places = await fetchData('places');
@@ -1463,11 +1865,12 @@
   function viewOrder(id) {
     const order = (orders || []).find(o => o.id === id);
     if (!order) { showToast('Order not found'); return; }
+    const customer = customers.find(c => c.id === order.customer_id);
     openModal(`
       <h2>Order ${order.order_id || '#' + order.id}</h2>
       <div class="space-y-2">
-        <p><strong>Customer:</strong> ${order.customer_id ? (customers.find(c => c.id === order.customer_id)?.first_name || 'N/A') : 'N/A'}</p>
-        <p><strong>Phone:</strong> ${order.customer_id ? (customers.find(c => c.id === order.customer_id)?.phone || 'N/A') : 'N/A'}</p>
+        <p><strong>Customer:</strong> ${customer ? customer.first_name + ' ' + customer.last_name : 'N/A'}</p>
+        <p><strong>Phone:</strong> ${customer ? customer.phone : 'N/A'}</p>
         <p><strong>Delivery Address:</strong> ${order.delivery_address || 'N/A'}</p>
         <p><strong>Total:</strong> ₹${order.grand_total || 0}</p>
         <p><strong>Status:</strong> ${order.status || 'Pending'}</p>
@@ -1586,9 +1989,9 @@
     openModal(`
       <h2>Add Offer</h2>
       <form id="offerForm">
-        <div class="form-group"><label>Title</label><input id="offerTitle" required placeholder="Summer Sale" /></div>
-        <div class="form-group"><label>Discount</label><input id="offerDiscount" required placeholder="20% OFF" /></div>
-        <div class="form-group"><label>Code</label><input id="offerCode" required placeholder="SUMMER20" /></div>
+        <div class="form-group"><label>Title *</label><input id="offerTitle" required placeholder="Summer Sale" /></div>
+        <div class="form-group"><label>Discount *</label><input id="offerDiscount" required placeholder="20% OFF" /></div>
+        <div class="form-group"><label>Code *</label><input id="offerCode" required placeholder="SUMMER20" /></div>
         <button type="submit" class="btn btn-primary btn-block">Save</button>
       </form>
     `);
@@ -1597,6 +2000,7 @@
       const title = document.getElementById('offerTitle').value.trim();
       const discount = document.getElementById('offerDiscount').value.trim();
       const code = document.getElementById('offerCode').value.trim().toUpperCase();
+      if (!title || !discount || !code) { showToast('All fields required'); return; }
       try {
         await postData('offers', { title, discount, code, bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', icon: 'fa-gift' });
         offers = await fetchData('offers');
@@ -1613,9 +2017,9 @@
     openModal(`
       <h2>Edit Offer</h2>
       <form id="offerForm">
-        <div class="form-group"><label>Title</label><input id="offerTitle" value="${o.title}" required /></div>
-        <div class="form-group"><label>Discount</label><input id="offerDiscount" value="${o.discount}" required /></div>
-        <div class="form-group"><label>Code</label><input id="offerCode" value="${o.code}" required /></div>
+        <div class="form-group"><label>Title *</label><input id="offerTitle" value="${o.title}" required /></div>
+        <div class="form-group"><label>Discount *</label><input id="offerDiscount" value="${o.discount}" required /></div>
+        <div class="form-group"><label>Code *</label><input id="offerCode" value="${o.code}" required /></div>
         <button type="submit" class="btn btn-primary btn-block">Update</button>
       </form>
     `);
@@ -1624,6 +2028,7 @@
       const title = document.getElementById('offerTitle').value.trim();
       const discount = document.getElementById('offerDiscount').value.trim();
       const code = document.getElementById('offerCode').value.trim().toUpperCase();
+      if (!title || !discount || !code) { showToast('All fields required'); return; }
       try {
         await putData(`offers/${id}`, { title, discount, code, bg: o.bg, icon: o.icon });
         offers = await fetchData('offers');
@@ -1679,16 +2084,14 @@
     el.innerHTML = `
       <h2 class="text-xl font-bold mb-4">WhatsApp Integration</h2>
       <div class="card p-6 max-w-xl">
-        <p class="mb-4">Configure WhatsApp settings or send broadcast messages.</p>
+        <p class="mb-4">Send WhatsApp messages to customers</p>
         <div class="flex flex-col gap-3">
-          <input type="text" id="whatsappPhone" placeholder="Phone number" class="border rounded-lg px-4 py-2" />
+          <input type="tel" id="whatsappPhone" placeholder="Phone number with country code" class="border rounded-lg px-4 py-2" />
           <textarea id="whatsappMessage" rows="3" placeholder="Message" class="border rounded-lg px-4 py-2"></textarea>
-          <button onclick="sendWhatsAppMessage()" class="btn btn-success">Send via WhatsApp</button>
+          <button onclick="sendWhatsAppMessage()" class="btn btn-success"><i class="fab fa-whatsapp"></i> Send via WhatsApp</button>
         </div>
         <div class="mt-4">
-          <button onclick="viewWhatsAppLogs()" class="btn btn-outline">
-            <i class="fas fa-history"></i> View Logs
-          </button>
+          <button onclick="viewWhatsAppLogs()" class="btn btn-outline"><i class="fas fa-history"></i> View Logs</button>
         </div>
       </div>
     `;
@@ -1697,10 +2100,7 @@
   async function sendWhatsAppMessage() {
     const phone = document.getElementById('whatsappPhone').value.trim();
     const message = document.getElementById('whatsappMessage').value.trim();
-    if (!phone || !message) {
-      showToast('Please enter both phone and message');
-      return;
-    }
+    if (!phone || !message) { showToast('Please enter both phone and message'); return; }
     try {
       const res = await fetch(`${API_BASE}/whatsapp/send`, {
         method: 'POST',
@@ -1710,9 +2110,7 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to send');
       showToast('WhatsApp message sent!');
-    } catch (err) {
-      showToast('Error: ' + err.message);
-    }
+    } catch (err) { showToast('Error: ' + err.message); }
   }
 
   function viewWhatsAppLogs() {
@@ -1760,21 +2158,13 @@
     el.innerHTML = `
       <h2 class="text-xl font-bold mb-4">⚙️ Settings</h2>
       <div class="space-y-6">
-        
         <!-- Service Status -->
         <div class="card p-6">
           <h3 class="font-semibold text-lg mb-3">🔌 Service Status</h3>
           <div class="flex items-center gap-4">
             <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" id="serviceToggle" class="sr-only peer" 
-                ${serviceUnavailable ? 'checked' : ''} 
-                onchange="toggleServiceStatus(this.checked)">
-              <div class="w-14 h-7 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer 
-                    peer-checked:after:translate-x-full peer-checked:after:border-white 
-                    after:content-[''] after:absolute after:top-0.5 after:left-[2px] 
-                    after:bg-white after:border-gray-300 after:border after:rounded-full 
-                    after:h-6 after:w-6 after:transition-all peer-checked:bg-red-600">
-              </div>
+              <input type="checkbox" id="serviceToggle" class="sr-only peer" ${serviceUnavailable ? 'checked' : ''} onchange="toggleServiceStatus(this.checked)">
+              <div class="w-14 h-7 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-600"></div>
             </label>
             <span id="serviceStatusLabel" class="font-medium text-lg ${serviceUnavailable ? 'text-red-600' : 'text-green-600'}">
               ${serviceUnavailable ? '🔴 Service Unavailable' : '🟢 Service Active'}
@@ -1786,26 +2176,16 @@
         <div class="card p-6">
           <h3 class="font-semibold text-lg mb-3">📱 Admin Phone Numbers</h3>
           <p class="text-sm text-gray-500 mb-3">These numbers can receive admin OTPs</p>
-          
           <div id="adminPhonesList" class="space-y-2 mb-3">
             ${adminPhones.map((phone, index) => `
               <div class="flex items-center gap-2">
-                <input type="tel" value="${phone}" class="flex-1 px-3 py-2 rounded-lg border border-gray-300 bg-gray-50 text-sm" 
-                       onchange="updateAdminPhone(${index}, this.value)" />
-                <button onclick="removeAdminPhone(${index})" class="text-red-500 hover:text-red-700 px-2 py-2">
-                  <i class="fas fa-trash"></i>
-                </button>
+                <input type="tel" value="${phone}" class="flex-1 px-3 py-2 rounded-lg border border-gray-300 bg-gray-50 text-sm" onchange="updateAdminPhone(${index}, this.value)" />
+                <button onclick="removeAdminPhone(${index})" class="text-red-500 hover:text-red-700 px-2 py-2"><i class="fas fa-trash"></i></button>
               </div>
             `).join('')}
           </div>
-          
-          <button onclick="addAdminPhone()" class="btn btn-sm btn-outline mb-4">
-            <i class="fas fa-plus"></i> Add Phone Number
-          </button>
-          
-          <button onclick="saveAdminPhones()" class="btn btn-primary">
-            <i class="fas fa-save"></i> Save Phone Numbers
-          </button>
+          <button onclick="addAdminPhone()" class="btn btn-sm btn-outline mb-4"><i class="fas fa-plus"></i> Add Phone Number</button>
+          <button onclick="saveAdminPhones()" class="btn btn-primary"><i class="fas fa-save"></i> Save Phone Numbers</button>
           <p id="adminPhoneStatus" class="text-sm mt-2 text-gray-500"></p>
         </div>
 
@@ -1814,9 +2194,7 @@
           <h3 class="font-semibold text-lg mb-3">🔑 Active Admin Phone (Login)</h3>
           <div class="flex gap-2">
             <select id="adminPhoneSelect" class="flex-1 border rounded-lg px-4 py-2 bg-white dark:bg-gray-700">
-              ${adminPhones.map(p => `
-                <option value="${p}" ${settings.active_admin_phone === p ? 'selected' : ''}>${p}</option>
-              `).join('')}
+              ${adminPhones.map(p => `<option value="${p}" ${settings.active_admin_phone === p ? 'selected' : ''}>${p}</option>`).join('')}
             </select>
             <button onclick="updateActiveAdminPhone()" class="btn btn-primary">Update</button>
           </div>
@@ -1859,8 +2237,7 @@
               const isChecked = unavailableDays.includes(day);
               return `
                 <label class="inline-flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border ${isChecked ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-primary'}">
-                  <input type="checkbox" class="unavailable-day" value="${day}" ${isChecked ? 'checked' : ''} 
-                         onchange="updateUnavailableDays()" />
+                  <input type="checkbox" class="unavailable-day" value="${day}" ${isChecked ? 'checked' : ''} onchange="updateUnavailableDays()" />
                   <span class="text-sm">${day}</span>
                 </label>
               `;
@@ -1895,19 +2272,14 @@
     .catch(err => showToast('Error: ' + err.message));
   }
 
-  let adminPhonesList = [];
-
   function addAdminPhone() {
     const container = document.getElementById('adminPhonesList');
     const index = adminPhonesList.length;
     const div = document.createElement('div');
     div.className = 'flex items-center gap-2';
     div.innerHTML = `
-      <input type="tel" placeholder="+91XXXXXXXXXX" class="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm" 
-             onchange="updateAdminPhone(${index}, this.value)" />
-      <button onclick="removeAdminPhone(${index})" class="text-red-500 hover:text-red-700 px-2 py-2">
-        <i class="fas fa-trash"></i>
-      </button>
+      <input type="tel" placeholder="+91XXXXXXXXXX" class="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm" onchange="updateAdminPhone(${index}, this.value)" />
+      <button onclick="removeAdminPhone(${index})" class="text-red-500 hover:text-red-700 px-2 py-2"><i class="fas fa-trash"></i></button>
     `;
     container.appendChild(div);
     adminPhonesList.push('');
@@ -1950,10 +2322,7 @@
 
   function updateActiveAdminPhone() {
     const phone = document.getElementById('adminPhoneSelect').value;
-    if (!phone) {
-      showToast('Please select a phone number');
-      return;
-    }
+    if (!phone) { showToast('Please select a phone number'); return; }
     fetch(`${API_BASE}/settings`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -2021,7 +2390,6 @@
   async function showCommissionReport(period) {
     const container = document.getElementById('reportContent');
     container.innerHTML = `<div class="flex justify-center py-8"><div class="spinner"></div></div>`;
-
     try {
       const data = await fetchData(`reports/commission?period=${period}`);
       let html = `
@@ -2051,7 +2419,6 @@
         </div>
       `;
       container.innerHTML = html;
-
       new Chart(document.getElementById('commissionChart'), {
         type: 'bar',
         data: {
@@ -2075,7 +2442,6 @@
       container.innerHTML = `<p class="text-gray-500">No restaurants in Food category.</p>`;
       return;
     }
-
     let options = foodRestaurants.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
     container.innerHTML = `
       <div class="card p-4 mb-4">
@@ -2096,13 +2462,9 @@
   async function loadRestaurantReport() {
     const select = document.getElementById('restaurantSelect');
     const id = select.value;
-    if (!id) {
-      document.getElementById('restaurantReportDetails').innerHTML = '';
-      return;
-    }
+    if (!id) { document.getElementById('restaurantReportDetails').innerHTML = ''; return; }
     const container = document.getElementById('restaurantReportDetails');
     container.innerHTML = `<div class="flex justify-center py-8"><div class="spinner"></div></div>`;
-
     try {
       const data = await fetchData(`reports/restaurant/${id}`);
       let html = `
@@ -2149,6 +2511,7 @@
   window.openAddProduct = openAddProduct;
   window.editProduct = editProduct;
   window.deleteProduct = deleteProduct;
+  window.removeExistingImage = removeExistingImage;
   window.openAddPlace = openAddPlace;
   window.editPlace = editPlace;
   window.deletePlace = deletePlace;
@@ -2190,7 +2553,6 @@
     if (savedPhone) {
       document.getElementById('adminPhone').value = savedPhone;
     }
-
     if (localStorage.getItem('adminLoggedIn') === 'true') {
       document.getElementById('adminLoginOverlay').classList.add('hidden');
       loadAllData().then(() => navigateTo('dashboard'));
