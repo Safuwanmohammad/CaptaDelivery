@@ -64,47 +64,89 @@ router.post('/register', async (req, res) => {
 });
 
 // ===== ADMIN OTP =====
-router.post('/admin/send-otp', async (req, res) => {
-  const { phone } = req.body;
-  // Check if phone is in admin_phones list
-  const settingsResult = await pool.query("SELECT value FROM settings WHERE key = 'admin_phones'");
-  let adminPhones = [];
-  if (settingsResult.rows.length > 0) {
-    try {
-      adminPhones = JSON.parse(settingsResult.rows[0].value);
-    } catch (e) {
-      adminPhones = ['+919019825189', '+91827079552', '+919999999999'];
+// Helper function to get admin phones from settings
+async function getAdminPhones() {
+  try {
+    const result = await pool.query("SELECT value FROM settings WHERE key = 'admin_phones'");
+    if (result.rows.length > 0) {
+      try {
+        return JSON.parse(result.rows[0].value);
+      } catch (e) {
+        return ['+919019825189', '+91827079552', '+919999999999'];
+      }
     }
+    return ['+919019825189', '+91827079552', '+919999999999'];
+  } catch (err) {
+    console.error('Error fetching admin phones:', err.message);
+    return ['+919019825189', '+91827079552', '+919999999999'];
   }
-  if (!phone || !adminPhones.includes(phone)) {
-    return res.status(403).json({ error: 'Not authorized as admin' });
+}
+
+router.post('/admin/send-otp', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone || phone.length < 10) {
+      return res.status(400).json({ error: 'Valid phone number required' });
+    }
+    
+    // Get admin phones from database
+    const adminPhones = await getAdminPhones();
+    
+    // Check if phone is in admin list
+    const isAdmin = adminPhones.some(p => p === phone || p.replace('+91', '') === phone.replace('+91', ''));
+    
+    if (!isAdmin) {
+      console.log(`❌ Phone ${phone} not in admin list:`, adminPhones);
+      return res.status(403).json({ error: 'Not authorized as admin. Contact support to add your number.' });
+    }
+    
+    const otp = generateOtp();
+    otpStore[phone] = otp;
+    await sendOtp(phone, otp);
+    res.json({ message: 'Admin OTP sent', otp });
+  } catch (err) {
+    console.error('Admin send OTP error:', err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
   }
-  const otp = generateOtp();
-  otpStore[phone] = otp;
-  await sendOtp(phone, otp);
-  res.json({ message: 'Admin OTP sent', otp });
 });
 
 router.post('/admin/verify-otp', async (req, res) => {
-  const { phone, otp } = req.body;
-  // Check if phone is in admin_phones list
-  const settingsResult = await pool.query("SELECT value FROM settings WHERE key = 'admin_phones'");
-  let adminPhones = [];
-  if (settingsResult.rows.length > 0) {
-    try {
-      adminPhones = JSON.parse(settingsResult.rows[0].value);
-    } catch (e) {
-      adminPhones = ['+919019825189', '+91827079552', '+919999999999'];
+  try {
+    const { phone, otp } = req.body;
+    if (!phone || !otp) {
+      return res.status(400).json({ error: 'Phone and OTP required' });
     }
+    
+    // Get admin phones from database
+    const adminPhones = await getAdminPhones();
+    
+    // Check if phone is in admin list
+    const isAdmin = adminPhones.some(p => p === phone || p.replace('+91', '') === phone.replace('+91', ''));
+    
+    if (!isAdmin) {
+      return res.status(403).json({ error: 'Not authorized as admin' });
+    }
+    
+    if (otpStore[phone] !== otp) {
+      return res.status(400).json({ error: 'Invalid OTP' });
+    }
+    
+    delete otpStore[phone];
+    res.json({ message: 'Admin login successful', admin: true });
+  } catch (err) {
+    console.error('Admin verify OTP error:', err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
   }
-  if (!phone || !adminPhones.includes(phone)) {
-    return res.status(403).json({ error: 'Not authorized as admin' });
+});
+
+// ===== GET ADMIN PHONES (for debugging) =====
+router.get('/admin/phones', async (req, res) => {
+  try {
+    const adminPhones = await getAdminPhones();
+    res.json({ adminPhones });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-  if (otpStore[phone] !== otp) {
-    return res.status(400).json({ error: 'Invalid OTP' });
-  }
-  delete otpStore[phone];
-  res.json({ message: 'Admin login successful', admin: true });
 });
 
 module.exports = router;
