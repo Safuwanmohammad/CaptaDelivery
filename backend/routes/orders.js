@@ -4,6 +4,6 @@ const { getAllOrders, createOrder, updateOrderStatus } = require('../controllers
 
 router.get('/', getAllOrders);
 router.post('/', createOrder);
-router.put('/:id', updateOrderStatus);
+router.put('/:id/status', updateOrderStatus);
 
 module.exports = router;

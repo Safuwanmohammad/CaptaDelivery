@@ -1,8 +1,5 @@
 const pool = require('../db');
 
-/**
- * GET /api/reports/commission?period=daily|weekly|monthly
- */
 exports.getCommissionReport = async (req, res) => {
   try {
     const { period = 'daily' } = req.query;
@@ -48,10 +45,6 @@ exports.getCommissionReport = async (req, res) => {
   }
 };
 
-/**
- * GET /api/reports/restaurant/:id
- * Returns orders that contain items from that restaurant.
- */
 exports.getRestaurantReport = async (req, res) => {
   try {
     const restaurantId = parseInt(req.params.id);
@@ -109,10 +102,6 @@ exports.getRestaurantReport = async (req, res) => {
   }
 };
 
-/**
- * PUT /api/reports/restaurant/:id/toggle
- * Toggle restaurant status between 'Active' and 'Inactive'
- */
 exports.toggleRestaurantStatus = async (req, res) => {
   try {
     const id = parseInt(req.params.id);

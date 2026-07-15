@@ -139,6 +139,7 @@ const seed = async () => {
 
       INSERT INTO settings (key, value) VALUES
       ('active_admin_phone', '+919019825189'),
+      ('admin_phones', '["+919019825189","+91827079552","+919999999999"]'),
       ('default_commission', '10'),
       ('rain_fare', '20'),
       ('delivery_hours', '9:00 AM - 10:00 PM'),
