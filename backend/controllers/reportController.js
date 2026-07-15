@@ -121,3 +121,59 @@ exports.toggleRestaurantStatus = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// NEW: Get category-wise commission report
+exports.getCategoryCommissionReport = async (req, res) => {
+  try {
+    const { period = 'daily' } = req.query;
+    let interval;
+    if (period === 'weekly') interval = '7 days';
+    else if (period === 'monthly') interval = '30 days';
+    else interval = '1 day';
+
+    // Get all delivered orders in the period
+    const query = `
+      SELECT items, commission_amount, grand_total
+      FROM orders
+      WHERE status = 'Delivered'
+        AND date > NOW() - INTERVAL '${interval}'
+    `;
+    const result = await pool.query(query);
+    
+    // Calculate category-wise commission
+    const categoryCommission = {};
+    let totalCommission = 0;
+    let totalOrders = result.rows.length;
+    let totalRevenue = 0;
+    
+    result.rows.forEach(row => {
+      totalRevenue += parseFloat(row.grand_total) || 0;
+      totalCommission += parseFloat(row.commission_amount) || 0;
+      
+      const items = row.items || [];
+      items.forEach(item => {
+        const cat = item.category || 'Uncategorized';
+        const commission = (item.price || 0) * (item.quantity || 0) * (item.commission || 0) / 100;
+        if (!categoryCommission[cat]) {
+          categoryCommission[cat] = 0;
+        }
+        categoryCommission[cat] += commission;
+      });
+    });
+    
+    // Format for chart
+    const labels = Object.keys(categoryCommission);
+    const data = Object.values(categoryCommission);
+    
+    res.json({
+      labels,
+      data,
+      categoryCommission,
+      totalCommission,
+      totalOrders,
+      totalRevenue
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
