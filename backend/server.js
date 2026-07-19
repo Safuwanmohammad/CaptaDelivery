@@ -56,6 +56,7 @@ app.get('/*', (req, res) => {
 // ===== ERROR HANDLING =====
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err.message);
+  console.error('Stack:', err.stack);
   res.status(500).json({
     error: 'Something went wrong!',
     message: err.message
