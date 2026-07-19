@@ -31,7 +31,6 @@ app.get('/health', async (req, res) => {
 });
 
 // ===== API ROUTES =====
-// Make sure all these route files exist
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/restaurants', require('./routes/restaurants'));
 app.use('/api/products', require('./routes/products'));
@@ -50,7 +49,8 @@ console.log(`📁 Serving frontend from: ${frontendPath}`);
 app.use(express.static(frontendPath));
 
 // ===== FALLBACK: serve index.html for unknown routes (SPA support) =====
-app.get('*', (req, res) => {
+// FIXED: Use '/*' instead of '*' for Express 5 compatibility
+app.get('/*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
