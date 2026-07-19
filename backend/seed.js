@@ -4,6 +4,10 @@ const seed = async () => {
   try {
     console.log('🌱 Seeding database...');
 
+    // Test connection first
+    const test = await pool.query('SELECT NOW()');
+    console.log('✅ Database connected:', test.rows[0].now);
+
     await pool.query(`
       DROP TABLE IF EXISTS whatsapp_logs CASCADE;
       DROP TABLE IF EXISTS orders CASCADE;
@@ -148,7 +152,6 @@ const seed = async () => {
       ('Veggie Delight', 'Food', 3, 199, 10, 'Active', ARRAY['https://placehold.co/400x400/008000/white?text=Veggie'], '[]')
       ON CONFLICT DO NOTHING;
 
-      -- Offers without coupon codes - redirect to restaurant/category
       INSERT INTO offers (title, discount, bg, icon, restaurant_id, category, description) VALUES
       ('Pizza Hut Special', '20% OFF on all Pizzas', 'linear-gradient(135deg, #FF6B6B 0%, #ee5a24 100%)', 'fa-pizza-slice', 1, NULL, 'Get 20% off on all pizzas at Pizza Hut'),
       ('Biryani House Deal', '15% OFF on Biryani', 'linear-gradient(135deg, #FFA94D 0%, #f093fb 100%)', 'fa-utensils', 2, NULL, 'Enjoy 15% off on all biryani items'),
@@ -182,6 +185,7 @@ const seed = async () => {
     process.exit(0);
   } catch (err) {
     console.error('❌ Seed failed:', err.message);
+    console.error('Stack:', err.stack);
     process.exit(1);
   }
 };
