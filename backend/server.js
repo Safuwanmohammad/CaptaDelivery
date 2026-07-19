@@ -44,20 +44,18 @@ app.use('/api/whatsapp', require('./routes/whatsapp'));
 app.use('/api/reports', require('./routes/reports'));
 
 // ===== SERVE STATIC FRONTEND =====
-const frontendPath = path.resolve(__dirname, '../frontend');
+const frontendPath = path.join(__dirname, '../frontend');
 console.log(`📁 Serving frontend from: ${frontendPath}`);
 app.use(express.static(frontendPath));
 
-// ===== FALLBACK: serve index.html for unknown routes (SPA support) =====
-// FIXED: Use '/*' instead of '*' for Express 5 compatibility
+// ===== FALLBACK: serve index.html for unknown routes =====
 app.get('/*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-// ===== ERROR HANDLING MIDDLEWARE =====
+// ===== ERROR HANDLING =====
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err.message);
-  console.error('Stack:', err.stack);
   res.status(500).json({
     error: 'Something went wrong!',
     message: err.message
@@ -65,7 +63,7 @@ app.use((err, req, res, next) => {
 });
 
 // ===== START SERVER =====
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server is running on port ${PORT}`);
   console.log(`📁 Serving frontend from: ${frontendPath}`);
   console.log(`🔗 Visit: http://localhost:${PORT}`);
