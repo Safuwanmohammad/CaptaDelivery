@@ -38,10 +38,9 @@ app.get('*', (req, res) => {
 // ===== DATABASE CONNECTION TEST =====
 pool.query('SELECT NOW()', (err, result) => {
   if (err) {
-    console.error('❌ Neon Database connection error:', err.message);
-    console.error('💡 Please check your DATABASE_URL in .env file');
+    console.error('❌ Database connection error:', err.message);
   } else {
-    console.log('✅ Connected to Neon PostgreSQL at', result.rows[0].now);
+    console.log('✅ Connected to PostgreSQL at', result.rows[0].now);
   }
 });
 
