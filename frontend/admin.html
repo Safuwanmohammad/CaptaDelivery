@@ -815,6 +815,7 @@
       settings.admin_phones = setts.admin_phones || '["+919019825189","+91827079552","+919999999999"]';
       settings.default_commission = setts.default_commission || '10';
       settings.rain_fare = setts.rain_fare || '20';
+      settings.rain_fare_enabled = setts.rain_fare_enabled || 'true';
       settings.delivery_hours = setts.delivery_hours || '9:00 AM - 10:00 PM';
       settings.unavailable_days = setts.unavailable_days || '["Monday"]';
       settings.service_unavailable = setts.service_unavailable || 'false';
@@ -1345,7 +1346,7 @@
   }
 
   // ============================================================
-  // PRODUCTS CRUD - FULLY IMPLEMENTED
+  // PRODUCTS CRUD
   // ============================================================
   function renderProductsList(el) {
     el.innerHTML = `
@@ -1963,7 +1964,7 @@
   }
 
   // ============================================================
-  // OFFERS
+  // OFFERS - Without Coupon Codes, Redirect to Products
   // ============================================================
   function renderOffers(el) {
     el.innerHTML = `
@@ -1973,21 +1974,23 @@
       </div>
       <div class="card p-3 table-wrap">
         <table>
-          <thead><tr><th>Title</th><th>Discount</th><th>Code</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Title</th><th>Discount</th><th>Restaurant/Category</th><th>Description</th><th>Actions</th></tr></thead>
           <tbody>
-            ${(offers || []).map(o => `
-              <tr>
+            ${(offers || []).map(o => {
+              const restaurant = restaurants.find(r => r.id === o.restaurant_id);
+              return `<tr>
                 <td>${o.title}</td>
                 <td>${o.discount}</td>
-                <td>${o.code}</td>
+                <td>${restaurant ? restaurant.name : (o.category || 'All')}</td>
+                <td>${o.description || ''}</td>
                 <td>
                   <div class="table-actions">
                     <button class="btn btn-sm btn-primary" onclick="editOffer(${o.id})"><i class="fas fa-edit"></i></button>
                     <button class="btn btn-sm btn-danger" onclick="deleteOffer(${o.id})"><i class="fas fa-trash"></i></button>
                   </div>
                 </td>
-              </tr>
-            `).join('')}
+              </tr>`;
+            }).join('')}
           </tbody>
         </table>
       </div>
@@ -1995,23 +1998,59 @@
   }
 
   function openAddOffer() {
+    const restaurantOptions = (restaurants || []).map(r => 
+      `<option value="${r.id}">${r.name}</option>`
+    ).join('');
+
+    const categoryOptions = (categories || []).map(c => 
+      `<option value="${c.name}">${c.name}</option>`
+    ).join('');
+
     openModal(`
       <h2>Add Offer</h2>
       <form id="offerForm">
         <div class="form-group"><label>Title *</label><input id="offerTitle" required placeholder="Summer Sale" /></div>
         <div class="form-group"><label>Discount *</label><input id="offerDiscount" required placeholder="20% OFF" /></div>
-        <div class="form-group"><label>Code *</label><input id="offerCode" required placeholder="SUMMER20" /></div>
-        <button type="submit" class="btn btn-primary btn-block">Save</button>
+        <div class="form-group"><label>Restaurant (optional)</label>
+          <select id="offerRestaurant">
+            <option value="">All Restaurants</option>
+            ${restaurantOptions}
+          </select>
+        </div>
+        <div class="form-group"><label>Category (optional)</label>
+          <select id="offerCategory">
+            <option value="">All Categories</option>
+            ${categoryOptions}
+          </select>
+        </div>
+        <div class="form-group"><label>Description</label>
+          <textarea id="offerDescription" rows="2" placeholder="Brief description of the offer"></textarea>
+        </div>
+        <div class="form-group"><label>Background Color</label>
+          <input id="offerBg" value="linear-gradient(135deg, #667eea 0%, #764ba2 100%)" placeholder="CSS gradient" />
+        </div>
+        <div class="form-group"><label>Icon</label>
+          <input id="offerIcon" value="fa-tags" placeholder="Font Awesome icon class" />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Save Offer</button>
       </form>
     `);
     document.getElementById('offerForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const title = document.getElementById('offerTitle').value.trim();
       const discount = document.getElementById('offerDiscount').value.trim();
-      const code = document.getElementById('offerCode').value.trim().toUpperCase();
-      if (!title || !discount || !code) { showToast('All fields required'); return; }
+      const restaurantId = document.getElementById('offerRestaurant').value || null;
+      const category = document.getElementById('offerCategory').value || null;
+      const description = document.getElementById('offerDescription').value.trim();
+      const bg = document.getElementById('offerBg').value.trim();
+      const icon = document.getElementById('offerIcon').value.trim();
+      if (!title || !discount) { showToast('Title and discount required'); return; }
       try {
-        await postData('offers', { title, discount, code, bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', icon: 'fa-gift' });
+        await postData('offers', { 
+          title, discount, restaurant_id: restaurantId, category, description, 
+          bg: bg || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+          icon: icon || 'fa-tags' 
+        });
         offers = await fetchData('offers');
         closeModal();
         showToast('Offer added!');
@@ -2023,12 +2062,40 @@
   function editOffer(id) {
     const o = (offers || []).find(x => x.id === id);
     if (!o) return;
+    const restaurantOptions = (restaurants || []).map(r => 
+      `<option value="${r.id}" ${o.restaurant_id === r.id ? 'selected' : ''}>${r.name}</option>`
+    ).join('');
+
+    const categoryOptions = (categories || []).map(c => 
+      `<option value="${c.name}" ${o.category === c.name ? 'selected' : ''}>${c.name}</option>`
+    ).join('');
+
     openModal(`
       <h2>Edit Offer</h2>
       <form id="offerForm">
         <div class="form-group"><label>Title *</label><input id="offerTitle" value="${o.title}" required /></div>
         <div class="form-group"><label>Discount *</label><input id="offerDiscount" value="${o.discount}" required /></div>
-        <div class="form-group"><label>Code *</label><input id="offerCode" value="${o.code}" required /></div>
+        <div class="form-group"><label>Restaurant (optional)</label>
+          <select id="offerRestaurant">
+            <option value="">All Restaurants</option>
+            ${restaurantOptions}
+          </select>
+        </div>
+        <div class="form-group"><label>Category (optional)</label>
+          <select id="offerCategory">
+            <option value="">All Categories</option>
+            ${categoryOptions}
+          </select>
+        </div>
+        <div class="form-group"><label>Description</label>
+          <textarea id="offerDescription" rows="2">${o.description || ''}</textarea>
+        </div>
+        <div class="form-group"><label>Background Color</label>
+          <input id="offerBg" value="${o.bg || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}" />
+        </div>
+        <div class="form-group"><label>Icon</label>
+          <input id="offerIcon" value="${o.icon || 'fa-tags'}" />
+        </div>
         <button type="submit" class="btn btn-primary btn-block">Update</button>
       </form>
     `);
@@ -2036,10 +2103,18 @@
       e.preventDefault();
       const title = document.getElementById('offerTitle').value.trim();
       const discount = document.getElementById('offerDiscount').value.trim();
-      const code = document.getElementById('offerCode').value.trim().toUpperCase();
-      if (!title || !discount || !code) { showToast('All fields required'); return; }
+      const restaurantId = document.getElementById('offerRestaurant').value || null;
+      const category = document.getElementById('offerCategory').value || null;
+      const description = document.getElementById('offerDescription').value.trim();
+      const bg = document.getElementById('offerBg').value.trim();
+      const icon = document.getElementById('offerIcon').value.trim();
+      if (!title || !discount) { showToast('Title and discount required'); return; }
       try {
-        await putData(`offers/${id}`, { title, discount, code, bg: o.bg, icon: o.icon });
+        await putData(`offers/${id}`, { 
+          title, discount, restaurant_id: restaurantId, category, description,
+          bg: bg || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+          icon: icon || 'fa-tags' 
+        });
         offers = await fetchData('offers');
         closeModal();
         showToast('Offer updated!');
@@ -2151,7 +2226,7 @@
   }
 
   // ============================================================
-  // SETTINGS
+  // SETTINGS - With Rain Fare Toggle
   // ============================================================
   function renderSettings(el) {
     const adminPhones = settings.admin_phones 
@@ -2163,6 +2238,7 @@
       : [];
     
     const serviceUnavailable = settings.service_unavailable === 'true';
+    const rainFareEnabled = settings.rain_fare_enabled !== 'false';
     
     el.innerHTML = `
       <h2 class="text-xl font-bold mb-4">⚙️ Settings</h2>
@@ -2179,6 +2255,25 @@
               ${serviceUnavailable ? '🔴 Service Unavailable' : '🟢 Service Active'}
             </span>
           </div>
+        </div>
+
+        <!-- Rain Fare Toggle -->
+        <div class="card p-6">
+          <h3 class="font-semibold text-lg mb-3">🌧️ Rain Fare</h3>
+          <div class="flex items-center gap-4">
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="rainFareToggle" class="sr-only peer" ${rainFareEnabled ? 'checked' : ''} onchange="toggleRainFare(this.checked)">
+              <div class="w-14 h-7 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+            <span id="rainFareStatus" class="font-medium text-lg ${rainFareEnabled ? 'text-green-600' : 'text-gray-500'}">
+              ${rainFareEnabled ? '✅ Rain Fare Enabled' : '❌ Rain Fare Disabled'}
+            </span>
+          </div>
+          <div class="mt-3 flex gap-2">
+            <input type="number" id="rainFare" value="${settings.rain_fare || 20}" class="flex-1 border rounded-lg px-4 py-2" step="0.01" />
+            <button onclick="updateRainFare()" class="btn btn-primary">Update Amount</button>
+          </div>
+          <p class="text-sm text-gray-500 mt-2">Rain fare will ${rainFareEnabled ? 'be applied' : 'not be applied'} to orders</p>
         </div>
 
         <!-- Admin Phone Numbers -->
@@ -2214,18 +2309,10 @@
         <div class="card p-6">
           <h3 class="font-semibold text-lg mb-3">💰 Commission Rate</h3>
           <div class="flex gap-2">
-            <input type="number" id="commissionRate" value="${settings.default_commission || 10}" class="flex-1 border rounded-lg px-4 py-2" />
+            <input type="number" id="commissionRate" value="${settings.default_commission || 10}" class="flex-1 border rounded-lg px-4 py-2" step="0.01" />
             <button onclick="updateSetting('default_commission', document.getElementById('commissionRate').value)" class="btn btn-primary">Save</button>
           </div>
-        </div>
-
-        <!-- Rain Fare -->
-        <div class="card p-6">
-          <h3 class="font-semibold text-lg mb-3">🌧️ Rain Fare</h3>
-          <div class="flex gap-2">
-            <input type="number" id="rainFare" value="${settings.rain_fare || 20}" class="flex-1 border rounded-lg px-4 py-2" />
-            <button onclick="updateSetting('rain_fare', document.getElementById('rainFare').value)" class="btn btn-primary">Save</button>
-          </div>
+          <p class="text-sm text-gray-500 mt-1">Accepts decimal values (e.g., 10.5)</p>
         </div>
 
         <!-- Delivery Hours -->
@@ -2277,6 +2364,45 @@
         label.className = `font-medium text-lg ${isChecked ? 'text-red-600' : 'text-green-600'}`;
       }
       showToast(isChecked ? 'Service marked as unavailable' : 'Service is now active');
+    })
+    .catch(err => showToast('Error: ' + err.message));
+  }
+
+  function toggleRainFare(isChecked) {
+    const status = isChecked ? 'true' : 'false';
+    fetch(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'rain_fare_enabled', value: status })
+    })
+    .then(res => res.json())
+    .then(() => {
+      settings.rain_fare_enabled = status;
+      const label = document.getElementById('rainFareStatus');
+      if (label) {
+        label.textContent = isChecked ? '✅ Rain Fare Enabled' : '❌ Rain Fare Disabled';
+        label.className = `font-medium text-lg ${isChecked ? 'text-green-600' : 'text-gray-500'}`;
+      }
+      showToast(isChecked ? 'Rain fare enabled' : 'Rain fare disabled');
+    })
+    .catch(err => showToast('Error: ' + err.message));
+  }
+
+  function updateRainFare() {
+    const value = document.getElementById('rainFare').value;
+    if (!value || isNaN(value)) {
+      showToast('Please enter a valid amount');
+      return;
+    }
+    fetch(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'rain_fare', value: value })
+    })
+    .then(res => res.json())
+    .then(() => {
+      settings.rain_fare = value;
+      showToast('Rain fare updated to ₹' + value);
     })
     .catch(err => showToast('Error: ' + err.message));
   }
@@ -2380,7 +2506,7 @@
   }
 
   // ============================================================
-  // REPORTS
+  // REPORTS - With Category Commission
   // ============================================================
   function renderReports(el) {
     el.innerHTML = `
@@ -2390,6 +2516,7 @@
         <button class="tab-btn" onclick="showCommissionReport('weekly')">Weekly Commission</button>
         <button class="tab-btn" onclick="showCommissionReport('monthly')">Monthly Commission</button>
         <button class="tab-btn" onclick="showRestaurantReport()">Restaurant Report</button>
+        <button class="tab-btn" onclick="showCategoryCommission()">Category Commission</button>
       </div>
       <div id="reportContent"></div>
     `;
@@ -2506,6 +2633,79 @@
     }
   }
 
+  // ---- Category Commission Report ----
+  async function showCategoryCommission() {
+    const container = document.getElementById('reportContent');
+    container.innerHTML = `<div class="flex justify-center py-8"><div class="spinner"></div></div>`;
+
+    try {
+      const data = await fetchData('reports/category-commission');
+      
+      let html = `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="stat-card">
+            <p class="stat-label">Total Orders</p>
+            <p class="stat-value">${data.totalOrders}</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-label">Total Revenue</p>
+            <p class="stat-value">₹${data.totalRevenue.toFixed(2)}</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-label">Total Commission</p>
+            <p class="stat-value">₹${data.totalCommission.toFixed(2)}</p>
+          </div>
+        </div>
+        
+        <div class="card p-4 mb-4">
+          <h3 class="font-semibold mb-2">Category-wise Commission Breakdown</h3>
+          <div class="chart-container"><canvas id="categoryCommissionChart"></canvas></div>
+        </div>
+        
+        <div class="card p-4 table-wrap">
+          <table>
+            <thead><tr><th>Category</th><th>Commission (₹)</th><th>Percentage</th></tr></thead>
+            <tbody>
+              ${data.labels.map((cat, i) => `
+                <tr>
+                  <td>${cat}</td>
+                  <td>₹${data.data[i].toFixed(2)}</td>
+                  <td>${data.totalCommission > 0 ? ((data.data[i] / data.totalCommission) * 100).toFixed(1) : 0}%</td>
+                </tr>
+              `).join('')}
+              <tr class="font-bold">
+                <td>Total</td>
+                <td>₹${data.totalCommission.toFixed(2)}</td>
+                <td>100%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+      container.innerHTML = html;
+
+      new Chart(document.getElementById('categoryCommissionChart'), {
+        type: 'doughnut',
+        data: {
+          labels: data.labels,
+          datasets: [{
+            data: data.data,
+            backgroundColor: ['#007BFF', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8 } }
+          }
+        }
+      });
+    } catch (err) {
+      container.innerHTML = `<p class="text-red-500">Error loading category commission: ${err.message}</p>`;
+    }
+  }
+
   // ============================================================
   // EXPOSE ALL FUNCTIONS TO GLOBAL SCOPE
   // ============================================================
@@ -2546,6 +2746,8 @@
   window.loadRestaurantReport = loadRestaurantReport;
   window.logoutAdmin = logoutAdmin;
   window.toggleServiceStatus = toggleServiceStatus;
+  window.toggleRainFare = toggleRainFare;
+  window.updateRainFare = updateRainFare;
   window.addAdminPhone = addAdminPhone;
   window.updateAdminPhone = updateAdminPhone;
   window.removeAdminPhone = removeAdminPhone;
@@ -2553,6 +2755,7 @@
   window.updateActiveAdminPhone = updateActiveAdminPhone;
   window.updateUnavailableDays = updateUnavailableDays;
   window.saveUnavailableDays = saveUnavailableDays;
+  window.showCategoryCommission = showCategoryCommission;
 
   // ============================================================
   // INIT

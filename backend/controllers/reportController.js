@@ -122,7 +122,7 @@ exports.toggleRestaurantStatus = async (req, res) => {
   }
 };
 
-// NEW: Get category-wise commission report
+// Category-wise Commission Report
 exports.getCategoryCommissionReport = async (req, res) => {
   try {
     const { period = 'daily' } = req.query;
@@ -131,7 +131,6 @@ exports.getCategoryCommissionReport = async (req, res) => {
     else if (period === 'monthly') interval = '30 days';
     else interval = '1 day';
 
-    // Get all delivered orders in the period
     const query = `
       SELECT items, commission_amount, grand_total
       FROM orders
@@ -140,7 +139,6 @@ exports.getCategoryCommissionReport = async (req, res) => {
     `;
     const result = await pool.query(query);
     
-    // Calculate category-wise commission
     const categoryCommission = {};
     let totalCommission = 0;
     let totalOrders = result.rows.length;
@@ -161,7 +159,6 @@ exports.getCategoryCommissionReport = async (req, res) => {
       });
     });
     
-    // Format for chart
     const labels = Object.keys(categoryCommission);
     const data = Object.values(categoryCommission);
     

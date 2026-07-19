@@ -10,6 +10,6 @@ const {
 router.get('/commission', getCommissionReport);
 router.get('/restaurant/:id', getRestaurantReport);
 router.put('/restaurant/:id/toggle', toggleRestaurantStatus);
-router.get('/category-commission', getCategoryCommissionReport); // NEW
+router.get('/category-commission', getCategoryCommissionReport);
 
 module.exports = router;

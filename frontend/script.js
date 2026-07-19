@@ -20,6 +20,7 @@ let cart = JSON.parse(localStorage.getItem('swingy_cart') || '[]');
 
 let settings = {
   rain_fare: 20,
+  rain_fare_enabled: true,
   delivery_hours: '9:00 AM - 10:00 PM',
   unavailable_days: [],
   service_unavailable: false
@@ -105,15 +106,16 @@ async function loadAllData() {
       fetchData('customers'),
       fetchData('settings')
     ]);
-    categories = catsRes;
-    restaurants = restsRes;
-    products = prodsRes;
-    offers = offsRes;
-    orders = ordersRes;
-    users = usersRes;
+    categories = catsRes || [];
+    restaurants = restsRes || [];
+    products = prodsRes || [];
+    offers = offsRes || [];
+    orders = ordersRes || [];
+    users = usersRes || [];
 
     // Parse settings
     settings.rain_fare = parseFloat(settingsRes.rain_fare) || 20;
+    settings.rain_fare_enabled = settingsRes.rain_fare_enabled !== 'false';
     settings.delivery_hours = settingsRes.delivery_hours || '9:00 AM - 10:00 PM';
     settings.unavailable_days = settingsRes.unavailable_days ? JSON.parse(settingsRes.unavailable_days) : [];
     settings.service_unavailable = settingsRes.service_unavailable === 'true';
@@ -235,7 +237,28 @@ function removeItem(id, variantLabel) {
 }
 
 // ============================================================
-// ORDER SUMMARY (GRAND TOTAL FIXED)
+// UPDATE DELIVERY CHARGE (FIXED - RAIN FARE TOGGLE)
+// ============================================================
+function updateDeliveryCharge() {
+  const mainArea = state.orderSummary.selectedMainArea;
+  const subArea = state.orderSummary.selectedSubArea;
+  let delivery = 0;
+  if (mainArea && subArea && deliveryAreas[mainArea] && deliveryAreas[mainArea].subAreas[subArea]) {
+    delivery = parseFloat(deliveryAreas[mainArea].subAreas[subArea]) || 0;
+  }
+  state.orderSummary.deliveryCharge = delivery;
+  
+  // Check if rain fare is enabled
+  const rainFareEnabled = settings.rain_fare_enabled !== false;
+  const rain = rainFareEnabled ? (parseFloat(settings.rain_fare) || 0) : 0;
+  state.orderSummary.rainFare = rain;
+  
+  // GRAND TOTAL = subtotal + delivery + rain
+  state.orderSummary.grandTotal = state.orderSummary.subtotal + delivery + rain;
+}
+
+// ============================================================
+// PROCEED TO CHECKOUT (FIXED)
 // ============================================================
 function proceedToCheckout() {
   if (cart.length === 0) {
@@ -258,42 +281,27 @@ function proceedToCheckout() {
     subtotal += total;
   });
 
+  // Check if rain fare is enabled
+  const rainFareEnabled = settings.rain_fare_enabled !== false;
+  const rain = rainFareEnabled ? (parseFloat(settings.rain_fare) || 0) : 0;
+
   state.orderSummary = {
     items: cart.map(item => ({ ...item })),
     selectedMainArea: '',
     selectedSubArea: '',
     deliveryCharge: 0,
-    rainFare: settings.rain_fare || 0,
-    grandTotal: subtotal + (settings.rain_fare || 0),
+    rainFare: rain,
+    grandTotal: subtotal + rain,
     subtotal: subtotal,
     categoryTotals: categoryTotals
   };
 
   updateDeliveryCharge();
-
   state.showOrderSummary = true;
   state.showCart = false;
   state.showPayment = false;
-
   renderContent();
   window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-// ============================================================
-// UPDATE DELIVERY CHARGE
-// ============================================================
-function updateDeliveryCharge() {
-  const mainArea = state.orderSummary.selectedMainArea;
-  const subArea = state.orderSummary.selectedSubArea;
-  let delivery = 0;
-  if (mainArea && subArea && deliveryAreas[mainArea] && deliveryAreas[mainArea].subAreas[subArea]) {
-    delivery = parseFloat(deliveryAreas[mainArea].subAreas[subArea]) || 0;
-  }
-  state.orderSummary.deliveryCharge = delivery;
-  const rain = settings.rain_fare || 0;
-  state.orderSummary.rainFare = rain;
-  // GRAND TOTAL = subtotal + delivery + rain
-  state.orderSummary.grandTotal = state.orderSummary.subtotal + delivery + rain;
 }
 
 function closeOrderSummary() {
@@ -431,7 +439,7 @@ function closePayment() {
 }
 
 // ============================================================
-// PLACE ORDER
+// PLACE ORDER (FIXED - RAIN FARE TOGGLE)
 // ============================================================
 async function placeOrder() {
   const orderNumber = 'ORD-' + String(nextOrderNumber).padStart(4, '0');
@@ -443,7 +451,11 @@ async function placeOrder() {
   }));
   const productTotal = state.orderSummary.subtotal;
   const deliveryCharge = state.orderSummary.deliveryCharge;
-  const rainFare = state.orderSummary.rainFare;
+  
+  // Check if rain fare is enabled
+  const rainFareEnabled = settings.rain_fare_enabled !== false;
+  const rainFare = rainFareEnabled ? (state.orderSummary.rainFare || 0) : 0;
+  
   const commissionAmount = itemsWithCommission.reduce(
     (sum, item) => sum + (item.price * item.quantity * (item.commission || 0) / 100),
     0
@@ -808,6 +820,26 @@ function toggleAccountDrawer() {
 }
 
 // ============================================================
+// OPEN MODAL (for contact support etc)
+// ============================================================
+function openModal(html) {
+  const overlay = document.createElement('div');
+  overlay.className = 'fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm';
+  overlay.id = 'customModal';
+  const modal = document.createElement('div');
+  modal.className = 'bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 relative';
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl';
+  closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+  closeBtn.addEventListener('click', () => overlay.remove());
+  modal.appendChild(closeBtn);
+  modal.innerHTML += html;
+  overlay.appendChild(modal);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+// ============================================================
 // RENDER FUNCTIONS
 // ============================================================
 function renderProductCard(product, onAdd) {
@@ -1117,7 +1149,7 @@ function renderAccountDrawer() {
 }
 
 // ============================================================
-// RENDER ORDER SUMMARY
+// RENDER ORDER SUMMARY (FIXED)
 // ============================================================
 function renderOrderSummary() {
   if (!state.showOrderSummary) return null;
@@ -1309,19 +1341,40 @@ function renderOrderSummary() {
   return container;
 }
 
+// ============================================================
+// RENDER HERO - FIX SHOP NOW BUTTON
+// ============================================================
 function renderHero() {
   const container = document.createElement('div');
   container.className = 'bg-gradient-to-r from-blue-600 to-primary rounded-2xl mx-4 my-4 p-8 text-white';
   container.innerHTML = `
     <h1 class="text-3xl md:text-5xl font-bold mb-4">Groceries & Meat Delivered in Minutes</h1>
     <p class="text-lg mb-6">Fresh groceries, premium meat and more – delivered fast.</p>
-    <button class="bg-white text-primary px-8 py-3 rounded-full font-bold">Shop Now →</button>
+    <button id="shopNowBtn" class="bg-white text-primary px-8 py-3 rounded-full font-bold">Shop Now →</button>
   `;
-  const btn = container.querySelector('button');
-  btn.addEventListener('click', () => {
-    const productsSection = document.querySelector('.px-4.my-8');
-    if (productsSection) productsSection.scrollIntoView({ behavior: 'smooth' });
-  });
+  
+  // Fix: Use event listener after DOM is ready
+  setTimeout(() => {
+    const btn = container.querySelector('#shopNowBtn');
+    if (btn) {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        // Scroll to products section
+        const productsSection = document.querySelector('.px-4.my-8');
+        if (productsSection) {
+          productsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          // Fallback: scroll to categories
+          const categoriesSection = document.querySelector('.px-4.my-8.hidden.md\\:block');
+          if (categoriesSection) {
+            categoriesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      });
+    }
+  }, 100);
+  
   return container;
 }
 
@@ -1380,6 +1433,9 @@ function renderCategoriesSection() {
   return container;
 }
 
+// ============================================================
+// RENDER OFFERS SECTION - No Coupon Codes
+// ============================================================
 function renderOffersSection() {
   const container = document.createElement('div');
   container.className = 'px-4 my-8';
@@ -1387,20 +1443,46 @@ function renderOffersSection() {
   heading.className = 'text-2xl font-bold mb-4';
   heading.textContent = '🎁 Today\'s Best Offers';
   container.appendChild(heading);
+  
   const grid = document.createElement('div');
   grid.className = 'grid grid-cols-1 md:grid-cols-3 gap-4';
+  
   offers.forEach(offer => {
     const card = document.createElement('div');
-    card.className = 'rounded-2xl p-5 text-white shadow-lg';
-    card.style.background = offer.bg;
+    card.className = 'rounded-2xl p-5 text-white shadow-lg cursor-pointer hover:scale-105 transition-transform';
+    card.style.background = offer.bg || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    
+    // If offer has restaurant_id, redirect to that restaurant
+    const clickHandler = () => {
+      if (offer.restaurant_id) {
+        const restaurant = restaurants.find(r => r.id === offer.restaurant_id);
+        if (restaurant) {
+          state.selectedRestaurant = restaurant;
+          state.selectedCategory = '';
+          renderContent();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      } else if (offer.category) {
+        state.selectedCategory = offer.category;
+        state.selectedRestaurant = null;
+        renderContent();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+    card.addEventListener('click', clickHandler);
+    
     card.innerHTML = `
-      <i class="fas ${offer.icon} text-3xl mb-2"></i>
+      <i class="fas ${offer.icon || 'fa-tags'} text-3xl mb-2"></i>
       <h3 class="text-xl font-bold">${offer.title}</h3>
       <p class="text-2xl font-bold mt-2">${offer.discount}</p>
-      <code class="inline-block bg-white/20 px-2 py-1 rounded-lg text-sm mt-2">${offer.code}</code>
+      ${offer.description ? `<p class="text-sm opacity-80 mt-1">${offer.description}</p>` : ''}
+      <div class="mt-3 text-sm bg-white/20 inline-block px-3 py-1 rounded-full">
+        Click to view →
+      </div>
     `;
     grid.appendChild(card);
   });
+  
   container.appendChild(grid);
   return container;
 }
@@ -1511,8 +1593,10 @@ function renderCartSidebar() {
     subtotal += total;
   });
   const delivery = subtotal > 199 ? 0 : 40;
-  const rain = settings.rain_fare || 0;
+  const rainFareEnabled = settings.rain_fare_enabled !== false;
+  const rain = rainFareEnabled ? (parseFloat(settings.rain_fare) || 0) : 0;
   const grandTotal = subtotal + delivery + rain;
+  
   const container = document.createElement('div');
   container.className = 'fixed inset-0 z-50';
   const backdrop = document.createElement('div');
@@ -1733,23 +1817,6 @@ function renderToast() {
   toast.className = 'fixed bottom-28 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-2 rounded-full shadow-lg z-50 text-sm';
   toast.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${state.toastMsg}`;
   return toast;
-}
-
-function openModal(html) {
-  const overlay = document.createElement('div');
-  overlay.className = 'fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm';
-  overlay.id = 'customModal';
-  const modal = document.createElement('div');
-  modal.className = 'bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 relative';
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl';
-  closeBtn.innerHTML = '<i class="fas fa-times"></i>';
-  closeBtn.addEventListener('click', () => overlay.remove());
-  modal.appendChild(closeBtn);
-  modal.innerHTML += html;
-  overlay.appendChild(modal);
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-  document.body.appendChild(overlay);
 }
 
 // ============================================================
