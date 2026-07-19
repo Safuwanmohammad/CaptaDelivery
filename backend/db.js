@@ -5,22 +5,17 @@ require('dotenv').config();
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    rejectUnauthorized: false, // Required for Neon
-    sslmode: 'require' // Neon requires SSL
-  },
-  // Neon specific settings
-  max: 10, // Max connections in pool
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+    rejectUnauthorized: false
+  }
 });
 
-// Test connection
-pool.on('connect', () => {
-  console.log('✅ Connected to Neon PostgreSQL');
-});
-
-pool.on('error', (err) => {
-  console.error('❌ Neon PostgreSQL error:', err.message);
+// Test connection on startup
+pool.query('SELECT NOW()', (err, result) => {
+  if (err) {
+    console.error('❌ Database connection error:', err.message);
+  } else {
+    console.log('✅ Connected to PostgreSQL at', result.rows[0].now);
+  }
 });
 
 module.exports = pool;

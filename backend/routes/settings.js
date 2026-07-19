@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 
-// GET all settings
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM settings');
@@ -16,7 +15,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// PUT update a setting
 router.put('/', async (req, res) => {
   const { key, value } = req.body;
   try {
