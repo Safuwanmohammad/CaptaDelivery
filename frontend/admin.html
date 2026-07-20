@@ -520,6 +520,30 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+
+    /* Mobile fixes */
+    @media (max-width: 767px) {
+      .btn-block {
+        font-size: 0.8rem !important;
+        padding: 8px 12px !important;
+        min-height: 44px;
+      }
+      .top-bar .page-title h1 {
+        font-size: 1rem !important;
+      }
+      .modal-box {
+        padding: 12px !important;
+        margin: 8px !important;
+      }
+      .form-group input, .form-group select, .form-group textarea {
+        font-size: 0.85rem !important;
+        padding: 8px 10px !important;
+      }
+      .tab-btn {
+        font-size: 0.75rem !important;
+        padding: 6px 10px !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1071,7 +1095,6 @@
     `;
   }
 
-  // ---- Category Add/Edit with File Upload ----
   function openAddCategory() {
     openModal(`
       <h2>Add Category</h2>
@@ -1187,7 +1210,7 @@
   }
 
   // ============================================================
-  // RESTAURANTS CRUD - WITH FILE UPLOAD
+  // RESTAURANTS CRUD
   // ============================================================
   function renderRestaurantsList(el) {
     el.innerHTML = `
@@ -1397,7 +1420,7 @@
     el.innerHTML = `
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <h3 class="text-lg font-bold">Products</h3>
-        <button onclick="openAddProduct()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Product</button>
+        <button onclick="openAddProduct()" class="btn btn-primary btn-block sm:btn-auto" style="min-width: 120px;"><i class="fas fa-plus"></i> Add Product</button>
       </div>
       <div class="card p-3 table-wrap">
         <table>

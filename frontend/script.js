@@ -866,27 +866,48 @@ function renderProductCard(product, onAdd) {
   let hasVariants = product.variants && product.variants.length > 0;
 
   if (hasVariants) {
-    // Variant dropdown
+    // Variant dropdown with description
     const variantSelect = document.createElement('select');
     variantSelect.className = 'w-full text-sm border rounded px-2 py-1 mt-1 bg-white';
     variantSelect.id = `variant-${product.id}`;
+    
+    // Add default option
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = 'Select variant';
+    variantSelect.appendChild(defaultOpt);
+    
     product.variants.forEach((v, idx) => {
       const opt = document.createElement('option');
       opt.value = v.label;
-      opt.textContent = `${v.label} - ₹${v.price}`;
+      const priceDisplay = v.price ? ` - ₹${v.price}` : '';
+      opt.textContent = `${v.label}${priceDisplay}`;
       if (idx === 0) opt.selected = true;
       variantSelect.appendChild(opt);
     });
+    
     variantSelect.addEventListener('change', function() {
       selectedVariant = this.value;
       const variant = product.variants.find(v => v.label === selectedVariant);
       if (variant) {
         priceSpan.textContent = `₹${variant.price}`;
+        // Update the add button price display
+        addBtn.textContent = `Add ₹${variant.price}`;
+      } else {
+        priceSpan.textContent = `₹${product.price}`;
+        addBtn.textContent = 'Add';
       }
     });
     body.appendChild(variantSelect);
-    // Set initial selected variant
-    selectedVariant = product.variants[0].label;
+    
+    // Set initial selected variant to first one
+    if (product.variants && product.variants.length > 0) {
+      selectedVariant = product.variants[0].label;
+      const firstVariant = product.variants[0];
+      if (firstVariant) {
+        priceSpan.textContent = `₹${firstVariant.price}`;
+      }
+    }
   }
 
   const ratingDiv = document.createElement('div');
@@ -905,7 +926,7 @@ function renderProductCard(product, onAdd) {
   const priceDiv = document.createElement('div');
   const priceSpan = document.createElement('span');
   priceSpan.className = 'text-primary font-bold';
-  if (hasVariants) {
+  if (hasVariants && product.variants && product.variants.length > 0) {
     priceSpan.textContent = `₹${product.variants[0].price}`;
   } else {
     priceSpan.textContent = `₹${product.price}`;
@@ -940,14 +961,30 @@ function renderProductCard(product, onAdd) {
 
   const addBtn = document.createElement('button');
   addBtn.className = 'gradient-btn text-white px-3 py-1 rounded-full text-xs';
-  addBtn.textContent = 'Add';
+  if (hasVariants && product.variants && product.variants.length > 0) {
+    addBtn.textContent = `Add ₹${product.variants[0].price}`;
+  } else {
+    addBtn.textContent = 'Add';
+  }
   addBtn.addEventListener('click', () => {
     if (hasVariants) {
-      selectedVariant = document.getElementById(`variant-${product.id}`).value;
+      const select = document.getElementById(`variant-${product.id}`);
+      if (select) {
+        selectedVariant = select.value;
+        // If no variant selected, use the first one
+        if (!selectedVariant && product.variants && product.variants.length > 0) {
+          selectedVariant = product.variants[0].label;
+        }
+      }
     }
     onAdd(product, qty, selectedVariant);
     qty = 1;
     qtyDisplay.textContent = qty;
+    if (hasVariants && product.variants && product.variants.length > 0) {
+      addBtn.textContent = `Add ₹${product.variants[0].price}`;
+    } else {
+      addBtn.textContent = 'Add';
+    }
   });
   controls.appendChild(addBtn);
 
