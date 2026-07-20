@@ -666,8 +666,6 @@
   let notifications = [];
   let currentPage = 'dashboard';
   let catalogTab = 'categories';
-  let adminPhonesList = [];
-  let productImagesToRemove = [];
 
   // ============================================================
   // TOAST
@@ -1073,11 +1071,12 @@
     `;
   }
 
+  // ---- Category Add/Edit with File Upload ----
   function openAddCategory() {
     openModal(`
       <h2>Add Category</h2>
       <form id="categoryForm">
-        <div class="form-group"><label>Category Name</label><input id="catName" required placeholder="e.g. Beverages" /></div>
+        <div class="form-group"><label>Category Name *</label><input id="catName" required placeholder="e.g. Beverages" /></div>
         <div class="form-group"><label>Category Image</label>
           <div class="file-input-wrapper">
             <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload Image</div>
@@ -1088,37 +1087,33 @@
         <button type="submit" class="btn btn-primary btn-block">Save Category</button>
       </form>
     `);
+    
     const fileInput = document.getElementById('catImage');
     const previewContainer = document.getElementById('catImagePreview');
+    let imageDataUrl = null;
+
     fileInput.addEventListener('change', function() {
       previewContainer.innerHTML = '';
       const file = this.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
+          imageDataUrl = e.target.result;
           const div = document.createElement('div');
           div.className = 'preview-item';
-          div.innerHTML = `<img src="${e.target.result}" />`;
+          div.innerHTML = `<img src="${e.target.result}" /><button type="button" class="remove-img" onclick="this.parentElement.remove(); imageDataUrl = null;"><i class="fas fa-times"></i></button>`;
           previewContainer.appendChild(div);
         };
         reader.readAsDataURL(file);
       }
     });
+
     document.getElementById('categoryForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const name = document.getElementById('catName').value.trim();
       if (!name) { showToast('Name required'); return; }
-      let image = null;
-      const file = document.getElementById('catImage').files[0];
-      if (file) {
-        const reader = new FileReader();
-        image = await new Promise(resolve => {
-          reader.onload = e => resolve(e.target.result);
-          reader.readAsDataURL(file);
-        });
-      }
       try {
-        await postData('categories', { name, image });
+        await postData('categories', { name, image: imageDataUrl });
         categories = await fetchData('categories');
         closeModal();
         showToast('Category added!');
@@ -1133,11 +1128,11 @@
     openModal(`
       <h2>Edit Category</h2>
       <form id="categoryForm">
-        <div class="form-group"><label>Category Name</label><input id="catName" value="${c.name}" required /></div>
+        <div class="form-group"><label>Category Name *</label><input id="catName" value="${c.name}" required /></div>
         <div class="form-group"><label>Current Image</label>
           ${c.image ? `<img src="${c.image}" class="w-20 h-20 object-cover rounded" />` : '<p class="text-gray-400">No image</p>'}
         </div>
-        <div class="form-group"><label>Update Image (optional)</label>
+        <div class="form-group"><label>Upload New Image (optional)</label>
           <div class="file-input-wrapper">
             <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload New Image</div>
             <input id="catImage" type="file" accept="image/*" />
@@ -1147,34 +1142,31 @@
         <button type="submit" class="btn btn-primary btn-block">Update</button>
       </form>
     `);
+    
     const fileInput = document.getElementById('catImage');
     const previewContainer = document.getElementById('catImagePreview');
+    let imageDataUrl = null;
+
     fileInput.addEventListener('change', function() {
       previewContainer.innerHTML = '';
       const file = this.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
+          imageDataUrl = e.target.result;
           const div = document.createElement('div');
           div.className = 'preview-item';
-          div.innerHTML = `<img src="${e.target.result}" />`;
+          div.innerHTML = `<img src="${e.target.result}" /><button type="button" class="remove-img" onclick="this.parentElement.remove(); imageDataUrl = null;"><i class="fas fa-times"></i></button>`;
           previewContainer.appendChild(div);
         };
         reader.readAsDataURL(file);
       }
     });
+
     document.getElementById('categoryForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const name = document.getElementById('catName').value.trim();
-      let image = c.image;
-      const file = document.getElementById('catImage').files[0];
-      if (file) {
-        const reader = new FileReader();
-        image = await new Promise(resolve => {
-          reader.onload = e => resolve(e.target.result);
-          reader.readAsDataURL(file);
-        });
-      }
+      const image = imageDataUrl || c.image;
       try {
         await putData(`categories/${id}`, { name, image });
         categories = await fetchData('categories');
@@ -1195,7 +1187,7 @@
   }
 
   // ============================================================
-  // RESTAURANTS CRUD
+  // RESTAURANTS CRUD - WITH FILE UPLOAD
   // ============================================================
   function renderRestaurantsList(el) {
     el.innerHTML = `
@@ -1248,8 +1240,12 @@
             ${categoryOptions}
           </select>
         </div>
-        <div class="form-group"><label>Logo URL</label>
-          <input id="restLogo" placeholder="https://example.com/logo.png" />
+        <div class="form-group"><label>Restaurant Logo</label>
+          <div class="file-input-wrapper">
+            <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload Logo</div>
+            <input id="restLogoFile" type="file" accept="image/*" />
+          </div>
+          <div id="restLogoPreview" class="image-preview-grid"></div>
         </div>
         <div class="form-group"><label>Status</label>
           <select id="restStatus">
@@ -1260,12 +1256,33 @@
         <button type="submit" class="btn btn-primary btn-block">Save Restaurant</button>
       </form>
     `);
+
+    const fileInput = document.getElementById('restLogoFile');
+    const previewContainer = document.getElementById('restLogoPreview');
+    let logoDataUrl = null;
+
+    fileInput.addEventListener('change', function() {
+      previewContainer.innerHTML = '';
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          logoDataUrl = e.target.result;
+          const div = document.createElement('div');
+          div.className = 'preview-item';
+          div.innerHTML = `<img src="${e.target.result}" /><button type="button" class="remove-img" onclick="this.parentElement.remove(); logoDataUrl = null;"><i class="fas fa-times"></i></button>`;
+          previewContainer.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
     document.getElementById('restaurantForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const name = document.getElementById('restName').value.trim();
       const category = document.getElementById('restCategory').value;
-      const logo = document.getElementById('restLogo').value.trim() || 'https://placehold.co/100';
       const status = document.getElementById('restStatus').value;
+      const logo = logoDataUrl || 'https://placehold.co/100';
       if (!name || !category) { showToast('Name and category required'); return; }
       try {
         await postData('restaurants', { name, category, logo, status });
@@ -1294,8 +1311,15 @@
             ${categoryOptions}
           </select>
         </div>
-        <div class="form-group"><label>Logo URL</label>
-          <input id="restLogo" value="${r.logo || ''}" placeholder="https://example.com/logo.png" />
+        <div class="form-group"><label>Current Logo</label>
+          ${r.logo ? `<img src="${r.logo}" class="w-20 h-20 object-cover rounded" />` : '<p class="text-gray-400">No logo</p>'}
+        </div>
+        <div class="form-group"><label>Upload New Logo (optional)</label>
+          <div class="file-input-wrapper">
+            <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload New Logo</div>
+            <input id="restLogoFile" type="file" accept="image/*" />
+          </div>
+          <div id="restLogoPreview" class="image-preview-grid"></div>
         </div>
         <div class="form-group"><label>Status</label>
           <select id="restStatus">
@@ -1306,12 +1330,33 @@
         <button type="submit" class="btn btn-primary btn-block">Update Restaurant</button>
       </form>
     `);
+
+    const fileInput = document.getElementById('restLogoFile');
+    const previewContainer = document.getElementById('restLogoPreview');
+    let logoDataUrl = null;
+
+    fileInput.addEventListener('change', function() {
+      previewContainer.innerHTML = '';
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          logoDataUrl = e.target.result;
+          const div = document.createElement('div');
+          div.className = 'preview-item';
+          div.innerHTML = `<img src="${e.target.result}" /><button type="button" class="remove-img" onclick="this.parentElement.remove(); logoDataUrl = null;"><i class="fas fa-times"></i></button>`;
+          previewContainer.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
     document.getElementById('restaurantForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const name = document.getElementById('restName').value.trim();
       const category = document.getElementById('restCategory').value;
-      const logo = document.getElementById('restLogo').value.trim() || 'https://placehold.co/100';
       const status = document.getElementById('restStatus').value;
+      const logo = logoDataUrl || r.logo || 'https://placehold.co/100';
       if (!name || !category) { showToast('Name and category required'); return; }
       try {
         await putData(`restaurants/${id}`, { name, category, logo, status });
@@ -1346,7 +1391,7 @@
   }
 
   // ============================================================
-  // PRODUCTS CRUD
+  // PRODUCTS CRUD - WITH FILE UPLOAD & WORKING VARIANTS
   // ============================================================
   function renderProductsList(el) {
     el.innerHTML = `
@@ -1356,11 +1401,12 @@
       </div>
       <div class="card p-3 table-wrap">
         <table>
-          <thead><tr><th>Image</th><th>Name</th><th>Restaurant</th><th>Price</th><th>Category</th><th>Commission</th><th>Status</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Image</th><th>Name</th><th>Restaurant</th><th>Price</th><th>Category</th><th>Commission</th><th>Variants</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
             ${(products || []).map(p => {
               const restaurant = restaurants.find(r => r.id === p.restaurant_id);
               const img = (p.images && p.images.length > 0) ? p.images[0] : 'https://placehold.co/40';
+              const variantCount = (p.variants && p.variants.length > 0) ? p.variants.length : 0;
               return `<tr>
                 <td><img src="${img}" class="w-10 h-10 object-cover rounded" /></td>
                 <td class="text-truncate" style="max-width:80px;">${p.name}</td>
@@ -1368,6 +1414,7 @@
                 <td>₹${p.price || 0}</td>
                 <td>${p.category || 'N/A'}</td>
                 <td>${p.commission || 0}%</td>
+                <td>${variantCount > 0 ? `<span class="badge badge-info">${variantCount} variants</span>` : 'None'}</td>
                 <td><span class="badge ${p.status === 'Active' ? 'badge-success' : 'badge-danger'}">${p.status || 'Active'}</span></td>
                 <td>
                   <div class="table-actions">
@@ -1383,6 +1430,23 @@
     `;
   }
 
+  // ---- Add Variant Row ----
+  function addVariantRow() {
+    const container = document.getElementById('variantsContainer');
+    if (!container) return;
+    const div = document.createElement('div');
+    div.className = 'variant-row flex gap-2 mb-2';
+    div.innerHTML = `
+      <input type="text" class="variant-label flex-1 px-3 py-2 border rounded-lg" placeholder="Label (e.g. Large)" />
+      <input type="number" class="variant-price w-32 px-3 py-2 border rounded-lg" placeholder="Price" step="0.01" />
+      <button type="button" class="btn btn-sm btn-danger remove-variant" onclick="this.parentElement.remove()">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+    container.appendChild(div);
+  }
+
+  // ---- Open Add Product Modal ----
   function openAddProduct() {
     const restaurantOptions = (restaurants || []).map(r => 
       `<option value="${r.id}">${r.name}</option>`
@@ -1417,13 +1481,15 @@
         </div>
         
         <div class="form-group">
-          <label>Price (₹) *</label>
+          <label>Base Price (₹) *</label>
           <input id="prodPrice" type="number" step="0.01" required placeholder="299" />
+          <p class="text-xs text-gray-400 mt-1">If variants are added, this price will be used as default</p>
         </div>
         
         <div class="form-group">
           <label>Commission (%)</label>
           <input id="prodCommission" type="number" step="0.01" value="10" placeholder="10" />
+          <p class="text-xs text-gray-400 mt-1">Accepts decimal values (e.g., 10.5)</p>
         </div>
         
         <div class="form-group">
@@ -1444,15 +1510,27 @@
         </div>
         
         <div class="form-group">
-          <label>Variants (JSON format)</label>
-          <textarea id="prodVariants" rows="3" placeholder='[{"label":"750ml","price":40},{"label":"2L","price":100}]'></textarea>
-          <p class="text-xs text-gray-400">Leave empty for no variants</p>
+          <label>Variants</label>
+          <div id="variantsContainer">
+            <div class="variant-row flex gap-2 mb-2">
+              <input type="text" class="variant-label flex-1 px-3 py-2 border rounded-lg" placeholder="Label (e.g. Small)" />
+              <input type="number" class="variant-price w-32 px-3 py-2 border rounded-lg" placeholder="Price" step="0.01" />
+              <button type="button" class="btn btn-sm btn-danger remove-variant" onclick="this.parentElement.remove()">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+          <button type="button" onclick="addVariantRow()" class="btn btn-sm btn-outline">
+            <i class="fas fa-plus"></i> Add Variant
+          </button>
+          <p class="text-xs text-gray-400 mt-1">Leave empty if product has no variants</p>
         </div>
         
         <button type="submit" class="btn btn-primary btn-block">Save Product</button>
       </form>
     `);
 
+    // Handle image preview
     const fileInput = document.getElementById('prodImages');
     const previewContainer = document.getElementById('prodImagePreview');
     let imageUrls = [];
@@ -1479,6 +1557,7 @@
       }
     });
 
+    // Submit form
     document.getElementById('productForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const name = document.getElementById('prodName').value.trim();
@@ -1487,28 +1566,28 @@
       const price = parseFloat(document.getElementById('prodPrice').value);
       const commission = parseFloat(document.getElementById('prodCommission').value) || 0;
       const status = document.getElementById('prodStatus').value;
-      const variants = document.getElementById('prodVariants').value.trim();
+      
+      // Collect variants
+      const variantRows = document.querySelectorAll('.variant-row');
+      const variants = [];
+      variantRows.forEach(row => {
+        const label = row.querySelector('.variant-label').value.trim();
+        const priceVal = parseFloat(row.querySelector('.variant-price').value);
+        if (label && !isNaN(priceVal)) {
+          variants.push({ label, price: priceVal });
+        }
+      });
       
       if (!name) { showToast('Product name required'); return; }
       if (!category) { showToast('Category required'); return; }
       if (!price || isNaN(price)) { showToast('Valid price required'); return; }
 
       let images = imageUrls;
-      let parsedVariants = [];
-      if (variants) {
-        try {
-          parsedVariants = JSON.parse(variants);
-          if (!Array.isArray(parsedVariants)) throw new Error('Must be an array');
-        } catch (err) {
-          showToast('Invalid variants JSON: ' + err.message);
-          return;
-        }
-      }
 
       try {
         await postData('products', { 
           name, category, restaurantId, price, commission, status, 
-          images, variants: parsedVariants 
+          images, variants: variants 
         });
         products = await fetchData('products');
         closeModal();
@@ -1518,6 +1597,7 @@
     });
   }
 
+  // ---- Edit Product Modal ----
   function editProduct(id) {
     const p = (products || []).find(x => x.id === id);
     if (!p) { showToast('Product not found'); return; }
@@ -1530,6 +1610,7 @@
       `<option value="${c.name}" ${p.category === c.name ? 'selected' : ''}>${c.name}</option>`
     ).join('');
 
+    // Build image preview
     let imagePreviewHtml = '';
     if (p.images && p.images.length > 0) {
       p.images.forEach((img, index) => {
@@ -1542,6 +1623,32 @@
           </div>
         `;
       });
+    }
+
+    // Build variants HTML
+    let variantsHtml = '';
+    if (p.variants && p.variants.length > 0) {
+      p.variants.forEach((variant, index) => {
+        variantsHtml += `
+          <div class="variant-row flex gap-2 mb-2">
+            <input type="text" class="variant-label flex-1 px-3 py-2 border rounded-lg" value="${variant.label}" placeholder="Label" />
+            <input type="number" class="variant-price w-32 px-3 py-2 border rounded-lg" value="${variant.price}" placeholder="Price" step="0.01" />
+            <button type="button" class="btn btn-sm btn-danger remove-variant" onclick="this.parentElement.remove()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        `;
+      });
+    } else {
+      variantsHtml = `
+        <div class="variant-row flex gap-2 mb-2">
+          <input type="text" class="variant-label flex-1 px-3 py-2 border rounded-lg" placeholder="Label (e.g. Small)" />
+          <input type="number" class="variant-price w-32 px-3 py-2 border rounded-lg" placeholder="Price" step="0.01" />
+          <button type="button" class="btn btn-sm btn-danger remove-variant" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `;
     }
 
     openModal(`
@@ -1569,13 +1676,14 @@
         </div>
         
         <div class="form-group">
-          <label>Price (₹) *</label>
+          <label>Base Price (₹) *</label>
           <input id="prodPrice" type="number" step="0.01" value="${p.price}" required />
         </div>
         
         <div class="form-group">
           <label>Commission (%)</label>
           <input id="prodCommission" type="number" step="0.01" value="${p.commission || 0}" />
+          <p class="text-xs text-gray-400 mt-1">Accepts decimal values (e.g., 10.5)</p>
         </div>
         
         <div class="form-group">
@@ -1603,15 +1711,21 @@
         </div>
         
         <div class="form-group">
-          <label>Variants (JSON format)</label>
-          <textarea id="prodVariants" rows="3">${p.variants ? JSON.stringify(p.variants, null, 2) : ''}</textarea>
-          <p class="text-xs text-gray-400">Leave empty for no variants</p>
+          <label>Variants</label>
+          <div id="variantsContainer">
+            ${variantsHtml}
+          </div>
+          <button type="button" onclick="addVariantRow()" class="btn btn-sm btn-outline">
+            <i class="fas fa-plus"></i> Add Variant
+          </button>
+          <p class="text-xs text-gray-400 mt-1">Add variants like sizes (Small, Medium, Large) with different prices</p>
         </div>
         
         <button type="submit" class="btn btn-primary btn-block">Update Product</button>
       </form>
     `);
 
+    // Handle new image preview
     const fileInput = document.getElementById('prodImages');
     const previewContainer = document.getElementById('prodImagePreview');
     let newImageUrls = [];
@@ -1638,6 +1752,7 @@
       }
     });
 
+    // Submit form
     document.getElementById('productForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const name = document.getElementById('prodName').value.trim();
@@ -1646,7 +1761,17 @@
       const price = parseFloat(document.getElementById('prodPrice').value);
       const commission = parseFloat(document.getElementById('prodCommission').value) || 0;
       const status = document.getElementById('prodStatus').value;
-      const variants = document.getElementById('prodVariants').value.trim();
+      
+      // Collect variants
+      const variantRows = document.querySelectorAll('.variant-row');
+      const variants = [];
+      variantRows.forEach(row => {
+        const label = row.querySelector('.variant-label').value.trim();
+        const priceVal = parseFloat(row.querySelector('.variant-price').value);
+        if (label && !isNaN(priceVal)) {
+          variants.push({ label, price: priceVal });
+        }
+      });
       
       if (!name) { showToast('Product name required'); return; }
       if (!category) { showToast('Category required'); return; }
@@ -1658,21 +1783,10 @@
         allImages = [...allImages, ...newImageUrls];
       }
 
-      let parsedVariants = [];
-      if (variants) {
-        try {
-          parsedVariants = JSON.parse(variants);
-          if (!Array.isArray(parsedVariants)) throw new Error('Must be an array');
-        } catch (err) {
-          showToast('Invalid variants JSON: ' + err.message);
-          return;
-        }
-      }
-
       try {
         await putData(`products/${id}`, { 
           name, category, restaurantId, price, commission, status, 
-          images: allImages, variants: parsedVariants 
+          images: allImages, variants: variants 
         });
         products = await fetchData('products');
         closeModal();
@@ -1744,7 +1858,7 @@
       <form id="placeForm">
         <div class="form-group"><label>Area *</label><input id="placeArea" required placeholder="e.g. Downtown" /></div>
         <div class="form-group"><label>Sub Area *</label><input id="placeSubArea" required placeholder="e.g. Main Street" /></div>
-        <div class="form-group"><label>Delivery Charge (₹) *</label><input id="placeCharge" type="number" required placeholder="30" /></div>
+        <div class="form-group"><label>Delivery Charge (₹) *</label><input id="placeCharge" type="number" step="0.01" required placeholder="30" /></div>
         <button type="submit" class="btn btn-primary btn-block">Save</button>
       </form>
     `);
@@ -1772,7 +1886,7 @@
       <form id="placeForm">
         <div class="form-group"><label>Area *</label><input id="placeArea" value="${p.area}" required /></div>
         <div class="form-group"><label>Sub Area *</label><input id="placeSubArea" value="${p.sub_area}" required /></div>
-        <div class="form-group"><label>Delivery Charge (₹) *</label><input id="placeCharge" type="number" value="${p.charge}" required /></div>
+        <div class="form-group"><label>Delivery Charge (₹) *</label><input id="placeCharge" type="number" step="0.01" value="${p.charge}" required /></div>
         <button type="submit" class="btn btn-primary btn-block">Update</button>
       </form>
     `);
@@ -1964,7 +2078,7 @@
   }
 
   // ============================================================
-  // OFFERS - Without Coupon Codes, Redirect to Products
+  // OFFERS
   // ============================================================
   function renderOffers(el) {
     el.innerHTML = `
@@ -2226,7 +2340,7 @@
   }
 
   // ============================================================
-  // SETTINGS - With Rain Fare Toggle
+  // SETTINGS
   // ============================================================
   function renderSettings(el) {
     const adminPhones = settings.admin_phones 
@@ -2407,6 +2521,8 @@
     .catch(err => showToast('Error: ' + err.message));
   }
 
+  let adminPhonesList = [];
+
   function addAdminPhone() {
     const container = document.getElementById('adminPhonesList');
     const index = adminPhonesList.length;
@@ -2506,7 +2622,7 @@
   }
 
   // ============================================================
-  // REPORTS - With Category Commission
+  // REPORTS
   // ============================================================
   function renderReports(el) {
     el.innerHTML = `
@@ -2720,6 +2836,7 @@
   window.openAddProduct = openAddProduct;
   window.editProduct = editProduct;
   window.deleteProduct = deleteProduct;
+  window.addVariantRow = addVariantRow;
   window.removeExistingImage = removeExistingImage;
   window.openAddPlace = openAddPlace;
   window.editPlace = editPlace;
