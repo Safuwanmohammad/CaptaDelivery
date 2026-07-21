@@ -844,15 +844,20 @@ function openModal(html) {
 // ============================================================
 function renderProductCard(product, onAdd) {
   const container = document.createElement('div');
-  container.className = 'product-card bg-white rounded-xl shadow-md overflow-hidden';
+  container.className = 'product-card bg-white rounded-xl shadow-md overflow-hidden cursor-pointer';
   let qty = 1;
   let selectedVariant = null;
+  let isExpanded = false;
+
+  // Create main product view
+  const mainView = document.createElement('div');
+  mainView.className = 'main-view';
 
   const image = document.createElement('img');
   image.src = product.images && product.images.length > 0 ? product.images[0] : 'https://placehold.co/400x400';
   image.alt = product.name;
   image.className = 'w-full h-36 object-cover';
-  container.appendChild(image);
+  mainView.appendChild(image);
 
   const body = document.createElement('div');
   body.className = 'p-3';
@@ -865,50 +870,32 @@ function renderProductCard(product, onAdd) {
   // Check if product has variants
   let hasVariants = product.variants && product.variants.length > 0;
 
-  if (hasVariants) {
-    // Variant dropdown with description
-    const variantSelect = document.createElement('select');
-    variantSelect.className = 'w-full text-sm border rounded px-2 py-1 mt-1 bg-white';
-    variantSelect.id = `variant-${product.id}`;
-    
-    // Add default option
-    const defaultOpt = document.createElement('option');
-    defaultOpt.value = '';
-    defaultOpt.textContent = 'Select variant';
-    variantSelect.appendChild(defaultOpt);
-    
-    product.variants.forEach((v, idx) => {
-      const opt = document.createElement('option');
-      opt.value = v.label;
-      const priceDisplay = v.price ? ` - ₹${v.price}` : '';
-      const descriptionDisplay = v.description ? ` (${v.description})` : '';
-      opt.textContent = `${v.label}${descriptionDisplay}${priceDisplay}`;
-      if (idx === 0) opt.selected = true;
-      variantSelect.appendChild(opt);
-    });
-    
-    variantSelect.addEventListener('change', function() {
-      selectedVariant = this.value;
-      const variant = product.variants.find(v => v.label === selectedVariant);
-      if (variant) {
-        priceSpan.textContent = `₹${variant.price}`;
-        // Update the add button price display
-        addBtn.textContent = `Add ₹${variant.price}`;
-      } else {
-        priceSpan.textContent = `₹${product.price}`;
-        addBtn.textContent = 'Add';
-      }
-    });
-    body.appendChild(variantSelect);
-    
-    // Set initial selected variant to first one
-    if (product.variants && product.variants.length > 0) {
-      selectedVariant = product.variants[0].label;
-      const firstVariant = product.variants[0];
-      if (firstVariant) {
-        priceSpan.textContent = `₹${firstVariant.price}`;
-      }
+  // Price display
+  const priceDiv = document.createElement('div');
+  priceDiv.className = 'flex items-center gap-2 mt-1';
+  const priceSpan = document.createElement('span');
+  priceSpan.className = 'text-primary font-bold';
+  if (hasVariants && product.variants && product.variants.length > 0) {
+    priceSpan.textContent = `₹${product.variants[0].price}`;
+    // Show "from" text if multiple variants
+    if (product.variants.length > 1) {
+      const fromText = document.createElement('span');
+      fromText.className = 'text-xs text-gray-400';
+      fromText.textContent = 'from';
+      priceDiv.appendChild(fromText);
     }
+  } else {
+    priceSpan.textContent = `₹${product.price}`;
+  }
+  priceDiv.appendChild(priceSpan);
+  body.appendChild(priceDiv);
+
+  // Show variant count badge if variants exist
+  if (hasVariants) {
+    const variantBadge = document.createElement('div');
+    variantBadge.className = 'mt-1 text-xs text-primary font-medium';
+    variantBadge.textContent = `${product.variants.length} variants available`;
+    body.appendChild(variantBadge);
   }
 
   const ratingDiv = document.createElement('div');
@@ -916,82 +903,209 @@ function renderProductCard(product, onAdd) {
   ratingDiv.innerHTML = `<i class="fas fa-star text-yellow-400 text-xs"></i><span class="text-xs">4.5</span>`;
   body.appendChild(ratingDiv);
 
-  const weight = document.createElement('p');
-  weight.className = 'text-gray-400 text-xs';
-  weight.textContent = '1 pc';
-  body.appendChild(weight);
-
-  const bottom = document.createElement('div');
-  bottom.className = 'flex items-center justify-between mt-2';
-
-  const priceDiv = document.createElement('div');
-  const priceSpan = document.createElement('span');
-  priceSpan.className = 'text-primary font-bold';
-  if (hasVariants && product.variants && product.variants.length > 0) {
-    priceSpan.textContent = `₹${product.variants[0].price}`;
-  } else {
-    priceSpan.textContent = `₹${product.price}`;
+  // Click to expand hint
+  if (hasVariants) {
+    const clickHint = document.createElement('div');
+    clickHint.className = 'text-xs text-gray-400 mt-1 flex items-center gap-1';
+    clickHint.innerHTML = '<i class="fas fa-chevron-down text-xs"></i> Click to select variant';
+    body.appendChild(clickHint);
   }
-  priceDiv.appendChild(priceSpan);
-  bottom.appendChild(priceDiv);
 
-  const controls = document.createElement('div');
-  controls.className = 'flex items-center gap-1';
-  const minusBtn = document.createElement('button');
-  minusBtn.className = 'w-7 h-7 rounded-full bg-gray-100';
-  minusBtn.textContent = '-';
-  minusBtn.addEventListener('click', () => {
-    qty = Math.max(1, qty - 1);
+  mainView.appendChild(body);
+  container.appendChild(mainView);
+
+  // Expanded view for variants
+  if (hasVariants) {
+    const expandedView = document.createElement('div');
+    expandedView.className = 'variants-expand hidden border-t border-gray-100 p-3 bg-gray-50';
+    expandedView.id = `variants-${product.id}`;
+
+    const variantTitle = document.createElement('p');
+    variantTitle.className = 'text-sm font-semibold text-gray-700 mb-2';
+    variantTitle.textContent = 'Select Variant:';
+    expandedView.appendChild(variantTitle);
+
+    // Create variant options
+    product.variants.forEach((variant, index) => {
+      const variantOption = document.createElement('div');
+      variantOption.className = `variant-option flex items-center justify-between p-2 rounded-lg mb-1 cursor-pointer transition ${index === 0 ? 'bg-primary/10 border border-primary' : 'bg-white hover:bg-gray-100'}`;
+      variantOption.dataset.variant = variant.label;
+      
+      const variantInfo = document.createElement('div');
+      variantInfo.className = 'flex flex-col';
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'text-sm font-medium';
+      labelSpan.textContent = variant.label;
+      variantInfo.appendChild(labelSpan);
+      
+      if (variant.description) {
+        const descSpan = document.createElement('span');
+        descSpan.className = 'text-xs text-gray-500';
+        descSpan.textContent = variant.description;
+        variantInfo.appendChild(descSpan);
+      }
+      
+      variantOption.appendChild(variantInfo);
+      
+      const priceSpan2 = document.createElement('span');
+      priceSpan2.className = 'text-primary font-bold text-sm';
+      priceSpan2.textContent = `₹${variant.price}`;
+      variantOption.appendChild(priceSpan2);
+      
+      variantOption.addEventListener('click', function() {
+        // Remove active state from all variants
+        document.querySelectorAll(`#variants-${product.id} .variant-option`).forEach(el => {
+          el.classList.remove('bg-primary/10', 'border', 'border-primary');
+          el.classList.add('bg-white', 'hover:bg-gray-100');
+        });
+        this.classList.add('bg-primary/10', 'border', 'border-primary');
+        this.classList.remove('bg-white', 'hover:bg-gray-100');
+        
+        selectedVariant = this.dataset.variant;
+        const selectedVariantData = product.variants.find(v => v.label === selectedVariant);
+        if (selectedVariantData) {
+          priceSpan.textContent = `₹${selectedVariantData.price}`;
+          // Update add button
+          const addBtn = expandedView.querySelector('.add-variant-btn');
+          if (addBtn) {
+            addBtn.textContent = `Add ₹${selectedVariantData.price}`;
+          }
+        }
+      });
+      
+      expandedView.appendChild(variantOption);
+    });
+
+    // Add to cart button for variants
+    const addBtnContainer = document.createElement('div');
+    addBtnContainer.className = 'flex items-center gap-2 mt-3';
+    
+    // Quantity controls
+    const qtyControls = document.createElement('div');
+    qtyControls.className = 'flex items-center gap-1';
+    const minusBtn = document.createElement('button');
+    minusBtn.className = 'w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 text-sm';
+    minusBtn.textContent = '-';
+    minusBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      qty = Math.max(1, qty - 1);
+      qtyDisplay.textContent = qty;
+    });
+    qtyControls.appendChild(minusBtn);
+
+    const qtyDisplay = document.createElement('span');
+    qtyDisplay.className = 'w-8 text-center text-sm font-medium';
     qtyDisplay.textContent = qty;
-  });
-  controls.appendChild(minusBtn);
+    qtyControls.appendChild(qtyDisplay);
 
-  const qtyDisplay = document.createElement('span');
-  qtyDisplay.className = 'w-6 text-center text-sm';
-  qtyDisplay.textContent = qty;
-  controls.appendChild(qtyDisplay);
+    const plusBtn = document.createElement('button');
+    plusBtn.className = 'w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 text-sm';
+    plusBtn.textContent = '+';
+    plusBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      qty += 1;
+      qtyDisplay.textContent = qty;
+    });
+    qtyControls.appendChild(plusBtn);
+    addBtnContainer.appendChild(qtyControls);
 
-  const plusBtn = document.createElement('button');
-  plusBtn.className = 'w-7 h-7 rounded-full bg-gray-100';
-  plusBtn.textContent = '+';
-  plusBtn.addEventListener('click', () => {
-    qty += 1;
-    qtyDisplay.textContent = qty;
-  });
-  controls.appendChild(plusBtn);
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-variant-btn gradient-btn text-white px-4 py-1.5 rounded-full text-sm flex-1';
+    const firstVariant = product.variants[0];
+    addBtn.textContent = firstVariant ? `Add ₹${firstVariant.price}` : 'Add to Cart';
+    addBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      // If no variant selected, use the first one
+      if (!selectedVariant && product.variants.length > 0) {
+        selectedVariant = product.variants[0].label;
+      }
+      onAdd(product, qty, selectedVariant);
+      qty = 1;
+      qtyDisplay.textContent = qty;
+      // Reset add button text
+      const firstVar = product.variants[0];
+      if (firstVar) {
+        this.textContent = `Add ₹${firstVar.price}`;
+      }
+    });
+    addBtnContainer.appendChild(addBtn);
+    
+    expandedView.appendChild(addBtnContainer);
+    container.appendChild(expandedView);
 
-  const addBtn = document.createElement('button');
-  addBtn.className = 'gradient-btn text-white px-3 py-1 rounded-full text-xs';
-  if (hasVariants && product.variants && product.variants.length > 0) {
-    addBtn.textContent = `Add ₹${product.variants[0].price}`;
-  } else {
-    addBtn.textContent = 'Add';
-  }
-  addBtn.addEventListener('click', () => {
-    if (hasVariants) {
-      const select = document.getElementById(`variant-${product.id}`);
-      if (select) {
-        selectedVariant = select.value;
-        // If no variant selected, use the first one
-        if (!selectedVariant && product.variants && product.variants.length > 0) {
-          selectedVariant = product.variants[0].label;
+    // Toggle expanded view on click
+    container.addEventListener('click', function(e) {
+      // Don't toggle if clicking on buttons or interactive elements
+      if (e.target.closest('button') || e.target.closest('.variant-option')) return;
+      
+      isExpanded = !isExpanded;
+      const expandDiv = this.querySelector('.variants-expand');
+      const hintIcon = this.querySelector('.main-view .fa-chevron-down');
+      if (expandDiv) {
+        expandDiv.classList.toggle('hidden');
+        if (hintIcon) {
+          hintIcon.classList.toggle('fa-chevron-down');
+          hintIcon.classList.toggle('fa-chevron-up');
+        }
+        // Update hint text
+        const hintText = this.querySelector('.main-view .flex.items-center.gap-1');
+        if (hintText) {
+          const textNode = hintText.childNodes[2];
+          if (textNode) {
+            textNode.textContent = isExpanded ? ' Click to hide variants' : ' Click to select variant';
+          }
         }
       }
-    }
-    onAdd(product, qty, selectedVariant);
-    qty = 1;
-    qtyDisplay.textContent = qty;
-    if (hasVariants && product.variants && product.variants.length > 0) {
-      addBtn.textContent = `Add ₹${product.variants[0].price}`;
-    } else {
-      addBtn.textContent = 'Add';
-    }
-  });
-  controls.appendChild(addBtn);
+    });
+  } else {
+    // No variants - simple add to cart
+    const bottom = document.createElement('div');
+    bottom.className = 'flex items-center justify-between mt-2 p-3 pt-0';
 
-  bottom.appendChild(controls);
-  body.appendChild(bottom);
-  container.appendChild(body);
+    const controls = document.createElement('div');
+    controls.className = 'flex items-center gap-1 ml-auto';
+    const minusBtn = document.createElement('button');
+    minusBtn.className = 'w-7 h-7 rounded-full bg-gray-100';
+    minusBtn.textContent = '-';
+    minusBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      qty = Math.max(1, qty - 1);
+      qtyDisplay.textContent = qty;
+    });
+    controls.appendChild(minusBtn);
+
+    const qtyDisplay = document.createElement('span');
+    qtyDisplay.className = 'w-6 text-center text-sm';
+    qtyDisplay.textContent = qty;
+    controls.appendChild(qtyDisplay);
+
+    const plusBtn = document.createElement('button');
+    plusBtn.className = 'w-7 h-7 rounded-full bg-gray-100';
+    plusBtn.textContent = '+';
+    plusBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      qty += 1;
+      qtyDisplay.textContent = qty;
+    });
+    controls.appendChild(plusBtn);
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'gradient-btn text-white px-3 py-1 rounded-full text-xs';
+    addBtn.textContent = 'Add';
+    addBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      onAdd(product, qty, null);
+      qty = 1;
+      qtyDisplay.textContent = qty;
+    });
+    controls.appendChild(addBtn);
+
+    bottom.appendChild(controls);
+    
+    // Add bottom to body
+    const bodyDiv = mainView.querySelector('.p-3');
+    bodyDiv.appendChild(bottom);
+  }
 
   return container;
 }
