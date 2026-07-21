@@ -875,6 +875,7 @@ function renderProductCard(product, onAdd) {
 
   // Check if product has variants
   let hasVariants = product.variants && product.variants.length > 0;
+  console.log('Product variants:', product.variants); // Debug
 
   // Price Display
   const priceDiv = document.createElement('div');
