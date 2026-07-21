@@ -5,12 +5,29 @@ exports.getAllProducts = async (req, res) => {
   try {
     console.log('[Products] Fetching all products...');
     
-    const result = await pool.query(`
-      SELECT p.*, r.name as restaurant_name
+    // First check what columns exist
+    const columnsResult = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'products'
+    `);
+    const existingColumns = columnsResult.rows.map(r => r.column_name);
+    console.log('[Products] Existing columns:', existingColumns);
+    
+    // Build SELECT query based on existing columns
+    let selectFields = ['p.id', 'p.name', 'p.price', 'p.category', 'p.restaurant_id', 'p.commission', 'p.status'];
+    if (existingColumns.includes('images')) selectFields.push('p.images');
+    if (existingColumns.includes('variants')) selectFields.push('p.variants');
+    if (existingColumns.includes('created_at')) selectFields.push('p.created_at');
+    
+    const query = `
+      SELECT ${selectFields.join(', ')}, r.name as restaurant_name
       FROM products p
       LEFT JOIN restaurants r ON p.restaurant_id = r.id
       ORDER BY p.id
-    `);
+    `;
+    
+    const result = await pool.query(query);
     
     const products = result.rows.map(row => {
       let variants = [];
@@ -85,7 +102,7 @@ exports.getProductsByCategory = async (req, res) => {
 exports.createProduct = async (req, res) => {
   try {
     const { name, category, restaurantId, price, commission, status, images, variants } = req.body;
-    console.log('[Products] Creating:', { name, category, restaurantId, price, variants });
+    console.log('[Products] Creating:', { name, category, restaurantId, price });
     
     // Validate
     if (!name || name.trim() === '') {
@@ -98,16 +115,34 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ error: 'Valid price is required' });
     }
     
-    // Ensure variants is an array
-    const variantsArray = Array.isArray(variants) ? variants : [];
-    const variantsJson = JSON.stringify(variantsArray);
+    // Check what columns exist
+    const columnsResult = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'products'
+    `);
+    const existingColumns = columnsResult.rows.map(r => r.column_name);
     
-    const result = await pool.query(
-      `INSERT INTO products (name, category, restaurant_id, price, commission, status, images, variants)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [name.trim(), category.trim(), restaurantId || null, price, 
-       commission || 0, status || 'Active', images || [], variantsJson]
-    );
+    // Build INSERT query based on existing columns
+    let fields = ['name', 'category', 'restaurant_id', 'price', 'commission', 'status'];
+    let values = [name.trim(), category.trim(), restaurantId || null, price, commission || 0, status || 'Active'];
+    
+    if (existingColumns.includes('images')) {
+      fields.push('images');
+      values.push(images || []);
+    }
+    
+    if (existingColumns.includes('variants')) {
+      fields.push('variants');
+      const variantsArray = Array.isArray(variants) ? variants : [];
+      values.push(JSON.stringify(variantsArray));
+    }
+    
+    const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
+    const query = `INSERT INTO products (${fields.join(', ')}) VALUES (${placeholders}) RETURNING *`;
+    
+    console.log('[Products] Insert Query:', query);
+    const result = await pool.query(query, values);
     
     console.log('[Products] Created:', result.rows[0]);
     res.status(201).json(result.rows[0]);
@@ -117,12 +152,12 @@ exports.createProduct = async (req, res) => {
   }
 };
 
-// Update a product
+// Update a product - COMPLETE FIX
 exports.updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, category, restaurantId, price, commission, status, images, variants } = req.body;
-    console.log('[Products] Updating:', { id, name, variants });
+    console.log('[Products] Updating:', { id, name });
     
     // Validate
     if (!name || name.trim() === '') {
@@ -141,24 +176,86 @@ exports.updateProduct = async (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
     
-    // Ensure variants is an array
-    const variantsArray = Array.isArray(variants) ? variants : [];
-    const variantsJson = JSON.stringify(variantsArray);
+    // Check what columns exist
+    const columnsResult = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'products'
+    `);
+    const existingColumns = columnsResult.rows.map(r => r.column_name);
+    console.log('[Products] Existing columns for update:', existingColumns);
     
-    const result = await pool.query(
-      `UPDATE products 
-       SET name = $1, category = $2, restaurant_id = $3, price = $4, 
-           commission = $5, status = $6, images = $7, variants = $8
-       WHERE id = $9 RETURNING *`,
-      [name.trim(), category.trim(), restaurantId || null, price, 
-       commission || 0, status || 'Active', images || [], variantsJson, id]
-    );
+    // Build UPDATE query based on existing columns
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+    
+    // Always update these
+    updates.push(`name = $${paramCount++}`);
+    values.push(name.trim());
+    
+    updates.push(`category = $${paramCount++}`);
+    values.push(category.trim());
+    
+    updates.push(`price = $${paramCount++}`);
+    values.push(price);
+    
+    updates.push(`restaurant_id = $${paramCount++}`);
+    values.push(restaurantId || null);
+    
+    updates.push(`commission = $${paramCount++}`);
+    values.push(commission || 0);
+    
+    updates.push(`status = $${paramCount++}`);
+    values.push(status || 'Active');
+    
+    // Only if column exists
+    if (existingColumns.includes('images')) {
+      updates.push(`images = $${paramCount++}`);
+      values.push(images || []);
+    }
+    
+    if (existingColumns.includes('variants')) {
+      updates.push(`variants = $${paramCount++}`);
+      const variantsArray = Array.isArray(variants) ? variants : [];
+      values.push(JSON.stringify(variantsArray));
+    }
+    
+    values.push(id);
+    const query = `UPDATE products SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`;
+    
+    console.log('[Products] Update Query:', query);
+    const result = await pool.query(query, values);
     
     console.log('[Products] Updated:', result.rows[0]);
     res.json(result.rows[0]);
   } catch (err) {
     console.error('[Products] Update error:', err);
-    res.status(500).json({ error: 'Failed to update product', details: err.message });
+    
+    // If the error is about missing column, try a simpler update
+    if (err.message && err.message.includes('column')) {
+      try {
+        console.log('[Products] Retrying with basic update...');
+        const { id } = req.params;
+        const { name, category, restaurantId, price, commission, status, images } = req.body;
+        
+        // Basic update without variants
+        const result = await pool.query(
+          `UPDATE products 
+           SET name = $1, category = $2, restaurant_id = $3, price = $4, commission = $5, status = $6, images = $7
+           WHERE id = $8 RETURNING *`,
+          [name.trim(), category.trim(), restaurantId || null, price, commission || 0, status || 'Active', images || [], id]
+        );
+        
+        console.log('[Products] Updated (basic):', result.rows[0]);
+        res.json(result.rows[0]);
+      } catch (retryErr) {
+        console.error('[Products] Retry error:', retryErr);
+        res.status(500).json({ error: 'Failed to update product', details: retryErr.message });
+      }
+    } else {
+      res.status(500).json({ error: 'Failed to update product', details: err.message });
+    }
   }
 };
 

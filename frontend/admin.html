@@ -1837,11 +1837,18 @@
       }
 
       try {
-        await putData(`products/${id}`, { 
+        const updateData = { 
           name, category, restaurantId, price, commission, status, 
-          images: allImages, 
-          variants: variants 
-        });
+          images: allImages
+        };
+        
+        // Only include variants if they exist and have values
+        if (variants && variants.length > 0) {
+          updateData.variants = variants;
+        }
+        
+        const response = await putData(`products/${id}`, updateData);
+        console.log('Product updated:', response);
         products = await fetchData('products');
         closeModal();
         showToast('Product updated successfully!');
