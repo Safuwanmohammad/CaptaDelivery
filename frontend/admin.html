@@ -1414,7 +1414,7 @@
   }
 
   // ============================================================
-  // PRODUCTS CRUD - WITH FILE UPLOAD & WORKING VARIANTS
+  // PRODUCTS CRUD - WITH VARIANT DESCRIPTION
   // ============================================================
   function renderProductsList(el) {
     el.innerHTML = `
@@ -1453,15 +1453,16 @@
     `;
   }
 
-  // ---- Add Variant Row ----
+  // ---- Add Variant Row with Description ----
   function addVariantRow() {
     const container = document.getElementById('variantsContainer');
     if (!container) return;
     const div = document.createElement('div');
-    div.className = 'variant-row flex gap-2 mb-2';
+    div.className = 'variant-row flex flex-wrap gap-2 mb-2 p-3 border rounded-lg bg-gray-50';
     div.innerHTML = `
-      <input type="text" class="variant-label flex-1 px-3 py-2 border rounded-lg" placeholder="Label (e.g. Large)" />
+      <input type="text" class="variant-label flex-1 min-w-[100px] px-3 py-2 border rounded-lg" placeholder="Label (e.g. Large)" />
       <input type="number" class="variant-price w-32 px-3 py-2 border rounded-lg" placeholder="Price" step="0.01" />
+      <input type="text" class="variant-description flex-1 min-w-[150px] px-3 py-2 border rounded-lg" placeholder="Description (e.g. 12 inches)" />
       <button type="button" class="btn btn-sm btn-danger remove-variant" onclick="this.parentElement.remove()">
         <i class="fas fa-times"></i>
       </button>
@@ -1535,9 +1536,10 @@
         <div class="form-group">
           <label>Variants</label>
           <div id="variantsContainer">
-            <div class="variant-row flex gap-2 mb-2">
-              <input type="text" class="variant-label flex-1 px-3 py-2 border rounded-lg" placeholder="Label (e.g. Small)" />
+            <div class="variant-row flex flex-wrap gap-2 mb-2 p-3 border rounded-lg bg-gray-50">
+              <input type="text" class="variant-label flex-1 min-w-[100px] px-3 py-2 border rounded-lg" placeholder="Label (e.g. Small)" />
               <input type="number" class="variant-price w-32 px-3 py-2 border rounded-lg" placeholder="Price" step="0.01" />
+              <input type="text" class="variant-description flex-1 min-w-[150px] px-3 py-2 border rounded-lg" placeholder="Description (e.g. 6 inches)" />
               <button type="button" class="btn btn-sm btn-danger remove-variant" onclick="this.parentElement.remove()">
                 <i class="fas fa-times"></i>
               </button>
@@ -1546,7 +1548,7 @@
           <button type="button" onclick="addVariantRow()" class="btn btn-sm btn-outline">
             <i class="fas fa-plus"></i> Add Variant
           </button>
-          <p class="text-xs text-gray-400 mt-1">Leave empty if product has no variants</p>
+          <p class="text-xs text-gray-400 mt-1">Add variants with description (e.g., Small - 6 inches, Large - 12 inches)</p>
         </div>
         
         <button type="submit" class="btn btn-primary btn-block">Save Product</button>
@@ -1590,14 +1592,15 @@
       const commission = parseFloat(document.getElementById('prodCommission').value) || 0;
       const status = document.getElementById('prodStatus').value;
       
-      // Collect variants
+      // Collect variants with description
       const variantRows = document.querySelectorAll('.variant-row');
       const variants = [];
       variantRows.forEach(row => {
         const label = row.querySelector('.variant-label').value.trim();
         const priceVal = parseFloat(row.querySelector('.variant-price').value);
+        const description = row.querySelector('.variant-description') ? row.querySelector('.variant-description').value.trim() : '';
         if (label && !isNaN(priceVal)) {
-          variants.push({ label, price: priceVal });
+          variants.push({ label, price: priceVal, description });
         }
       });
       
@@ -1648,14 +1651,16 @@
       });
     }
 
-    // Build variants HTML
+    // Build variants HTML with description
     let variantsHtml = '';
     if (p.variants && p.variants.length > 0) {
       p.variants.forEach((variant, index) => {
+        const description = variant.description || '';
         variantsHtml += `
-          <div class="variant-row flex gap-2 mb-2">
-            <input type="text" class="variant-label flex-1 px-3 py-2 border rounded-lg" value="${variant.label}" placeholder="Label" />
+          <div class="variant-row flex flex-wrap gap-2 mb-2 p-3 border rounded-lg bg-gray-50">
+            <input type="text" class="variant-label flex-1 min-w-[100px] px-3 py-2 border rounded-lg" value="${variant.label}" placeholder="Label" />
             <input type="number" class="variant-price w-32 px-3 py-2 border rounded-lg" value="${variant.price}" placeholder="Price" step="0.01" />
+            <input type="text" class="variant-description flex-1 min-w-[150px] px-3 py-2 border rounded-lg" value="${description}" placeholder="Description" />
             <button type="button" class="btn btn-sm btn-danger remove-variant" onclick="this.parentElement.remove()">
               <i class="fas fa-times"></i>
             </button>
@@ -1664,9 +1669,10 @@
       });
     } else {
       variantsHtml = `
-        <div class="variant-row flex gap-2 mb-2">
-          <input type="text" class="variant-label flex-1 px-3 py-2 border rounded-lg" placeholder="Label (e.g. Small)" />
+        <div class="variant-row flex flex-wrap gap-2 mb-2 p-3 border rounded-lg bg-gray-50">
+          <input type="text" class="variant-label flex-1 min-w-[100px] px-3 py-2 border rounded-lg" placeholder="Label (e.g. Small)" />
           <input type="number" class="variant-price w-32 px-3 py-2 border rounded-lg" placeholder="Price" step="0.01" />
+          <input type="text" class="variant-description flex-1 min-w-[150px] px-3 py-2 border rounded-lg" placeholder="Description (e.g. 6 inches)" />
           <button type="button" class="btn btn-sm btn-danger remove-variant" onclick="this.parentElement.remove()">
             <i class="fas fa-times"></i>
           </button>
@@ -1741,7 +1747,7 @@
           <button type="button" onclick="addVariantRow()" class="btn btn-sm btn-outline">
             <i class="fas fa-plus"></i> Add Variant
           </button>
-          <p class="text-xs text-gray-400 mt-1">Add variants like sizes (Small, Medium, Large) with different prices</p>
+          <p class="text-xs text-gray-400 mt-1">Add variants with description (e.g., Small - 6 inches, Large - 12 inches)</p>
         </div>
         
         <button type="submit" class="btn btn-primary btn-block">Update Product</button>
@@ -1785,14 +1791,15 @@
       const commission = parseFloat(document.getElementById('prodCommission').value) || 0;
       const status = document.getElementById('prodStatus').value;
       
-      // Collect variants
+      // Collect variants with description
       const variantRows = document.querySelectorAll('.variant-row');
       const variants = [];
       variantRows.forEach(row => {
         const label = row.querySelector('.variant-label').value.trim();
         const priceVal = parseFloat(row.querySelector('.variant-price').value);
+        const description = row.querySelector('.variant-description') ? row.querySelector('.variant-description').value.trim() : '';
         if (label && !isNaN(priceVal)) {
-          variants.push({ label, price: priceVal });
+          variants.push({ label, price: priceVal, description });
         }
       });
       

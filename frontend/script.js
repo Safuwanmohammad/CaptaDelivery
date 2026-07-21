@@ -881,7 +881,8 @@ function renderProductCard(product, onAdd) {
       const opt = document.createElement('option');
       opt.value = v.label;
       const priceDisplay = v.price ? ` - ₹${v.price}` : '';
-      opt.textContent = `${v.label}${priceDisplay}`;
+      const descriptionDisplay = v.description ? ` (${v.description})` : '';
+      opt.textContent = `${v.label}${descriptionDisplay}${priceDisplay}`;
       if (idx === 0) opt.selected = true;
       variantSelect.appendChild(opt);
     });
