@@ -690,7 +690,6 @@
   let notifications = [];
   let currentPage = 'dashboard';
   let catalogTab = 'categories';
-  // adminPhonesList is declared only once here
   let adminPhonesList = [];
 
   // ============================================================
@@ -2575,6 +2574,105 @@
     .then(() => {
       settings.rain_fare = value;
       showToast('Rain fare updated to ₹' + value);
+    })
+    .catch(err => showToast('Error: ' + err.message));
+  }
+
+  // Admin Phone Functions
+  function addAdminPhone() {
+    const container = document.getElementById('adminPhonesList');
+    const index = adminPhonesList.length;
+    const div = document.createElement('div');
+    div.className = 'flex items-center gap-2';
+    div.innerHTML = `
+      <input type="tel" placeholder="+91XXXXXXXXXX" class="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm" onchange="updateAdminPhone(${index}, this.value)" />
+      <button onclick="removeAdminPhone(${index})" class="text-red-500 hover:text-red-700 px-2 py-2"><i class="fas fa-trash"></i></button>
+    `;
+    container.appendChild(div);
+    adminPhonesList.push('');
+  }
+
+  function updateAdminPhone(index, value) {
+    adminPhonesList[index] = value.trim();
+  }
+
+  function removeAdminPhone(index) {
+    if (!confirm('Remove this phone number?')) return;
+    adminPhonesList.splice(index, 1);
+    renderSettings(document.getElementById('pageContent'));
+  }
+
+  function saveAdminPhones() {
+    const validPhones = adminPhonesList.filter(p => p && p.length >= 10);
+    if (validPhones.length === 0) {
+      showToast('At least one valid phone number is required');
+      return;
+    }
+    fetch(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'admin_phones', value: JSON.stringify(validPhones) })
+    })
+    .then(res => res.json())
+    .then(() => {
+      settings.admin_phones = JSON.stringify(validPhones);
+      document.getElementById('adminPhoneStatus').textContent = '✅ Phone numbers saved!';
+      setTimeout(() => document.getElementById('adminPhoneStatus').textContent = '', 3000);
+      showToast('Admin phones updated');
+      const select = document.getElementById('adminPhoneSelect');
+      if (select) {
+        select.innerHTML = validPhones.map(p => `<option value="${p}">${p}</option>`).join('');
+      }
+    })
+    .catch(err => showToast('Error: ' + err.message));
+  }
+
+  function updateActiveAdminPhone() {
+    const phone = document.getElementById('adminPhoneSelect').value;
+    if (!phone) { showToast('Please select a phone number'); return; }
+    fetch(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'active_admin_phone', value: phone })
+    })
+    .then(res => res.json())
+    .then(() => {
+      settings.active_admin_phone = phone;
+      document.getElementById('activePhoneStatus').textContent = '✅ Active admin phone updated!';
+      setTimeout(() => document.getElementById('activePhoneStatus').textContent = '', 3000);
+      showToast('Active admin phone updated to ' + phone);
+    })
+    .catch(err => showToast('Error: ' + err.message));
+  }
+
+  function updateSetting(key, value) {
+    fetch(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, value })
+    })
+    .then(res => res.json())
+    .then(() => {
+      showToast('Setting updated successfully');
+      renderSettings(document.getElementById('pageContent'));
+    })
+    .catch(err => showToast('Error: ' + err.message));
+  }
+
+  function updateUnavailableDays() {}
+
+  function saveUnavailableDays() {
+    const checkboxes = document.querySelectorAll('.unavailable-day:checked');
+    const days = Array.from(checkboxes).map(cb => cb.value);
+    fetch(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'unavailable_days', value: JSON.stringify(days) })
+    })
+    .then(res => res.json())
+    .then(() => {
+      settings.unavailable_days = JSON.stringify(days);
+      showToast('Unavailable days saved');
     })
     .catch(err => showToast('Error: ' + err.message));
   }
