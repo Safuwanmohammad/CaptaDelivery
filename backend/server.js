@@ -49,13 +49,7 @@ console.log(`📁 Serving frontend from: ${frontendPath}`);
 app.use(express.static(frontendPath));
 
 // ===== FALLBACK: serve index.html for unknown routes =====
-// FIX: Use app.use() with a function instead of app.get('/*')
-app.use((req, res, next) => {
-  // Skip API routes that already matched
-  if (req.path.startsWith('/api/')) {
-    return next();
-  }
-  // Serve index.html for all other routes (SPA support)
+app.get('/*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
