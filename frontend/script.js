@@ -842,26 +842,32 @@ function openModal(html) {
 // ============================================================
 // RENDER FUNCTIONS
 // ============================================================
+
+// ====== RENDER PRODUCT CARD WITH VARIANTS AS BANNER ======
 function renderProductCard(product, onAdd) {
   const container = document.createElement('div');
-  container.className = 'product-card bg-white rounded-xl shadow-md overflow-hidden cursor-pointer';
+  container.className = 'product-card bg-white rounded-xl shadow-md overflow-hidden';
   let qty = 1;
   let selectedVariant = null;
   let isExpanded = false;
 
-  // Create main product view
+  // ---- MAIN VIEW (Always visible) ----
   const mainView = document.createElement('div');
-  mainView.className = 'main-view';
+  mainView.className = 'main-view cursor-pointer';
+  mainView.style.transition = 'all 0.3s ease';
 
+  // Product Image
   const image = document.createElement('img');
   image.src = product.images && product.images.length > 0 ? product.images[0] : 'https://placehold.co/400x400';
   image.alt = product.name;
   image.className = 'w-full h-36 object-cover';
   mainView.appendChild(image);
 
+  // Product Info Body
   const body = document.createElement('div');
   body.className = 'p-3';
 
+  // Product Name
   const name = document.createElement('h3');
   name.className = 'font-semibold text-gray-800 text-sm';
   name.textContent = product.name;
@@ -870,14 +876,13 @@ function renderProductCard(product, onAdd) {
   // Check if product has variants
   let hasVariants = product.variants && product.variants.length > 0;
 
-  // Price display
+  // Price Display
   const priceDiv = document.createElement('div');
   priceDiv.className = 'flex items-center gap-2 mt-1';
   const priceSpan = document.createElement('span');
   priceSpan.className = 'text-primary font-bold';
   if (hasVariants && product.variants && product.variants.length > 0) {
     priceSpan.textContent = `₹${product.variants[0].price}`;
-    // Show "from" text if multiple variants
     if (product.variants.length > 1) {
       const fromText = document.createElement('span');
       fromText.className = 'text-xs text-gray-400';
@@ -890,7 +895,7 @@ function renderProductCard(product, onAdd) {
   priceDiv.appendChild(priceSpan);
   body.appendChild(priceDiv);
 
-  // Show variant count badge if variants exist
+  // Variant Badge
   if (hasVariants) {
     const variantBadge = document.createElement('div');
     variantBadge.className = 'mt-1 text-xs text-primary font-medium';
@@ -898,43 +903,49 @@ function renderProductCard(product, onAdd) {
     body.appendChild(variantBadge);
   }
 
+  // Rating
   const ratingDiv = document.createElement('div');
   ratingDiv.className = 'flex items-center gap-1 mb-1 mt-1';
   ratingDiv.innerHTML = `<i class="fas fa-star text-yellow-400 text-xs"></i><span class="text-xs">4.5</span>`;
   body.appendChild(ratingDiv);
 
-  // Click to expand hint
+  // Click hint
   if (hasVariants) {
     const clickHint = document.createElement('div');
     clickHint.className = 'text-xs text-gray-400 mt-1 flex items-center gap-1';
-    clickHint.innerHTML = '<i class="fas fa-chevron-down text-xs"></i> Click to select variant';
+    clickHint.innerHTML = '<i class="fas fa-chevron-down text-xs"></i> Tap to see variants';
     body.appendChild(clickHint);
   }
 
   mainView.appendChild(body);
   container.appendChild(mainView);
 
-  // Expanded view for variants
+  // ---- EXPANDED VARIANTS VIEW (Hidden by default, shows on click) ----
   if (hasVariants) {
     const expandedView = document.createElement('div');
-    expandedView.className = 'variants-expand hidden border-t border-gray-100 p-3 bg-gray-50';
+    expandedView.className = 'variants-expand hidden border-t border-gray-200 bg-gray-50 p-3';
     expandedView.id = `variants-${product.id}`;
 
+    // Title
     const variantTitle = document.createElement('p');
     variantTitle.className = 'text-sm font-semibold text-gray-700 mb-2';
     variantTitle.textContent = 'Select Variant:';
     expandedView.appendChild(variantTitle);
 
-    // Create variant options
+    // Variant Options
     product.variants.forEach((variant, index) => {
       const variantOption = document.createElement('div');
-      variantOption.className = `variant-option flex items-center justify-between p-2 rounded-lg mb-1 cursor-pointer transition ${index === 0 ? 'bg-primary/10 border border-primary' : 'bg-white hover:bg-gray-100'}`;
+      variantOption.className = `variant-option flex items-center justify-between p-3 rounded-lg mb-2 cursor-pointer transition-all duration-200 ${
+        index === 0 ? 'bg-primary/10 border-2 border-primary' : 'bg-white hover:bg-gray-100 border-2 border-transparent'
+      }`;
       variantOption.dataset.variant = variant.label;
       
+      // Left side: Label + Description
       const variantInfo = document.createElement('div');
       variantInfo.className = 'flex flex-col';
+      
       const labelSpan = document.createElement('span');
-      labelSpan.className = 'text-sm font-medium';
+      labelSpan.className = 'text-sm font-medium text-gray-800';
       labelSpan.textContent = variant.label;
       variantInfo.appendChild(labelSpan);
       
@@ -947,23 +958,27 @@ function renderProductCard(product, onAdd) {
       
       variantOption.appendChild(variantInfo);
       
+      // Right side: Price
       const priceSpan2 = document.createElement('span');
       priceSpan2.className = 'text-primary font-bold text-sm';
       priceSpan2.textContent = `₹${variant.price}`;
       variantOption.appendChild(priceSpan2);
       
-      variantOption.addEventListener('click', function() {
+      // Click to select variant
+      variantOption.addEventListener('click', function(e) {
+        e.stopPropagation();
         // Remove active state from all variants
         document.querySelectorAll(`#variants-${product.id} .variant-option`).forEach(el => {
-          el.classList.remove('bg-primary/10', 'border', 'border-primary');
-          el.classList.add('bg-white', 'hover:bg-gray-100');
+          el.classList.remove('bg-primary/10', 'border-2', 'border-primary');
+          el.classList.add('bg-white', 'border-2', 'border-transparent');
         });
-        this.classList.add('bg-primary/10', 'border', 'border-primary');
-        this.classList.remove('bg-white', 'hover:bg-gray-100');
+        this.classList.add('bg-primary/10', 'border-2', 'border-primary');
+        this.classList.remove('bg-white', 'border-transparent');
         
         selectedVariant = this.dataset.variant;
         const selectedVariantData = product.variants.find(v => v.label === selectedVariant);
         if (selectedVariantData) {
+          // Update main view price
           priceSpan.textContent = `₹${selectedVariantData.price}`;
           // Update add button
           const addBtn = expandedView.querySelector('.add-variant-btn');
@@ -976,15 +991,16 @@ function renderProductCard(product, onAdd) {
       expandedView.appendChild(variantOption);
     });
 
-    // Add to cart button for variants
+    // Add to Cart Section
     const addBtnContainer = document.createElement('div');
-    addBtnContainer.className = 'flex items-center gap-2 mt-3';
+    addBtnContainer.className = 'flex items-center gap-2 mt-3 pt-2 border-t border-gray-200';
     
-    // Quantity controls
+    // Quantity Controls
     const qtyControls = document.createElement('div');
     qtyControls.className = 'flex items-center gap-1';
+    
     const minusBtn = document.createElement('button');
-    minusBtn.className = 'w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 text-sm';
+    minusBtn.className = 'w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 text-sm font-bold';
     minusBtn.textContent = '-';
     minusBtn.addEventListener('click', function(e) {
       e.stopPropagation();
@@ -999,7 +1015,7 @@ function renderProductCard(product, onAdd) {
     qtyControls.appendChild(qtyDisplay);
 
     const plusBtn = document.createElement('button');
-    plusBtn.className = 'w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 text-sm';
+    plusBtn.className = 'w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 text-sm font-bold';
     plusBtn.textContent = '+';
     plusBtn.addEventListener('click', function(e) {
       e.stopPropagation();
@@ -1009,8 +1025,9 @@ function renderProductCard(product, onAdd) {
     qtyControls.appendChild(plusBtn);
     addBtnContainer.appendChild(qtyControls);
 
+    // Add Button
     const addBtn = document.createElement('button');
-    addBtn.className = 'add-variant-btn gradient-btn text-white px-4 py-1.5 rounded-full text-sm flex-1';
+    addBtn.className = 'add-variant-btn flex-1 gradient-btn text-white px-4 py-2 rounded-full text-sm font-semibold';
     const firstVariant = product.variants[0];
     addBtn.textContent = firstVariant ? `Add ₹${firstVariant.price}` : 'Add to Cart';
     addBtn.addEventListener('click', function(e) {
@@ -1018,6 +1035,16 @@ function renderProductCard(product, onAdd) {
       // If no variant selected, use the first one
       if (!selectedVariant && product.variants.length > 0) {
         selectedVariant = product.variants[0].label;
+        // Highlight the first variant
+        const firstOption = document.querySelector(`#variants-${product.id} .variant-option:first-child`);
+        if (firstOption) {
+          document.querySelectorAll(`#variants-${product.id} .variant-option`).forEach(el => {
+            el.classList.remove('bg-primary/10', 'border-2', 'border-primary');
+            el.classList.add('bg-white', 'border-2', 'border-transparent');
+          });
+          firstOption.classList.add('bg-primary/10', 'border-2', 'border-primary');
+          firstOption.classList.remove('bg-white', 'border-transparent');
+        }
       }
       onAdd(product, qty, selectedVariant);
       qty = 1;
@@ -1033,37 +1060,53 @@ function renderProductCard(product, onAdd) {
     expandedView.appendChild(addBtnContainer);
     container.appendChild(expandedView);
 
-    // Toggle expanded view on click
-    container.addEventListener('click', function(e) {
-      // Don't toggle if clicking on buttons or interactive elements
+    // ---- Toggle expanded view on main view click ----
+    mainView.addEventListener('click', function(e) {
+      // Don't toggle if clicking on interactive elements inside
       if (e.target.closest('button') || e.target.closest('.variant-option')) return;
       
       isExpanded = !isExpanded;
-      const expandDiv = this.querySelector('.variants-expand');
-      const hintIcon = this.querySelector('.main-view .fa-chevron-down');
+      const expandDiv = container.querySelector('.variants-expand');
+      const hintIcon = mainView.querySelector('.fa-chevron-down');
+      
       if (expandDiv) {
-        expandDiv.classList.toggle('hidden');
-        if (hintIcon) {
-          hintIcon.classList.toggle('fa-chevron-down');
-          hintIcon.classList.toggle('fa-chevron-up');
-        }
-        // Update hint text
-        const hintText = this.querySelector('.main-view .flex.items-center.gap-1');
-        if (hintText) {
-          const textNode = hintText.childNodes[2];
-          if (textNode) {
-            textNode.textContent = isExpanded ? ' Click to hide variants' : ' Click to select variant';
+        if (isExpanded) {
+          expandDiv.classList.remove('hidden');
+          expandDiv.style.animation = 'slideDown 0.3s ease';
+          if (hintIcon) {
+            hintIcon.className = 'fas fa-chevron-up text-xs';
+          }
+          // Update hint text
+          const hintText = mainView.querySelector('.flex.items-center.gap-1');
+          if (hintText) {
+            const textNode = hintText.childNodes[2];
+            if (textNode) {
+              textNode.textContent = ' Tap to hide variants';
+            }
+          }
+        } else {
+          expandDiv.classList.add('hidden');
+          if (hintIcon) {
+            hintIcon.className = 'fas fa-chevron-down text-xs';
+          }
+          const hintText = mainView.querySelector('.flex.items-center.gap-1');
+          if (hintText) {
+            const textNode = hintText.childNodes[2];
+            if (textNode) {
+              textNode.textContent = ' Tap to see variants';
+            }
           }
         }
       }
     });
   } else {
-    // No variants - simple add to cart
+    // ---- No variants - simple add to cart ----
     const bottom = document.createElement('div');
     bottom.className = 'flex items-center justify-between mt-2 p-3 pt-0';
 
     const controls = document.createElement('div');
     controls.className = 'flex items-center gap-1 ml-auto';
+    
     const minusBtn = document.createElement('button');
     minusBtn.className = 'w-7 h-7 rounded-full bg-gray-100';
     minusBtn.textContent = '-';
@@ -1106,6 +1149,16 @@ function renderProductCard(product, onAdd) {
     const bodyDiv = mainView.querySelector('.p-3');
     bodyDiv.appendChild(bottom);
   }
+
+  // Add slideDown animation
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  `;
+  container.appendChild(style);
 
   return container;
 }
@@ -1301,7 +1354,7 @@ function renderAccountDrawer() {
 }
 
 // ============================================================
-// RENDER ORDER SUMMARY (FIXED)
+// RENDER ORDER SUMMARY (FIXED - No delivery charge in dropdown)
 // ============================================================
 function renderOrderSummary() {
   if (!state.showOrderSummary) return null;
@@ -1409,7 +1462,7 @@ function renderOrderSummary() {
       Object.keys(subAreas).forEach(sub => {
         const opt = document.createElement('option');
         opt.value = sub;
-        opt.textContent = `${sub} (₹${subAreas[sub]} delivery)`;
+        opt.textContent = sub; // Only show sub-area name, no delivery charge
         subSelect.appendChild(opt);
       });
     }
@@ -1436,7 +1489,7 @@ function renderOrderSummary() {
     Object.keys(subAreas).forEach(sub => {
       const opt = document.createElement('option');
       opt.value = sub;
-      opt.textContent = `${sub} (₹${subAreas[sub]} delivery)`;
+      opt.textContent = sub; // Only show sub-area name, no delivery charge
       subSelect.appendChild(opt);
     });
   }
@@ -1505,19 +1558,16 @@ function renderHero() {
     <button id="shopNowBtn" class="bg-white text-primary px-8 py-3 rounded-full font-bold">Shop Now →</button>
   `;
   
-  // Fix: Use event listener after DOM is ready
   setTimeout(() => {
     const btn = container.querySelector('#shopNowBtn');
     if (btn) {
       btn.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        // Scroll to products section
         const productsSection = document.querySelector('.px-4.my-8');
         if (productsSection) {
           productsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } else {
-          // Fallback: scroll to categories
           const categoriesSection = document.querySelector('.px-4.my-8.hidden.md\\:block');
           if (categoriesSection) {
             categoriesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1604,7 +1654,6 @@ function renderOffersSection() {
     card.className = 'rounded-2xl p-5 text-white shadow-lg cursor-pointer hover:scale-105 transition-transform';
     card.style.background = offer.bg || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
     
-    // If offer has restaurant_id, redirect to that restaurant
     const clickHandler = () => {
       if (offer.restaurant_id) {
         const restaurant = restaurants.find(r => r.id === offer.restaurant_id);
