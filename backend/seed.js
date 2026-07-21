@@ -145,11 +145,15 @@ const seed = async () => {
       ON CONFLICT DO NOTHING;
 
       INSERT INTO products (name, category, restaurant_id, price, commission, status, images, variants) VALUES
-      ('Pepperoni Pizza', 'Food', 1, 299, 10, 'Active', ARRAY['https://placehold.co/400x400/FF6B6B/white?text=Pizza'], '[]'),
-      ('Chicken Biryani', 'Food', 2, 249, 10, 'Active', ARRAY['https://placehold.co/400x400/FFA94D/white?text=Biryani'], '[]'),
-      ('Organic Apples', 'Vegetables', NULL, 99, 8, 'Active', ARRAY['https://placehold.co/400x400/22c55e/white?text=Apples'], '[]'),
-      ('Cola', 'Cool Drinks', NULL, 40, 5, 'Active', ARRAY['https://placehold.co/400x400/06b6d4/white?text=Cola'], '[{"label":"750ml","price":40},{"label":"2L","price":100}]'),
-      ('Veggie Delight', 'Food', 3, 199, 10, 'Active', ARRAY['https://placehold.co/400x400/008000/white?text=Veggie'], '[]')
+      ('Pepperoni Pizza', 'Food', 1, 299, 10, 'Active', ARRAY['https://placehold.co/400x400/FF6B6B/white?text=Pizza'], 
+       '[{"label":"Small","price":199,"description":"6 inches"},{"label":"Medium","price":299,"description":"10 inches"},{"label":"Large","price":399,"description":"12 inches"}]'::jsonb),
+      ('Chicken Biryani', 'Food', 2, 249, 10, 'Active', ARRAY['https://placehold.co/400x400/FFA94D/white?text=Biryani'], 
+       '[{"label":"Regular","price":249,"description":"Single serving"},{"label":"Family Pack","price":499,"description":"Serves 4"}]'::jsonb),
+      ('Organic Apples', 'Vegetables', NULL, 99, 8, 'Active', ARRAY['https://placehold.co/400x400/22c55e/white?text=Apples'], '[]'::jsonb),
+      ('Cola', 'Cool Drinks', NULL, 40, 5, 'Active', ARRAY['https://placehold.co/400x400/06b6d4/white?text=Cola'], 
+       '[{"label":"750ml","price":40,"description":"Bottle"},{"label":"2L","price":100,"description":"Family size"}]'::jsonb),
+      ('Veggie Delight', 'Food', 3, 199, 10, 'Active', ARRAY['https://placehold.co/400x400/008000/white?text=Veggie'], 
+       '[{"label":"Regular","price":199,"description":"Standard"},{"label":"Large","price":299,"description":"Extra large"}]'::jsonb)
       ON CONFLICT DO NOTHING;
 
       INSERT INTO offers (title, discount, bg, icon, restaurant_id, category, description) VALUES
@@ -181,7 +185,7 @@ const seed = async () => {
       ON CONFLICT (key) DO NOTHING;
     `);
 
-    console.log('✅ Seed completed successfully');
+    console.log('✅ Seed completed successfully with variants');
     process.exit(0);
   } catch (err) {
     console.error('❌ Seed failed:', err.message);

@@ -237,7 +237,7 @@ function removeItem(id, variantLabel) {
 }
 
 // ============================================================
-// UPDATE DELIVERY CHARGE (FIXED - RAIN FARE TOGGLE)
+// UPDATE DELIVERY CHARGE
 // ============================================================
 function updateDeliveryCharge() {
   const mainArea = state.orderSummary.selectedMainArea;
@@ -248,17 +248,15 @@ function updateDeliveryCharge() {
   }
   state.orderSummary.deliveryCharge = delivery;
   
-  // Check if rain fare is enabled
   const rainFareEnabled = settings.rain_fare_enabled !== false;
   const rain = rainFareEnabled ? (parseFloat(settings.rain_fare) || 0) : 0;
   state.orderSummary.rainFare = rain;
   
-  // GRAND TOTAL = subtotal + delivery + rain
   state.orderSummary.grandTotal = state.orderSummary.subtotal + delivery + rain;
 }
 
 // ============================================================
-// PROCEED TO CHECKOUT (FIXED)
+// PROCEED TO CHECKOUT
 // ============================================================
 function proceedToCheckout() {
   if (cart.length === 0) {
@@ -281,7 +279,6 @@ function proceedToCheckout() {
     subtotal += total;
   });
 
-  // Check if rain fare is enabled
   const rainFareEnabled = settings.rain_fare_enabled !== false;
   const rain = rainFareEnabled ? (parseFloat(settings.rain_fare) || 0) : 0;
 
@@ -329,7 +326,7 @@ function proceedToPayment() {
 }
 
 // ============================================================
-// RENDER PAYMENT PAGE (COD + UPI placeholder)
+// RENDER PAYMENT PAGE
 // ============================================================
 function renderPaymentPage() {
   if (!state.showPayment) return null;
@@ -426,7 +423,6 @@ async function confirmPayment(method) {
     showToast('UPI/Razorpay integration coming soon!');
     return;
   }
-  // COD – place order immediately
   await placeOrder();
   state.showPayment = false;
   state.showOrderSummary = false;
@@ -439,7 +435,7 @@ function closePayment() {
 }
 
 // ============================================================
-// PLACE ORDER (FIXED - RAIN FARE TOGGLE)
+// PLACE ORDER
 // ============================================================
 async function placeOrder() {
   const orderNumber = 'ORD-' + String(nextOrderNumber).padStart(4, '0');
@@ -452,7 +448,6 @@ async function placeOrder() {
   const productTotal = state.orderSummary.subtotal;
   const deliveryCharge = state.orderSummary.deliveryCharge;
   
-  // Check if rain fare is enabled
   const rainFareEnabled = settings.rain_fare_enabled !== false;
   const rainFare = rainFareEnabled ? (state.orderSummary.rainFare || 0) : 0;
   
@@ -523,7 +518,6 @@ async function placeOrder() {
 // ============================================================
 // USER AUTHENTICATION
 // ============================================================
-// --- DESKTOP ACCOUNT DROPDOWN ---
 let accountDropdownOpen = false;
 
 function toggleAccountDropdown(e) {
@@ -843,45 +837,53 @@ function openModal(html) {
 // RENDER FUNCTIONS
 // ============================================================
 
-// ====== RENDER PRODUCT CARD WITH VARIANTS AS BANNER ======
+// ====== RENDER PRODUCT CARD WITH VARIANTS ======
 function renderProductCard(product, onAdd) {
+  console.log('Rendering product:', product.name);
+  console.log('Product variants:', product.variants);
+  console.log('Variants type:', typeof product.variants);
+  console.log('Is array:', Array.isArray(product.variants));
+  
   const container = document.createElement('div');
   container.className = 'product-card bg-white rounded-xl shadow-md overflow-hidden';
   let qty = 1;
   let selectedVariant = null;
   let isExpanded = false;
 
-  // ---- MAIN VIEW (Always visible) ----
+  // ---- MAIN VIEW ----
   const mainView = document.createElement('div');
   mainView.className = 'main-view cursor-pointer';
   mainView.style.transition = 'all 0.3s ease';
 
-  // Product Image
   const image = document.createElement('img');
   image.src = product.images && product.images.length > 0 ? product.images[0] : 'https://placehold.co/400x400';
   image.alt = product.name;
   image.className = 'w-full h-36 object-cover';
   mainView.appendChild(image);
 
-  // Product Info Body
   const body = document.createElement('div');
   body.className = 'p-3';
 
-  // Product Name
   const name = document.createElement('h3');
   name.className = 'font-semibold text-gray-800 text-sm';
   name.textContent = product.name;
   body.appendChild(name);
 
   // Check if product has variants
-  let hasVariants = product.variants && product.variants.length > 0;
-  console.log('Product variants:', product.variants); // Debug
+  let hasVariants = false;
+  if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+    hasVariants = true;
+    console.log('✅ Product has variants:', product.variants.length);
+  } else {
+    console.log('❌ No variants for product:', product.name);
+  }
 
   // Price Display
   const priceDiv = document.createElement('div');
   priceDiv.className = 'flex items-center gap-2 mt-1';
   const priceSpan = document.createElement('span');
   priceSpan.className = 'text-primary font-bold';
+  
   if (hasVariants && product.variants && product.variants.length > 0) {
     priceSpan.textContent = `₹${product.variants[0].price}`;
     if (product.variants.length > 1) {
@@ -891,7 +893,7 @@ function renderProductCard(product, onAdd) {
       priceDiv.appendChild(fromText);
     }
   } else {
-    priceSpan.textContent = `₹${product.price}`;
+    priceSpan.textContent = `₹${product.price || 0}`;
   }
   priceDiv.appendChild(priceSpan);
   body.appendChild(priceDiv);
@@ -910,7 +912,6 @@ function renderProductCard(product, onAdd) {
   ratingDiv.innerHTML = `<i class="fas fa-star text-yellow-400 text-xs"></i><span class="text-xs">4.5</span>`;
   body.appendChild(ratingDiv);
 
-  // Click hint
   if (hasVariants) {
     const clickHint = document.createElement('div');
     clickHint.className = 'text-xs text-gray-400 mt-1 flex items-center gap-1';
@@ -921,19 +922,17 @@ function renderProductCard(product, onAdd) {
   mainView.appendChild(body);
   container.appendChild(mainView);
 
-  // ---- EXPANDED VARIANTS VIEW (Hidden by default, shows on click) ----
+  // ---- EXPANDED VARIANTS VIEW ----
   if (hasVariants) {
     const expandedView = document.createElement('div');
     expandedView.className = 'variants-expand hidden border-t border-gray-200 bg-gray-50 p-3';
     expandedView.id = `variants-${product.id}`;
 
-    // Title
     const variantTitle = document.createElement('p');
     variantTitle.className = 'text-sm font-semibold text-gray-700 mb-2';
     variantTitle.textContent = 'Select Variant:';
     expandedView.appendChild(variantTitle);
 
-    // Variant Options
     product.variants.forEach((variant, index) => {
       const variantOption = document.createElement('div');
       variantOption.className = `variant-option flex items-center justify-between p-3 rounded-lg mb-2 cursor-pointer transition-all duration-200 ${
@@ -941,7 +940,6 @@ function renderProductCard(product, onAdd) {
       }`;
       variantOption.dataset.variant = variant.label;
       
-      // Left side: Label + Description
       const variantInfo = document.createElement('div');
       variantInfo.className = 'flex flex-col';
       
@@ -959,16 +957,13 @@ function renderProductCard(product, onAdd) {
       
       variantOption.appendChild(variantInfo);
       
-      // Right side: Price
       const priceSpan2 = document.createElement('span');
       priceSpan2.className = 'text-primary font-bold text-sm';
       priceSpan2.textContent = `₹${variant.price}`;
       variantOption.appendChild(priceSpan2);
       
-      // Click to select variant
       variantOption.addEventListener('click', function(e) {
         e.stopPropagation();
-        // Remove active state from all variants
         document.querySelectorAll(`#variants-${product.id} .variant-option`).forEach(el => {
           el.classList.remove('bg-primary/10', 'border-2', 'border-primary');
           el.classList.add('bg-white', 'border-2', 'border-transparent');
@@ -979,9 +974,7 @@ function renderProductCard(product, onAdd) {
         selectedVariant = this.dataset.variant;
         const selectedVariantData = product.variants.find(v => v.label === selectedVariant);
         if (selectedVariantData) {
-          // Update main view price
           priceSpan.textContent = `₹${selectedVariantData.price}`;
-          // Update add button
           const addBtn = expandedView.querySelector('.add-variant-btn');
           if (addBtn) {
             addBtn.textContent = `Add ₹${selectedVariantData.price}`;
@@ -992,11 +985,9 @@ function renderProductCard(product, onAdd) {
       expandedView.appendChild(variantOption);
     });
 
-    // Add to Cart Section
     const addBtnContainer = document.createElement('div');
     addBtnContainer.className = 'flex items-center gap-2 mt-3 pt-2 border-t border-gray-200';
     
-    // Quantity Controls
     const qtyControls = document.createElement('div');
     qtyControls.className = 'flex items-center gap-1';
     
@@ -1026,17 +1017,14 @@ function renderProductCard(product, onAdd) {
     qtyControls.appendChild(plusBtn);
     addBtnContainer.appendChild(qtyControls);
 
-    // Add Button
     const addBtn = document.createElement('button');
     addBtn.className = 'add-variant-btn flex-1 gradient-btn text-white px-4 py-2 rounded-full text-sm font-semibold';
     const firstVariant = product.variants[0];
     addBtn.textContent = firstVariant ? `Add ₹${firstVariant.price}` : 'Add to Cart';
     addBtn.addEventListener('click', function(e) {
       e.stopPropagation();
-      // If no variant selected, use the first one
       if (!selectedVariant && product.variants.length > 0) {
         selectedVariant = product.variants[0].label;
-        // Highlight the first variant
         const firstOption = document.querySelector(`#variants-${product.id} .variant-option:first-child`);
         if (firstOption) {
           document.querySelectorAll(`#variants-${product.id} .variant-option`).forEach(el => {
@@ -1050,7 +1038,6 @@ function renderProductCard(product, onAdd) {
       onAdd(product, qty, selectedVariant);
       qty = 1;
       qtyDisplay.textContent = qty;
-      // Reset add button text
       const firstVar = product.variants[0];
       if (firstVar) {
         this.textContent = `Add ₹${firstVar.price}`;
@@ -1061,9 +1048,7 @@ function renderProductCard(product, onAdd) {
     expandedView.appendChild(addBtnContainer);
     container.appendChild(expandedView);
 
-    // ---- Toggle expanded view on main view click ----
     mainView.addEventListener('click', function(e) {
-      // Don't toggle if clicking on interactive elements inside
       if (e.target.closest('button') || e.target.closest('.variant-option')) return;
       
       isExpanded = !isExpanded;
@@ -1077,7 +1062,6 @@ function renderProductCard(product, onAdd) {
           if (hintIcon) {
             hintIcon.className = 'fas fa-chevron-up text-xs';
           }
-          // Update hint text
           const hintText = mainView.querySelector('.flex.items-center.gap-1');
           if (hintText) {
             const textNode = hintText.childNodes[2];
@@ -1101,7 +1085,7 @@ function renderProductCard(product, onAdd) {
       }
     });
   } else {
-    // ---- No variants - simple add to cart ----
+    // No variants - simple add to cart
     const bottom = document.createElement('div');
     bottom.className = 'flex items-center justify-between mt-2 p-3 pt-0';
 
@@ -1145,13 +1129,10 @@ function renderProductCard(product, onAdd) {
     controls.appendChild(addBtn);
 
     bottom.appendChild(controls);
-    
-    // Add bottom to body
     const bodyDiv = mainView.querySelector('.p-3');
     bodyDiv.appendChild(bottom);
   }
 
-  // Add slideDown animation
   const style = document.createElement('style');
   style.textContent = `
     @keyframes slideDown {
@@ -1164,6 +1145,7 @@ function renderProductCard(product, onAdd) {
   return container;
 }
 
+// ====== RENDER RESTAURANT CARD ======
 function renderRestaurantCard(restaurant) {
   const container = document.createElement('div');
   container.className = 'restaurant-card bg-white rounded-xl shadow-md overflow-hidden cursor-pointer';
@@ -1202,6 +1184,7 @@ function renderRestaurantCard(restaurant) {
   return container;
 }
 
+// ====== RENDER CATEGORY PAGE ======
 function renderCategoryPage() {
   const container = document.createElement('div');
   container.className = 'px-4 my-8';
@@ -1281,6 +1264,7 @@ function renderCategoryPage() {
   return container;
 }
 
+// ====== RENDER ACCOUNT DRAWER ======
 function renderAccountDrawer() {
   if (!state.showAccountDrawer) return null;
   const container = document.createElement('div');
@@ -1354,13 +1338,10 @@ function renderAccountDrawer() {
   return container;
 }
 
-// ============================================================
-// RENDER ORDER SUMMARY (FIXED - No delivery charge in dropdown)
-// ============================================================
+// ====== RENDER ORDER SUMMARY ======
 function renderOrderSummary() {
   if (!state.showOrderSummary) return null;
 
-  // Calculate delivery charge
   updateDeliveryCharge();
 
   const container = document.createElement('div');
@@ -1463,7 +1444,7 @@ function renderOrderSummary() {
       Object.keys(subAreas).forEach(sub => {
         const opt = document.createElement('option');
         opt.value = sub;
-        opt.textContent = sub; // Only show sub-area name, no delivery charge
+        opt.textContent = sub;
         subSelect.appendChild(opt);
       });
     }
@@ -1490,7 +1471,7 @@ function renderOrderSummary() {
     Object.keys(subAreas).forEach(sub => {
       const opt = document.createElement('option');
       opt.value = sub;
-      opt.textContent = sub; // Only show sub-area name, no delivery charge
+      opt.textContent = sub;
       subSelect.appendChild(opt);
     });
   }
@@ -1547,9 +1528,7 @@ function renderOrderSummary() {
   return container;
 }
 
-// ============================================================
-// RENDER HERO - FIX SHOP NOW BUTTON
-// ============================================================
+// ====== RENDER HERO ======
 function renderHero() {
   const container = document.createElement('div');
   container.className = 'bg-gradient-to-r from-blue-600 to-primary rounded-2xl mx-4 my-4 p-8 text-white';
@@ -1636,9 +1615,7 @@ function renderCategoriesSection() {
   return container;
 }
 
-// ============================================================
-// RENDER OFFERS SECTION - No Coupon Codes
-// ============================================================
+// ====== RENDER OFFERS SECTION ======
 function renderOffersSection() {
   const container = document.createElement('div');
   container.className = 'px-4 my-8';
@@ -2036,21 +2013,18 @@ function renderContent() {
     return;
   }
 
-  // Add service unavailable banner if applicable
   if (settings.service_unavailable) {
     const banner = document.createElement('div');
     banner.className = 'bg-red-600 text-white text-center py-2 text-sm font-semibold';
     banner.textContent = '⚠️ Service is currently unavailable. Please check back later.';
     app.appendChild(banner);
   } else {
-    // Show delivery hours banner
     const hoursBanner = document.createElement('div');
     hoursBanner.className = 'bg-blue-50 text-gray-700 text-center py-1 text-xs border-b border-blue-200';
     hoursBanner.textContent = `🕒 Delivery Hours: ${settings.delivery_hours}`;
     app.appendChild(hoursBanner);
   }
 
-  // Check if today is an unavailable day
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
   if (settings.unavailable_days && settings.unavailable_days.includes(today)) {
     const closedBanner = document.createElement('div');

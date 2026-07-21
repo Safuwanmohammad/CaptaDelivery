@@ -82,6 +82,7 @@ const seed = async () => {
         bg TEXT,
         icon TEXT
       );
+      
     `);
 
     // Insert default data

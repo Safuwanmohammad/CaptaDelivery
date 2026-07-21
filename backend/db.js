@@ -1,7 +1,7 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Neon PostgreSQL connection
+// PostgreSQL connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -9,7 +9,17 @@ const pool = new Pool({
   }
 });
 
-// Test connection on startup
+// Add type parsing for JSONB
+const { types } = require('pg');
+types.setTypeParser(types.builtins.JSONB, (val) => {
+  try {
+    return JSON.parse(val);
+  } catch (e) {
+    return val;
+  }
+});
+
+// Test connection
 pool.query('SELECT NOW()', (err, result) => {
   if (err) {
     console.error('❌ Database connection error:', err.message);
