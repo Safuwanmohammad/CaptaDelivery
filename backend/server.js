@@ -43,51 +43,76 @@ async function fixDatabaseSchema() {
       const currentType = checkImages.rows[0].data_type;
       console.log(`📊 Current images column type: ${currentType}`);
       
-      if (currentType === 'text[]' || currentType === 'text') {
+      // If it's text[] or text, convert it
+      if (currentType === 'text[]' || currentType === 'text' || currentType === 'ARRAY') {
         console.log('🔄 Converting images column from text[] to jsonb...');
         
-        // Add a temporary column
-        await pool.query(`
-          ALTER TABLE products 
-          ADD COLUMN IF NOT EXISTS images_new jsonb DEFAULT '[]'::jsonb
-        `);
-        console.log('✅ Created temporary images_new column');
+        try {
+          // Method 1: Try direct conversion
+          await pool.query(`
+            ALTER TABLE products 
+            ALTER COLUMN images TYPE jsonb 
+            USING COALESCE(
+              CASE 
+                WHEN images IS NULL OR images = '{}' THEN '[]'::jsonb
+                ELSE images::jsonb
+              END,
+              '[]'::jsonb
+            )
+          `);
+          console.log('✅ Images column converted to jsonb successfully!');
+        } catch (err) {
+          console.log('⚠️ Direct conversion failed, trying alternative method...');
+          
+          // Method 2: Add temporary column, copy data, drop old, rename
+          await pool.query(`
+            ALTER TABLE products 
+            ADD COLUMN IF NOT EXISTS images_new jsonb DEFAULT '[]'::jsonb
+          `);
+          console.log('✅ Created temporary images_new column');
+          
+          await pool.query(`
+            UPDATE products 
+            SET images_new = COALESCE(
+              CASE 
+                WHEN images IS NULL OR images = '{}' OR images = '[]' THEN '[]'::jsonb
+                ELSE images::jsonb
+              END,
+              '[]'::jsonb
+            )
+            WHERE images IS NOT NULL
+          `);
+          console.log('✅ Data copied to images_new');
+          
+          await pool.query(`
+            ALTER TABLE products 
+            DROP COLUMN IF EXISTS images
+          `);
+          console.log('✅ Dropped old images column');
+          
+          await pool.query(`
+            ALTER TABLE products 
+            RENAME COLUMN images_new TO images
+          `);
+          console.log('✅ Renamed images_new to images');
+          
+          await pool.query(`
+            ALTER TABLE products 
+            ALTER COLUMN images SET DEFAULT '[]'::jsonb
+          `);
+          console.log('✅ Set default value for images');
+          
+          console.log('✅ Images column converted to jsonb successfully!');
+        }
         
-        // Copy data - handle different formats
-        await pool.query(`
-          UPDATE products 
-          SET images_new = 
-            CASE 
-              WHEN images IS NULL OR images = '{}' OR images = '[]' THEN '[]'::jsonb
-              WHEN jsonb_typeof(images::jsonb) = 'array' THEN images::jsonb
-              ELSE jsonb_build_array(images::text)
-            END
-          WHERE images IS NOT NULL
+        // Verify the conversion
+        const verify = await pool.query(`
+          SELECT data_type 
+          FROM information_schema.columns 
+          WHERE table_name = 'products' AND column_name = 'images'
         `);
-        console.log('✅ Data copied to images_new');
+        console.log(`✅ Verification: images column is now ${verify.rows[0].data_type}`);
         
-        // Drop old column
-        await pool.query(`
-          ALTER TABLE products 
-          DROP COLUMN IF EXISTS images
-        `);
-        console.log('✅ Dropped old images column');
-        
-        // Rename new column
-        await pool.query(`
-          ALTER TABLE products 
-          RENAME COLUMN images_new TO images
-        `);
-        console.log('✅ Renamed images_new to images');
-        
-        // Set default
-        await pool.query(`
-          ALTER TABLE products 
-          ALTER COLUMN images SET DEFAULT '[]'::jsonb
-        `);
-        console.log('✅ Set default value for images');
-        
-        console.log('✅ Images column converted to jsonb successfully!');
       } else {
         console.log(`✅ images column already has correct type: ${currentType}`);
       }
@@ -104,7 +129,6 @@ async function fixDatabaseSchema() {
   } catch (err) {
     console.error('❌ Error fixing database schema:', err.message);
     console.error('Stack:', err.stack);
-    // Don't exit - let the server continue
   }
 }
 
