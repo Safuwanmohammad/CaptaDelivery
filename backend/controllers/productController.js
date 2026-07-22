@@ -1,11 +1,26 @@
 const pool = require('../db');
 
-// Helper to parse product variants
+// Helper: Safely parse JSONB data
+function safeParseJSONB(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  return [];
+}
+
+// Helper: Parse product row
 function parseProduct(row) {
   return {
     ...row,
-    variants: row.variants || [],
-    images: row.images || []
+    variants: safeParseJSONB(row.variants),
+    images: safeParseJSONB(row.images)
   };
 }
 
@@ -13,6 +28,13 @@ exports.getAllProducts = async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
     const products = result.rows.map(row => parseProduct(row));
+    
+    // Debug log
+    console.log(`✅ Returning ${products.length} products`);
+    products.forEach(p => {
+      console.log(`  - ${p.name}: ${p.variants ? p.variants.length : 0} variants`);
+    });
+    
     res.json(products);
   } catch (err) {
     console.error('Error in getAllProducts:', err);
@@ -31,24 +53,64 @@ exports.getProductsByCategory = async (req, res) => {
   }
 };
 
+exports.getProductById = async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    const product = parseProduct(result.rows[0]);
+    res.json(product);
+  } catch (err) {
+    console.error('Error in getProductById:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.createProduct = async (req, res) => {
+  console.log('📦 Creating product with body:', JSON.stringify(req.body, null, 2));
+  
   const { name, category, restaurantId, price, commission, status, images, variants } = req.body;
   
   try {
-    // Ensure variants is an array
-    const variantsJson = variants && Array.isArray(variants) ? variants : [];
-    const imagesJson = images && Array.isArray(images) ? images : [];
+    // Ensure variants is a valid array
+    let variantsArray = [];
+    if (variants) {
+      if (Array.isArray(variants)) {
+        variantsArray = variants;
+      } else if (typeof variants === 'string') {
+        try {
+          variantsArray = JSON.parse(variants);
+        } catch (e) {
+          variantsArray = [];
+        }
+      }
+    }
     
-    console.log('Creating product with variants:', JSON.stringify(variantsJson));
+    // Ensure images is a valid array
+    let imagesArray = [];
+    if (images) {
+      if (Array.isArray(images)) {
+        imagesArray = images;
+      } else if (typeof images === 'string') {
+        try {
+          imagesArray = JSON.parse(images);
+        } catch (e) {
+          imagesArray = [];
+        }
+      }
+    }
+    
+    console.log(`✅ Creating product with ${variantsArray.length} variants`);
     
     const result = await pool.query(
       `INSERT INTO products (name, category, restaurant_id, price, commission, status, images, variants)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [name, category, restaurantId, price, commission, status, imagesJson, variantsJson]
+      [name, category, restaurantId || null, price, commission || 0, status || 'Active', imagesArray, variantsArray]
     );
     
     const product = parseProduct(result.rows[0]);
-    console.log('Product created with variants:', product.variants);
+    console.log(`✅ Product created with ${product.variants.length} variants:`, product.variants);
     
     res.status(201).json(product);
   } catch (err) {
@@ -59,19 +121,54 @@ exports.createProduct = async (req, res) => {
 
 exports.updateProduct = async (req, res) => {
   const { id } = req.params;
+  console.log(`📝 Updating product ${id} with body:`, JSON.stringify(req.body, null, 2));
+  
   const { name, category, restaurantId, price, commission, status, images, variants } = req.body;
   
   try {
-    const variantsJson = variants && Array.isArray(variants) ? variants : [];
-    const imagesJson = images && Array.isArray(images) ? images : [];
+    // Ensure variants is a valid array
+    let variantsArray = [];
+    if (variants) {
+      if (Array.isArray(variants)) {
+        variantsArray = variants;
+      } else if (typeof variants === 'string') {
+        try {
+          variantsArray = JSON.parse(variants);
+        } catch (e) {
+          variantsArray = [];
+        }
+      }
+    }
     
-    console.log('Updating product with variants:', JSON.stringify(variantsJson));
+    // Ensure images is a valid array
+    let imagesArray = [];
+    if (images) {
+      if (Array.isArray(images)) {
+        imagesArray = images;
+      } else if (typeof images === 'string') {
+        try {
+          imagesArray = JSON.parse(images);
+        } catch (e) {
+          imagesArray = [];
+        }
+      }
+    }
+    
+    console.log(`✅ Updating product with ${variantsArray.length} variants`);
     
     const result = await pool.query(
       `UPDATE products SET 
-        name=$1, category=$2, restaurant_id=$3, price=$4, commission=$5, status=$6, images=$7, variants=$8
-       WHERE id=$9 RETURNING *`,
-      [name, category, restaurantId, price, commission, status, imagesJson, variantsJson, id]
+        name = $1, 
+        category = $2, 
+        restaurant_id = $3, 
+        price = $4, 
+        commission = $5, 
+        status = $6, 
+        images = $7, 
+        variants = $8
+       WHERE id = $9 
+       RETURNING *`,
+      [name, category, restaurantId || null, price, commission || 0, status || 'Active', imagesArray, variantsArray, id]
     );
     
     if (result.rows.length === 0) {
@@ -79,7 +176,7 @@ exports.updateProduct = async (req, res) => {
     }
     
     const product = parseProduct(result.rows[0]);
-    console.log('Product updated with variants:', product.variants);
+    console.log(`✅ Product updated with ${product.variants.length} variants:`, product.variants);
     
     res.json(product);
   } catch (err) {
@@ -95,21 +192,6 @@ exports.deleteProduct = async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('Error in deleteProduct:', err);
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// Get product by ID with variants
-exports.getProductById = async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-    const product = parseProduct(result.rows[0]);
-    res.json(product);
-  } catch (err) {
-    console.error('Error in getProductById:', err);
     res.status(500).json({ error: err.message });
   }
 };

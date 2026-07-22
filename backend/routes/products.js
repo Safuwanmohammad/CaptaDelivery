@@ -9,6 +9,7 @@ const {
   deleteProduct 
 } = require('../controllers/productController');
 
+// IMPORTANT: Order matters! Specific routes before generic ones
 router.get('/', getAllProducts);
 router.get('/category/:category', getProductsByCategory);
 router.get('/:id', getProductById);

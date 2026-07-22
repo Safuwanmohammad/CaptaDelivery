@@ -521,7 +521,6 @@
       100% { transform: rotate(360deg); }
     }
 
-    /* Mobile fixes */
     @media (max-width: 767px) {
       .btn-block {
         font-size: 0.8rem !important;
@@ -607,7 +606,6 @@
 <!-- ========== MAIN CONTENT ========== -->
 <div id="mainContent" class="main-content">
 
-  <!-- ===== TOP BAR ===== -->
   <div class="top-bar">
     <div class="page-title">
       <button class="menu-btn show-mobile" onclick="toggleSidebar()" aria-label="Toggle menu">
@@ -623,7 +621,6 @@
     </div>
   </div>
 
-  <!-- ===== PAGE CONTENT ===== -->
   <div id="pageContent" class="fade-in"></div>
 </div>
 
@@ -842,6 +839,11 @@
       settings.delivery_hours = setts.delivery_hours || '9:00 AM - 10:00 PM';
       settings.unavailable_days = setts.unavailable_days || '["Monday"]';
       settings.service_unavailable = setts.service_unavailable || 'false';
+      
+      console.log('✅ Loaded products:', products);
+      products.forEach(p => {
+        console.log(`  Product: ${p.name}, Variants:`, p.variants);
+      });
       
     } catch (err) {
       console.error('Failed to load data:', err);
@@ -1096,11 +1098,328 @@
     `;
   }
 
+  function openAddCategory() {
+    openModal(`
+      <h2>Add Category</h2>
+      <form id="categoryForm">
+        <div class="form-group"><label>Category Name *</label><input id="catName" required placeholder="e.g. Beverages" /></div>
+        <div class="form-group"><label>Category Image</label>
+          <div class="file-input-wrapper">
+            <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload Image</div>
+            <input id="catImage" type="file" accept="image/*" />
+          </div>
+          <div id="catImagePreview" class="image-preview-grid"></div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Save Category</button>
+      </form>
+    `);
+    
+    const fileInput = document.getElementById('catImage');
+    const previewContainer = document.getElementById('catImagePreview');
+    let imageDataUrl = null;
+
+    fileInput.addEventListener('change', function() {
+      previewContainer.innerHTML = '';
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          imageDataUrl = e.target.result;
+          const div = document.createElement('div');
+          div.className = 'preview-item';
+          div.innerHTML = `<img src="${e.target.result}" /><button type="button" class="remove-img" onclick="this.parentElement.remove(); imageDataUrl = null;"><i class="fas fa-times"></i></button>`;
+          previewContainer.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    document.getElementById('categoryForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('catName').value.trim();
+      if (!name) { showToast('Name required'); return; }
+      try {
+        await postData('categories', { name, image: imageDataUrl });
+        categories = await fetchData('categories');
+        closeModal();
+        showToast('Category added!');
+        switchCatalogTab('categories');
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function editCategory(id) {
+    const c = (categories || []).find(x => x.id === id);
+    if (!c) return;
+    openModal(`
+      <h2>Edit Category</h2>
+      <form id="categoryForm">
+        <div class="form-group"><label>Category Name *</label><input id="catName" value="${c.name}" required /></div>
+        <div class="form-group"><label>Current Image</label>
+          ${c.image ? `<img src="${c.image}" class="w-20 h-20 object-cover rounded" />` : '<p class="text-gray-400">No image</p>'}
+        </div>
+        <div class="form-group"><label>Upload New Image (optional)</label>
+          <div class="file-input-wrapper">
+            <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload New Image</div>
+            <input id="catImage" type="file" accept="image/*" />
+          </div>
+          <div id="catImagePreview" class="image-preview-grid"></div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Update</button>
+      </form>
+    `);
+    
+    const fileInput = document.getElementById('catImage');
+    const previewContainer = document.getElementById('catImagePreview');
+    let imageDataUrl = null;
+
+    fileInput.addEventListener('change', function() {
+      previewContainer.innerHTML = '';
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          imageDataUrl = e.target.result;
+          const div = document.createElement('div');
+          div.className = 'preview-item';
+          div.innerHTML = `<img src="${e.target.result}" /><button type="button" class="remove-img" onclick="this.parentElement.remove(); imageDataUrl = null;"><i class="fas fa-times"></i></button>`;
+          previewContainer.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    document.getElementById('categoryForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('catName').value.trim();
+      const image = imageDataUrl || c.image;
+      try {
+        await putData(`categories/${id}`, { name, image });
+        categories = await fetchData('categories');
+        closeModal();
+        showToast('Category updated!');
+        switchCatalogTab('categories');
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function deleteCategory(id) {
+    if (!confirm('Delete this category?')) return;
+    deleteData(`categories/${id}`).then(() => fetchData('categories')).then(data => {
+      categories = data;
+      showToast('Category deleted');
+      switchCatalogTab('categories');
+    }).catch(err => showToast('Error: ' + err.message));
+  }
+
   // ============================================================
-  // PRODUCTS CRUD - UPDATED WITH VARIANTS FIX
+  // RESTAURANTS CRUD
+  // ============================================================
+  function renderRestaurantsList(el) {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Restaurants</h3>
+        <button onclick="openAddRestaurant()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Restaurant</button>
+      </div>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th class="hide-mobile">Category</th><th>Logo</th><th>Status</th><th>Toggle</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${(restaurants || []).map(r => `
+              <tr>
+                <td data-label="Name" class="text-truncate" style="max-width:80px;">${r.name}</td>
+                <td class="hide-mobile" data-label="Category">${r.category}</td>
+                <td data-label="Logo"><img src="${r.logo || 'https://placehold.co/40'}" class="w-8 h-8 rounded-full object-cover" /></td>
+                <td data-label="Status"><span class="badge ${r.status === 'Active' ? 'badge-success' : 'badge-danger'}">${r.status}</span></td>
+                <td data-label="Toggle">
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="sr-only peer" ${r.status === 'Active' ? 'checked' : ''} onchange="toggleRestaurantStatus(${r.id}, this.checked)">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
+                </td>
+                <td data-label="Actions">
+                  <div class="table-actions">
+                    <button class="btn btn-sm btn-primary" onclick="editRestaurant(${r.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteRestaurant(${r.id})"><i class="fas fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function openAddRestaurant() {
+    const categoryOptions = (categories || []).map(c => 
+      `<option value="${c.name}">${c.name}</option>`
+    ).join('');
+
+    openModal(`
+      <h2>Add Restaurant</h2>
+      <form id="restaurantForm">
+        <div class="form-group"><label>Restaurant Name *</label><input id="restName" required placeholder="e.g. Pizza Hut" /></div>
+        <div class="form-group"><label>Category *</label>
+          <select id="restCategory" required>
+            <option value="">Select Category</option>
+            ${categoryOptions}
+          </select>
+        </div>
+        <div class="form-group"><label>Restaurant Logo</label>
+          <div class="file-input-wrapper">
+            <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload Logo</div>
+            <input id="restLogoFile" type="file" accept="image/*" />
+          </div>
+          <div id="restLogoPreview" class="image-preview-grid"></div>
+        </div>
+        <div class="form-group"><label>Status</label>
+          <select id="restStatus">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Save Restaurant</button>
+      </form>
+    `);
+
+    const fileInput = document.getElementById('restLogoFile');
+    const previewContainer = document.getElementById('restLogoPreview');
+    let logoDataUrl = null;
+
+    fileInput.addEventListener('change', function() {
+      previewContainer.innerHTML = '';
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          logoDataUrl = e.target.result;
+          const div = document.createElement('div');
+          div.className = 'preview-item';
+          div.innerHTML = `<img src="${e.target.result}" /><button type="button" class="remove-img" onclick="this.parentElement.remove(); logoDataUrl = null;"><i class="fas fa-times"></i></button>`;
+          previewContainer.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    document.getElementById('restaurantForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('restName').value.trim();
+      const category = document.getElementById('restCategory').value;
+      const status = document.getElementById('restStatus').value;
+      const logo = logoDataUrl || 'https://placehold.co/100';
+      if (!name || !category) { showToast('Name and category required'); return; }
+      try {
+        await postData('restaurants', { name, category, logo, status });
+        restaurants = await fetchData('restaurants');
+        closeModal();
+        showToast('Restaurant added!');
+        switchCatalogTab('restaurants');
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function editRestaurant(id) {
+    const r = (restaurants || []).find(x => x.id === id);
+    if (!r) { showToast('Restaurant not found'); return; }
+    const categoryOptions = (categories || []).map(c => 
+      `<option value="${c.name}" ${r.category === c.name ? 'selected' : ''}>${c.name}</option>`
+    ).join('');
+
+    openModal(`
+      <h2>Edit Restaurant</h2>
+      <form id="restaurantForm">
+        <div class="form-group"><label>Restaurant Name *</label><input id="restName" value="${r.name}" required /></div>
+        <div class="form-group"><label>Category *</label>
+          <select id="restCategory" required>
+            <option value="">Select Category</option>
+            ${categoryOptions}
+          </select>
+        </div>
+        <div class="form-group"><label>Current Logo</label>
+          ${r.logo ? `<img src="${r.logo}" class="w-20 h-20 object-cover rounded" />` : '<p class="text-gray-400">No logo</p>'}
+        </div>
+        <div class="form-group"><label>Upload New Logo (optional)</label>
+          <div class="file-input-wrapper">
+            <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload New Logo</div>
+            <input id="restLogoFile" type="file" accept="image/*" />
+          </div>
+          <div id="restLogoPreview" class="image-preview-grid"></div>
+        </div>
+        <div class="form-group"><label>Status</label>
+          <select id="restStatus">
+            <option value="Active" ${r.status === 'Active' ? 'selected' : ''}>Active</option>
+            <option value="Inactive" ${r.status === 'Inactive' ? 'selected' : ''}>Inactive</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Update Restaurant</button>
+      </form>
+    `);
+
+    const fileInput = document.getElementById('restLogoFile');
+    const previewContainer = document.getElementById('restLogoPreview');
+    let logoDataUrl = null;
+
+    fileInput.addEventListener('change', function() {
+      previewContainer.innerHTML = '';
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          logoDataUrl = e.target.result;
+          const div = document.createElement('div');
+          div.className = 'preview-item';
+          div.innerHTML = `<img src="${e.target.result}" /><button type="button" class="remove-img" onclick="this.parentElement.remove(); logoDataUrl = null;"><i class="fas fa-times"></i></button>`;
+          previewContainer.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    document.getElementById('restaurantForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name = document.getElementById('restName').value.trim();
+      const category = document.getElementById('restCategory').value;
+      const status = document.getElementById('restStatus').value;
+      const logo = logoDataUrl || r.logo || 'https://placehold.co/100';
+      if (!name || !category) { showToast('Name and category required'); return; }
+      try {
+        await putData(`restaurants/${id}`, { name, category, logo, status });
+        restaurants = await fetchData('restaurants');
+        closeModal();
+        showToast('Restaurant updated!');
+        switchCatalogTab('restaurants');
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function deleteRestaurant(id) {
+    if (!confirm('Delete this restaurant?')) return;
+    deleteData(`restaurants/${id}`).then(() => fetchData('restaurants')).then(data => {
+      restaurants = data;
+      showToast('Restaurant deleted');
+      switchCatalogTab('restaurants');
+    }).catch(err => showToast('Error: ' + err.message));
+  }
+
+  async function toggleRestaurantStatus(id, isActive) {
+    const status = isActive ? 'Active' : 'Inactive';
+    try {
+      const result = await putData(`reports/restaurant/${id}/toggle`, { status });
+      const idx = restaurants.findIndex(r => r.id === id);
+      if (idx !== -1) restaurants[idx] = result;
+      showToast(`Restaurant ${isActive ? 'activated' : 'deactivated'}`);
+      renderRestaurantsList(document.getElementById('catalogTabContent'));
+    } catch (err) {
+      showToast('Error: ' + err.message);
+    }
+  }
+
+  // ============================================================
+  // PRODUCTS CRUD - WITH VARIANTS FIX
   // ============================================================
   
-  // ---- Add Variant Row with Description ----
   function addVariantRow() {
     const container = document.getElementById('variantsContainer');
     if (!container) return;
@@ -1238,7 +1557,6 @@
       </form>
     `);
 
-    // Handle image preview
     const fileInput = document.getElementById('prodImages');
     const previewContainer = document.getElementById('prodImagePreview');
     let imageUrls = [];
@@ -1265,7 +1583,6 @@
       }
     });
 
-    // Submit form
     document.getElementById('productForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const name = document.getElementById('prodName').value.trim();
@@ -1275,7 +1592,6 @@
       const commission = parseFloat(document.getElementById('prodCommission').value) || 0;
       const status = document.getElementById('prodStatus').value;
       
-      // Collect variants
       const variantRows = document.querySelectorAll('.variant-row');
       const variants = [];
       variantRows.forEach(row => {
@@ -1332,10 +1648,16 @@
 
   // ---- Edit Product Modal ----
   function editProduct(id) {
+    console.log('✏️ Editing product:', id);
+    
     const p = (products || []).find(x => x.id === id);
-    if (!p) { showToast('Product not found'); return; }
+    if (!p) { 
+      showToast('Product not found'); 
+      return; 
+    }
 
-    console.log('Editing product with variants:', p.variants);
+    console.log('Current product data:', p);
+    console.log('Current variants:', p.variants);
 
     const restaurantOptions = (restaurants || []).map(r => 
       `<option value="${r.id}" ${p.restaurant_id === r.id ? 'selected' : ''}>${r.name}</option>`
@@ -1345,7 +1667,6 @@
       `<option value="${c.name}" ${p.category === c.name ? 'selected' : ''}>${c.name}</option>`
     ).join('');
 
-    // Build image preview
     let imagePreviewHtml = '';
     if (p.images && p.images.length > 0) {
       p.images.forEach((img, index) => {
@@ -1360,10 +1681,13 @@
       });
     }
 
-    // Build variants HTML - FIXED to properly show existing variants
     let variantsHtml = '';
-    if (p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
-      p.variants.forEach((variant) => {
+    const variantsArray = Array.isArray(p.variants) ? p.variants : [];
+    
+    console.log('Building variants HTML from:', variantsArray);
+    
+    if (variantsArray.length > 0) {
+      variantsArray.forEach((variant) => {
         const description = variant.description || '';
         variantsHtml += `
           <div class="variant-row flex flex-wrap gap-2 mb-2 p-3 border rounded-lg bg-gray-50">
@@ -1448,7 +1772,7 @@
         </div>
         
         <div class="form-group">
-          <label>Variants</label>
+          <label>Variants (${variantsArray.length} existing)</label>
           <div id="variantsContainer">
             ${variantsHtml}
           </div>
@@ -1462,7 +1786,6 @@
       </form>
     `);
 
-    // Handle new image preview
     const fileInput = document.getElementById('prodImages');
     const previewContainer = document.getElementById('prodImagePreview');
     let newImageUrls = [];
@@ -1489,7 +1812,6 @@
       }
     });
 
-    // Submit form - FIXED to properly send variants
     document.getElementById('productForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const name = document.getElementById('prodName').value.trim();
@@ -1499,7 +1821,6 @@
       const commission = parseFloat(document.getElementById('prodCommission').value) || 0;
       const status = document.getElementById('prodStatus').value;
       
-      // Collect variants from form
       const variantRows = document.querySelectorAll('.variant-row');
       const variants = [];
       variantRows.forEach(row => {
@@ -1520,7 +1841,7 @@
         }
       });
       
-      console.log('Collected variants for update:', JSON.stringify(variants));
+      console.log('📦 Collected variants for update:', JSON.stringify(variants));
       
       if (!name) { showToast('Product name required'); return; }
       if (!category) { showToast('Category required'); return; }
@@ -1544,16 +1865,17 @@
           variants: variants
         };
         
-        console.log('Sending update data:', JSON.stringify(updateData));
+        console.log('📤 Sending update data:', JSON.stringify(updateData));
         
         const response = await putData(`products/${id}`, updateData);
-        console.log('Product updated:', response);
+        console.log('✅ Product updated:', response);
+        
         products = await fetchData('products');
         closeModal();
-        showToast('Product updated successfully!');
+        showToast(`✅ Product updated with ${variants.length} variants!`);
         switchCatalogTab('products');
       } catch (err) { 
-        console.error('Error:', err);
+        console.error('❌ Error:', err);
         showToast('Error: ' + err.message); 
       }
     });
@@ -1584,7 +1906,7 @@
   }
 
   // ============================================================
-  // PLACES (truncated for brevity - keep existing code)
+  // PLACES
   // ============================================================
   function renderPlaces(el) {
     el.innerHTML = `
@@ -2120,7 +2442,6 @@
     el.innerHTML = `
       <h2 class="text-xl font-bold mb-4">⚙️ Settings</h2>
       <div class="space-y-6">
-        <!-- Service Status -->
         <div class="card p-6">
           <h3 class="font-semibold text-lg mb-3">🔌 Service Status</h3>
           <div class="flex items-center gap-4">
@@ -2134,7 +2455,6 @@
           </div>
         </div>
 
-        <!-- Rain Fare Toggle -->
         <div class="card p-6">
           <h3 class="font-semibold text-lg mb-3">🌧️ Rain Fare</h3>
           <div class="flex items-center gap-4">
@@ -2153,7 +2473,6 @@
           <p class="text-sm text-gray-500 mt-2">Rain fare will ${rainFareEnabled ? 'be applied' : 'not be applied'} to orders</p>
         </div>
 
-        <!-- Admin Phone Numbers -->
         <div class="card p-6">
           <h3 class="font-semibold text-lg mb-3">📱 Admin Phone Numbers</h3>
           <p class="text-sm text-gray-500 mb-3">These numbers can receive admin OTPs</p>
@@ -2170,7 +2489,6 @@
           <p id="adminPhoneStatus" class="text-sm mt-2 text-gray-500"></p>
         </div>
 
-        <!-- Active Admin Phone -->
         <div class="card p-6">
           <h3 class="font-semibold text-lg mb-3">🔑 Active Admin Phone (Login)</h3>
           <div class="flex gap-2">
@@ -2182,7 +2500,6 @@
           <p id="activePhoneStatus" class="text-sm mt-2 text-gray-500"></p>
         </div>
 
-        <!-- Commission Rate -->
         <div class="card p-6">
           <h3 class="font-semibold text-lg mb-3">💰 Commission Rate</h3>
           <div class="flex gap-2">
@@ -2192,7 +2509,6 @@
           <p class="text-sm text-gray-500 mt-1">Accepts decimal values (e.g., 10.5)</p>
         </div>
 
-        <!-- Delivery Hours -->
         <div class="card p-6">
           <h3 class="font-semibold text-lg mb-3">🕐 Delivery Hours</h3>
           <div class="flex gap-2">
@@ -2201,7 +2517,6 @@
           </div>
         </div>
 
-        <!-- Unavailable Days -->
         <div class="card p-6">
           <h3 class="font-semibold text-lg mb-3">📅 Unavailable Days</h3>
           <p class="text-sm text-gray-500 mb-3">Days when delivery is not available</p>

@@ -91,7 +91,7 @@ async function putData(endpoint, data) {
 }
 
 // ============================================================
-// LOAD ALL DATA (including settings)
+// LOAD ALL DATA
 // ============================================================
 async function loadAllData() {
   try {
@@ -814,7 +814,7 @@ function toggleAccountDrawer() {
 }
 
 // ============================================================
-// OPEN MODAL (for contact support etc)
+// OPEN MODAL
 // ============================================================
 function openModal(html) {
   const overlay = document.createElement('div');
@@ -834,21 +834,42 @@ function openModal(html) {
 }
 
 // ============================================================
-// RENDER FUNCTIONS
+// RENDER PRODUCT CARD WITH VARIANTS FIX
 // ============================================================
-
-// ====== RENDER PRODUCT CARD WITH VARIANTS ======
 function renderProductCard(product, onAdd) {
-  console.log('Rendering product:', product.name);
-  console.log('Product variants:', product.variants);
-  console.log('Variants type:', typeof product.variants);
-  console.log('Is array:', Array.isArray(product.variants));
+  // Debug logging
+  console.log('🔍 Rendering product:', product.name);
+  console.log('  Variants:', product.variants);
   
   const container = document.createElement('div');
   container.className = 'product-card bg-white rounded-xl shadow-md overflow-hidden';
   let qty = 1;
   let selectedVariant = null;
   let isExpanded = false;
+
+  // Check if product has variants - FIXED
+  let hasVariants = false;
+  let variantsArray = [];
+  
+  try {
+    if (product.variants) {
+      if (Array.isArray(product.variants) && product.variants.length > 0) {
+        hasVariants = true;
+        variantsArray = product.variants;
+        console.log(`✅ ${product.name} has ${variantsArray.length} variants`);
+      } else if (typeof product.variants === 'string') {
+        const parsed = JSON.parse(product.variants);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          hasVariants = true;
+          variantsArray = parsed;
+          product.variants = parsed;
+          console.log(`✅ ${product.name} has ${variantsArray.length} variants (parsed from string)`);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn(`⚠️ Error checking variants for ${product.name}:`, e);
+  }
 
   // ---- MAIN VIEW ----
   const mainView = document.createElement('div');
@@ -869,24 +890,15 @@ function renderProductCard(product, onAdd) {
   name.textContent = product.name;
   body.appendChild(name);
 
-  // Check if product has variants
-  let hasVariants = false;
-  if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
-    hasVariants = true;
-    console.log('✅ Product has variants:', product.variants.length);
-  } else {
-    console.log('❌ No variants for product:', product.name);
-  }
-
   // Price Display
   const priceDiv = document.createElement('div');
   priceDiv.className = 'flex items-center gap-2 mt-1';
   const priceSpan = document.createElement('span');
   priceSpan.className = 'text-primary font-bold';
   
-  if (hasVariants && product.variants && product.variants.length > 0) {
-    priceSpan.textContent = `₹${product.variants[0].price}`;
-    if (product.variants.length > 1) {
+  if (hasVariants && variantsArray.length > 0) {
+    priceSpan.textContent = `₹${variantsArray[0].price}`;
+    if (variantsArray.length > 1) {
       const fromText = document.createElement('span');
       fromText.className = 'text-xs text-gray-400';
       fromText.textContent = 'from';
@@ -901,8 +913,8 @@ function renderProductCard(product, onAdd) {
   // Variant Badge
   if (hasVariants) {
     const variantBadge = document.createElement('div');
-    variantBadge.className = 'mt-1 text-xs text-primary font-medium';
-    variantBadge.textContent = `${product.variants.length} variants available`;
+    variantBadge.className = 'mt-1 text-xs text-primary font-bold bg-primary/10 px-2 py-1 rounded-full inline-block';
+    variantBadge.textContent = `🎯 ${variantsArray.length} variants available`;
     body.appendChild(variantBadge);
   }
 
@@ -923,7 +935,7 @@ function renderProductCard(product, onAdd) {
   container.appendChild(mainView);
 
   // ---- EXPANDED VARIANTS VIEW ----
-  if (hasVariants) {
+  if (hasVariants && variantsArray.length > 0) {
     const expandedView = document.createElement('div');
     expandedView.className = 'variants-expand hidden border-t border-gray-200 bg-gray-50 p-3';
     expandedView.id = `variants-${product.id}`;
@@ -933,7 +945,7 @@ function renderProductCard(product, onAdd) {
     variantTitle.textContent = 'Select Variant:';
     expandedView.appendChild(variantTitle);
 
-    product.variants.forEach((variant, index) => {
+    variantsArray.forEach((variant, index) => {
       const variantOption = document.createElement('div');
       variantOption.className = `variant-option flex items-center justify-between p-3 rounded-lg mb-2 cursor-pointer transition-all duration-200 ${
         index === 0 ? 'bg-primary/10 border-2 border-primary' : 'bg-white hover:bg-gray-100 border-2 border-transparent'
@@ -972,7 +984,7 @@ function renderProductCard(product, onAdd) {
         this.classList.remove('bg-white', 'border-transparent');
         
         selectedVariant = this.dataset.variant;
-        const selectedVariantData = product.variants.find(v => v.label === selectedVariant);
+        const selectedVariantData = variantsArray.find(v => v.label === selectedVariant);
         if (selectedVariantData) {
           priceSpan.textContent = `₹${selectedVariantData.price}`;
           const addBtn = expandedView.querySelector('.add-variant-btn');
@@ -985,6 +997,7 @@ function renderProductCard(product, onAdd) {
       expandedView.appendChild(variantOption);
     });
 
+    // Add to Cart Section
     const addBtnContainer = document.createElement('div');
     addBtnContainer.className = 'flex items-center gap-2 mt-3 pt-2 border-t border-gray-200';
     
@@ -1019,12 +1032,12 @@ function renderProductCard(product, onAdd) {
 
     const addBtn = document.createElement('button');
     addBtn.className = 'add-variant-btn flex-1 gradient-btn text-white px-4 py-2 rounded-full text-sm font-semibold';
-    const firstVariant = product.variants[0];
+    const firstVariant = variantsArray[0];
     addBtn.textContent = firstVariant ? `Add ₹${firstVariant.price}` : 'Add to Cart';
     addBtn.addEventListener('click', function(e) {
       e.stopPropagation();
-      if (!selectedVariant && product.variants.length > 0) {
-        selectedVariant = product.variants[0].label;
+      if (!selectedVariant && variantsArray.length > 0) {
+        selectedVariant = variantsArray[0].label;
         const firstOption = document.querySelector(`#variants-${product.id} .variant-option:first-child`);
         if (firstOption) {
           document.querySelectorAll(`#variants-${product.id} .variant-option`).forEach(el => {
@@ -1038,7 +1051,7 @@ function renderProductCard(product, onAdd) {
       onAdd(product, qty, selectedVariant);
       qty = 1;
       qtyDisplay.textContent = qty;
-      const firstVar = product.variants[0];
+      const firstVar = variantsArray[0];
       if (firstVar) {
         this.textContent = `Add ₹${firstVar.price}`;
       }
@@ -1145,7 +1158,9 @@ function renderProductCard(product, onAdd) {
   return container;
 }
 
-// ====== RENDER RESTAURANT CARD ======
+// ============================================================
+// RENDER RESTAURANT CARD
+// ============================================================
 function renderRestaurantCard(restaurant) {
   const container = document.createElement('div');
   container.className = 'restaurant-card bg-white rounded-xl shadow-md overflow-hidden cursor-pointer';
@@ -1184,7 +1199,9 @@ function renderRestaurantCard(restaurant) {
   return container;
 }
 
-// ====== RENDER CATEGORY PAGE ======
+// ============================================================
+// RENDER CATEGORY PAGE
+// ============================================================
 function renderCategoryPage() {
   const container = document.createElement('div');
   container.className = 'px-4 my-8';
@@ -1264,7 +1281,9 @@ function renderCategoryPage() {
   return container;
 }
 
-// ====== RENDER ACCOUNT DRAWER ======
+// ============================================================
+// RENDER ACCOUNT DRAWER
+// ============================================================
 function renderAccountDrawer() {
   if (!state.showAccountDrawer) return null;
   const container = document.createElement('div');
@@ -1338,7 +1357,9 @@ function renderAccountDrawer() {
   return container;
 }
 
-// ====== RENDER ORDER SUMMARY ======
+// ============================================================
+// RENDER ORDER SUMMARY
+// ============================================================
 function renderOrderSummary() {
   if (!state.showOrderSummary) return null;
 
@@ -1528,7 +1549,9 @@ function renderOrderSummary() {
   return container;
 }
 
-// ====== RENDER HERO ======
+// ============================================================
+// RENDER HERO
+// ============================================================
 function renderHero() {
   const container = document.createElement('div');
   container.className = 'bg-gradient-to-r from-blue-600 to-primary rounded-2xl mx-4 my-4 p-8 text-white';
@@ -1615,7 +1638,9 @@ function renderCategoriesSection() {
   return container;
 }
 
-// ====== RENDER OFFERS SECTION ======
+// ============================================================
+// RENDER OFFERS SECTION
+// ============================================================
 function renderOffersSection() {
   const container = document.createElement('div');
   container.className = 'px-4 my-8';
