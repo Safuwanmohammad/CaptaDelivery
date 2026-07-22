@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Variants API</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+        pre { background: #f0f0f0; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        button { padding: 10px 20px; background: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .product-card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .variant { background: #e8f4f8; padding: 8px; margin: 5px 0; border-radius: 4px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Variants API</h1>
+        <button onclick="testAPI()">🔍 Fetch Products & Check Variants</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        async function testAPI() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Loading...</p>';
+
+            try {
+                const response = await fetch('/api/products');
+                const data = await response.json();
+
+                let html = `<h2>✅ Found ${data.length} products</h2>`;
+
+                data.forEach((product, index) => {
+                    html += `<div class="product-card">
+                        <h3>${index + 1}. ${product.name}</h3>
+                        <p><strong>Price:</strong> ₹${product.price}</p>
+                        <p><strong>Category:</strong> ${product.category}</p>
+                        <p><strong>Variants:</strong> ${product.variants ? product.variants.length : 0}</p>
+                        <div><strong>Raw variants data:</strong> 
+                            <pre>${JSON.stringify(product.variants, null, 2)}</pre>
+                        </div>`;
+
+                    if (product.variants && product.variants.length > 0) {
+                        html += `<div><strong>Variants:</strong>`;
+                        product.variants.forEach(v => {
+                            html += `<div class="variant">
+                                📌 ${v.label} - ₹${v.price} ${v.description ? `(${v.description})` : ''}
+                            </div>`;
+                        });
+                        html += `</div>`;
+                    } else {
+                        html += `<p class="error">❌ No variants found for this product</p>`;
+                    }
+
+                    html += `</div>`;
+                });
+
+                results.innerHTML = html;
+            } catch (error) {
+                results.innerHTML = `<p class="error">❌ Error: ${error.message}</p>`;
+                console.error('Error:', error);
+            }
+        }
+
+        // Auto-run on load
+        testAPI();
+    </script>
+</body>
+</html>

@@ -4,6 +4,32 @@
 const API_BASE = window.location.origin + '/api';
 
 // ============================================================
+// DEBUG: Override fetch to log API responses
+// ============================================================
+const originalFetch = window.fetch;
+window.fetch = function(...args) {
+  console.log('📡 Fetching:', args[0]);
+  return originalFetch.apply(this, args)
+    .then(response => {
+      const clonedResponse = response.clone();
+      clonedResponse.json().then(data => {
+        if (args[0].includes('/api/products')) {
+          console.log('📦 Products API Response:');
+          if (Array.isArray(data)) {
+            data.forEach(p => {
+              console.log(`  ${p.name}:`, p.variants);
+            });
+          } else {
+            console.log('  Product:', data);
+            console.log('  Variants:', data.variants);
+          }
+        }
+      }).catch(() => {});
+      return response;
+    });
+};
+
+// ============================================================
 // GLOBAL STATE
 // ============================================================
 let categories = [];
@@ -839,7 +865,9 @@ function openModal(html) {
 function renderProductCard(product, onAdd) {
   // Debug logging
   console.log('🔍 Rendering product:', product.name);
-  console.log('  Variants:', product.variants);
+  console.log('  Variants raw:', product.variants);
+  console.log('  Variants type:', typeof product.variants);
+  console.log('  Is array:', Array.isArray(product.variants));
   
   const container = document.createElement('div');
   container.className = 'product-card bg-white rounded-xl shadow-md overflow-hidden';
@@ -847,28 +875,43 @@ function renderProductCard(product, onAdd) {
   let selectedVariant = null;
   let isExpanded = false;
 
-  // Check if product has variants - FIXED
+  // ===== FIX: Check if product has variants =====
   let hasVariants = false;
   let variantsArray = [];
   
   try {
-    if (product.variants) {
-      if (Array.isArray(product.variants) && product.variants.length > 0) {
+    // Case 1: Already an array
+    if (Array.isArray(product.variants) && product.variants.length > 0) {
+      hasVariants = true;
+      variantsArray = product.variants;
+      console.log(`✅ ${product.name} has ${variantsArray.length} variants (array)`);
+    }
+    // Case 2: String that needs parsing
+    else if (typeof product.variants === 'string') {
+      const parsed = JSON.parse(product.variants);
+      if (Array.isArray(parsed) && parsed.length > 0) {
         hasVariants = true;
-        variantsArray = product.variants;
-        console.log(`✅ ${product.name} has ${variantsArray.length} variants`);
-      } else if (typeof product.variants === 'string') {
-        const parsed = JSON.parse(product.variants);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          hasVariants = true;
-          variantsArray = parsed;
-          product.variants = parsed;
-          console.log(`✅ ${product.name} has ${variantsArray.length} variants (parsed from string)`);
-        }
+        variantsArray = parsed;
+        product.variants = parsed;
+        console.log(`✅ ${product.name} has ${variantsArray.length} variants (parsed from string)`);
+      }
+    }
+    // Case 3: Object that needs conversion
+    else if (product.variants && typeof product.variants === 'object') {
+      const values = Object.values(product.variants);
+      if (Array.isArray(values) && values.length > 0) {
+        hasVariants = true;
+        variantsArray = values;
+        product.variants = values;
+        console.log(`✅ ${product.name} has ${variantsArray.length} variants (converted from object)`);
       }
     }
   } catch (e) {
     console.warn(`⚠️ Error checking variants for ${product.name}:`, e);
+  }
+
+  if (!hasVariants && product.variants) {
+    console.log(`⚠️ ${product.name} has variants but couldn't parse:`, product.variants);
   }
 
   // ---- MAIN VIEW ----
@@ -916,6 +959,9 @@ function renderProductCard(product, onAdd) {
     variantBadge.className = 'mt-1 text-xs text-primary font-bold bg-primary/10 px-2 py-1 rounded-full inline-block';
     variantBadge.textContent = `🎯 ${variantsArray.length} variants available`;
     body.appendChild(variantBadge);
+    console.log(`✅ Added variant badge to ${product.name}`);
+  } else {
+    console.log(`❌ No variants for ${product.name}, skipping badge`);
   }
 
   // Rating
@@ -936,6 +982,8 @@ function renderProductCard(product, onAdd) {
 
   // ---- EXPANDED VARIANTS VIEW ----
   if (hasVariants && variantsArray.length > 0) {
+    console.log(`🔄 Building expanded view for ${product.name} with ${variantsArray.length} variants`);
+    
     const expandedView = document.createElement('div');
     expandedView.className = 'variants-expand hidden border-t border-gray-200 bg-gray-50 p-3';
     expandedView.id = `variants-${product.id}`;
@@ -946,6 +994,8 @@ function renderProductCard(product, onAdd) {
     expandedView.appendChild(variantTitle);
 
     variantsArray.forEach((variant, index) => {
+      console.log(`  Building variant option ${index}:`, variant);
+      
       const variantOption = document.createElement('div');
       variantOption.className = `variant-option flex items-center justify-between p-3 rounded-lg mb-2 cursor-pointer transition-all duration-200 ${
         index === 0 ? 'bg-primary/10 border-2 border-primary' : 'bg-white hover:bg-gray-100 border-2 border-transparent'
@@ -957,7 +1007,7 @@ function renderProductCard(product, onAdd) {
       
       const labelSpan = document.createElement('span');
       labelSpan.className = 'text-sm font-medium text-gray-800';
-      labelSpan.textContent = variant.label;
+      labelSpan.textContent = variant.label || 'Variant';
       variantInfo.appendChild(labelSpan);
       
       if (variant.description) {
@@ -971,7 +1021,7 @@ function renderProductCard(product, onAdd) {
       
       const priceSpan2 = document.createElement('span');
       priceSpan2.className = 'text-primary font-bold text-sm';
-      priceSpan2.textContent = `₹${variant.price}`;
+      priceSpan2.textContent = `₹${variant.price || 0}`;
       variantOption.appendChild(priceSpan2);
       
       variantOption.addEventListener('click', function(e) {

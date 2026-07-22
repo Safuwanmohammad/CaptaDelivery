@@ -29,10 +29,13 @@ exports.getAllProducts = async (req, res) => {
     const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
     const products = result.rows.map(row => parseProduct(row));
     
-    // Debug log
+    // Debug log - shows variants in terminal
     console.log(`✅ Returning ${products.length} products`);
     products.forEach(p => {
       console.log(`  - ${p.name}: ${p.variants ? p.variants.length : 0} variants`);
+      if (p.variants && p.variants.length > 0) {
+        console.log(`    Variants:`, JSON.stringify(p.variants));
+      }
     });
     
     res.json(products);
@@ -154,7 +157,7 @@ exports.updateProduct = async (req, res) => {
       }
     }
     
-    console.log(`✅ Updating product with ${variantsArray.length} variants`);
+    console.log(`✅ Updating product with ${variantsArray.length} variants:`, variantsArray);
     
     const result = await pool.query(
       `UPDATE products SET 
