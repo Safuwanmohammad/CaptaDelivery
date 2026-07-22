@@ -6,12 +6,15 @@ const pool = require('./db');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ===== AUTO MIGRATION: FIX DATABASE SCHEMA =====
+// ============================================================
+// AUTO MIGRATION: FIX DATABASE SCHEMA
+// This runs automatically when the server starts
+// ============================================================
 async function fixDatabaseSchema() {
   try {
     console.log('🔍 Checking database schema...');
     
-    // Step 1: Add variants column if it doesn't exist
+    // ===== STEP 1: Add variants column if it doesn't exist =====
     const checkVariants = await pool.query(`
       SELECT column_name 
       FROM information_schema.columns 
@@ -24,73 +27,90 @@ async function fixDatabaseSchema() {
         ALTER TABLE products 
         ADD COLUMN variants jsonb DEFAULT '[]'::jsonb
       `);
-      console.log('✅ Variants column added!');
+      console.log('✅ Variants column added successfully!');
     } else {
       console.log('✅ Variants column already exists');
     }
     
-    // Step 2: Check if images column is text[] and convert if needed
+    // ===== STEP 2: Convert images column from text[] to jsonb =====
     const checkImages = await pool.query(`
       SELECT data_type 
       FROM information_schema.columns 
       WHERE table_name = 'products' AND column_name = 'images'
     `);
     
-    if (checkImages.rows.length > 0 && checkImages.rows[0].data_type === 'text[]') {
-      console.log('🔄 Converting images column from text[] to jsonb...');
+    if (checkImages.rows.length > 0) {
+      const currentType = checkImages.rows[0].data_type;
+      console.log(`📊 Current images column type: ${currentType}`);
       
-      // Add a temporary jsonb column
+      if (currentType === 'text[]' || currentType === 'text') {
+        console.log('🔄 Converting images column from text[] to jsonb...');
+        
+        // Add a temporary column
+        await pool.query(`
+          ALTER TABLE products 
+          ADD COLUMN IF NOT EXISTS images_new jsonb DEFAULT '[]'::jsonb
+        `);
+        console.log('✅ Created temporary images_new column');
+        
+        // Copy data - handle different formats
+        await pool.query(`
+          UPDATE products 
+          SET images_new = 
+            CASE 
+              WHEN images IS NULL OR images = '{}' OR images = '[]' THEN '[]'::jsonb
+              WHEN jsonb_typeof(images::jsonb) = 'array' THEN images::jsonb
+              ELSE jsonb_build_array(images::text)
+            END
+          WHERE images IS NOT NULL
+        `);
+        console.log('✅ Data copied to images_new');
+        
+        // Drop old column
+        await pool.query(`
+          ALTER TABLE products 
+          DROP COLUMN IF EXISTS images
+        `);
+        console.log('✅ Dropped old images column');
+        
+        // Rename new column
+        await pool.query(`
+          ALTER TABLE products 
+          RENAME COLUMN images_new TO images
+        `);
+        console.log('✅ Renamed images_new to images');
+        
+        // Set default
+        await pool.query(`
+          ALTER TABLE products 
+          ALTER COLUMN images SET DEFAULT '[]'::jsonb
+        `);
+        console.log('✅ Set default value for images');
+        
+        console.log('✅ Images column converted to jsonb successfully!');
+      } else {
+        console.log(`✅ images column already has correct type: ${currentType}`);
+      }
+    } else {
+      console.log('⚠️ images column not found, adding it...');
       await pool.query(`
         ALTER TABLE products 
-        ADD COLUMN IF NOT EXISTS images_new jsonb DEFAULT '[]'::jsonb
+        ADD COLUMN images jsonb DEFAULT '[]'::jsonb
       `);
-      
-      // Copy data from old column to new column, handling the conversion
-      await pool.query(`
-        UPDATE products 
-        SET images_new = COALESCE(
-          CASE 
-            WHEN images IS NULL OR images = '{}' THEN '[]'::jsonb
-            ELSE images::jsonb
-          END,
-          '[]'::jsonb
-        )
-        WHERE images IS NOT NULL AND images != '{}'
-      `);
-      console.log('✅ Data copied to images_new');
-      
-      // Drop the old column
-      await pool.query(`
-        ALTER TABLE products 
-        DROP COLUMN IF EXISTS images
-      `);
-      console.log('✅ Dropped old images column');
-      
-      // Rename the new column
-      await pool.query(`
-        ALTER TABLE products 
-        RENAME COLUMN images_new TO images
-      `);
-      console.log('✅ Renamed images_new to images');
-      
-      // Set default value
-      await pool.query(`
-        ALTER TABLE products 
-        ALTER COLUMN images SET DEFAULT '[]'::jsonb
-      `);
-      console.log('✅ Set default value for images');
-    } else if (checkImages.rows.length > 0) {
-      console.log(`✅ images column already is ${checkImages.rows[0].data_type}`);
+      console.log('✅ images column added');
     }
     
-    console.log('✅ Database schema check complete!');
+    console.log('✅ Database schema is now correct!');
   } catch (err) {
     console.error('❌ Error fixing database schema:', err.message);
-    // Don't exit, just log the error
+    console.error('Stack:', err.stack);
+    // Don't exit - let the server continue
   }
 }
 
-// ===== MIDDLEWARE =====
+// ============================================================
+// MIDDLEWARE
+// ============================================================
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -104,7 +124,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// ===== HEALTH CHECK =====
+// ============================================================
+// HEALTH CHECK
+// ============================================================
 app.get('/health', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
@@ -123,7 +145,29 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// ===== API ROUTES =====
+// ============================================================
+// MIGRATION API ENDPOINT (for manual trigger if needed)
+// ============================================================
+app.post('/api/migration/run', async (req, res) => {
+  try {
+    console.log('🔄 Running manual migration via API...');
+    await fixDatabaseSchema();
+    res.json({ 
+      success: true, 
+      message: '✅ Database migration completed successfully!' 
+    });
+  } catch (err) {
+    console.error('❌ Migration API error:', err.message);
+    res.status(500).json({ 
+      success: false, 
+      error: err.message 
+    });
+  }
+});
+
+// ============================================================
+// API ROUTES
+// ============================================================
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/restaurants', require('./routes/restaurants'));
 app.use('/api/products', require('./routes/products'));
@@ -136,19 +180,25 @@ app.use('/api/settings', require('./routes/settings'));
 app.use('/api/whatsapp', require('./routes/whatsapp'));
 app.use('/api/reports', require('./routes/reports'));
 
-// ===== SERVE STATIC FRONTEND =====
+// ============================================================
+// SERVE STATIC FRONTEND
+// ============================================================
 const frontendPath = path.join(__dirname, '../frontend');
 console.log(`📁 Serving frontend from: ${frontendPath}`);
 app.use(express.static(frontendPath));
 
-// ===== FALLBACK =====
+// ============================================================
+// FALLBACK
+// ============================================================
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
     res.sendFile(path.join(frontendPath, 'index.html'));
   }
 });
 
-// ===== ERROR HANDLING =====
+// ============================================================
+// ERROR HANDLING
+// ============================================================
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err.message);
   console.error('Stack:', err.stack);
@@ -159,7 +209,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ===== START SERVER =====
+// ============================================================
+// START SERVER
+// ============================================================
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server is running on port ${PORT}`);
   console.log(`📁 Serving frontend from: ${frontendPath}`);
@@ -167,13 +219,16 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📊 Admin panel: http://localhost:${PORT}/admin.html`);
 });
 
-// Run database schema fix after connection is established
+// ============================================================
+// RUN DATABASE MIGRATION ON STARTUP
+// ============================================================
+// Wait for database connection, then run migration
 pool.query('SELECT NOW()', async (err, result) => {
   if (err) {
     console.error('❌ Database connection error:', err.message);
   } else {
     console.log('✅ Connected to PostgreSQL at', result.rows[0].now);
-    // Run schema fix
+    // Run the migration
     await fixDatabaseSchema();
   }
 });
