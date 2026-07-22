@@ -46,7 +46,7 @@ const seed = async () => {
         restaurant_id INTEGER REFERENCES restaurants(id) ON DELETE SET NULL,
         commission NUMERIC(5,2) DEFAULT 0,
         status TEXT DEFAULT 'Active',
-        images JSONB DEFAULT '[]'::jsonb,  -- Changed from TEXT[] to JSONB
+        images JSONB DEFAULT '[]'::jsonb,
         variants JSONB DEFAULT '[]'::jsonb,
         created_at TIMESTAMP DEFAULT NOW()
       );
