@@ -66,6 +66,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/whatsapp', require('./routes/whatsapp'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/migration', require('./migration-api'));
 
 // ===== SERVE STATIC FRONTEND =====
 const frontendPath = path.join(__dirname, '../frontend');
