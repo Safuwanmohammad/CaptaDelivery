@@ -42,7 +42,7 @@ exports.createProduct = async (req, res) => {
     
     const result = await pool.query(
       `INSERT INTO products (name, category, restaurant_id, price, commission, status, images, variants)
-       VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
       [
         name, 
         category, 
@@ -77,8 +77,8 @@ exports.updateProduct = async (req, res) => {
         price = $4, 
         commission = $5, 
         status = $6, 
-        images = $7::jsonb, 
-        variants = $8::jsonb
+        images = $7, 
+        variants = $8
        WHERE id = $9 
        RETURNING *`,
       [

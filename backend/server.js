@@ -3,15 +3,14 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const pool = require('./db');
-const { exec } = require('child_process');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ===== RUN MIGRATION ON STARTUP =====
-// This will run once when the server starts
 // Set RUN_MIGRATION=true in environment variables to enable
 if (process.env.RUN_MIGRATION === 'true') {
   console.log('🔄 Running database migration...');
+  const { exec } = require('child_process');
   exec('node migrate-db.js', (error, stdout, stderr) => {
     if (error) {
       console.error(`❌ Migration error: ${error}`);
@@ -97,7 +96,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📁 Serving frontend from: ${frontendPath}`);
   console.log(`🔗 Visit: http://localhost:${PORT}`);
   console.log(`📊 Admin panel: http://localhost:${PORT}/admin.html`);
-  console.log(`🔧 Migration status: ${process.env.RUN_MIGRATION === 'true' ? 'Enabled' : 'Disabled (set RUN_MIGRATION=true to enable)'}`);
+  console.log(`🔧 Migration status: ${process.env.RUN_MIGRATION === 'true' ? 'Enabled' : 'Disabled'}`);
 });
 
 module.exports = app;

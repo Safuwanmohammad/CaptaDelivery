@@ -4,28 +4,28 @@ async function migrateDatabase() {
   try {
     console.log('🔄 Starting database migration...');
     
-    // Check if images column exists and its type
-    const checkResult = await pool.query(`
+    // Check if images column exists
+    const checkImages = await pool.query(`
       SELECT column_name, data_type 
       FROM information_schema.columns 
       WHERE table_name = 'products' AND column_name = 'images'
     `);
     
-    if (checkResult.rows.length > 0) {
-      console.log(`Current images column type: ${checkResult.rows[0].data_type}`);
+    if (checkImages.rows.length > 0) {
+      console.log(`Current images column type: ${checkImages.rows[0].data_type}`);
       
       // If it's text[] or text, convert to jsonb
-      if (checkResult.rows[0].data_type === 'text[]' || checkResult.rows[0].data_type === 'text') {
+      if (checkImages.rows[0].data_type === 'text[]' || checkImages.rows[0].data_type === 'text') {
         console.log('🔄 Converting images column from text[] to jsonb...');
         
-        // First, add a temporary jsonb column
+        // Add a temporary jsonb column
         await pool.query(`
           ALTER TABLE products 
           ADD COLUMN IF NOT EXISTS images_new jsonb DEFAULT '[]'::jsonb
         `);
         console.log('✅ Created temporary images_new column');
         
-        // Copy data from old column to new column, handling the conversion
+        // Copy data from old column to new column
         await pool.query(`
           UPDATE products 
           SET images_new = COALESCE(
@@ -47,7 +47,7 @@ async function migrateDatabase() {
         `);
         console.log('✅ Dropped old images column');
         
-        // Rename the new column to images
+        // Rename the new column
         await pool.query(`
           ALTER TABLE products 
           RENAME COLUMN images_new TO images
@@ -63,7 +63,7 @@ async function migrateDatabase() {
       }
     }
     
-    // Now handle the variants column similarly
+    // Handle variants column similarly
     const checkVariants = await pool.query(`
       SELECT column_name, data_type 
       FROM information_schema.columns 

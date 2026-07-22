@@ -6,10 +6,65 @@ const pool = require('./db');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// ===== RUN MIGRATIONS ON STARTUP =====
+// Set RUN_MIGRATION=true in environment variables to enable
+if (process.env.RUN_MIGRATION === 'true') {
+  console.log('🔄 Running database migrations...');
+  const { exec } = require('child_process');
+  
+  // Run migrations in sequence
+  const runMigrations = async () => {
+    try {
+      // First, add variants column if missing
+      await new Promise((resolve, reject) => {
+        exec('node add-variants-column.js', (error, stdout, stderr) => {
+          if (error) {
+            console.error(`❌ Add variants error: ${error}`);
+            console.error(`stderr: ${stderr}`);
+            reject(error);
+            return;
+          }
+          console.log(`✅ Add variants output: ${stdout}`);
+          resolve();
+        });
+      });
+      
+      // Then run the main migration
+      await new Promise((resolve, reject) => {
+        exec('node migrate-db.js', (error, stdout, stderr) => {
+          if (error) {
+            console.error(`❌ Migration error: ${error}`);
+            console.error(`stderr: ${stderr}`);
+            reject(error);
+            return;
+          }
+          console.log(`✅ Migration output: ${stdout}`);
+          resolve();
+        });
+      });
+      
+      console.log('✅ All migrations completed successfully!');
+    } catch (err) {
+      console.error('❌ Migration failed:', err);
+    }
+  };
+  
+  runMigrations();
+}
+
+// ===== MIDDLEWARE =====
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// ===== DEBUG: Log all requests =====
+app.use((req, res, next) => {
+  console.log(`📡 ${req.method} ${req.url}`);
+  if (req.method === 'PUT' || req.method === 'POST') {
+    console.log('  Body:', JSON.stringify(req.body, null, 2));
+  }
+  next();
+});
 
 // ===== HEALTH CHECK =====
 app.get('/health', async (req, res) => {
@@ -48,10 +103,8 @@ const frontendPath = path.join(__dirname, '../frontend');
 console.log(`📁 Serving frontend from: ${frontendPath}`);
 app.use(express.static(frontendPath));
 
-// ===== FIX: Use '*' with proper Express 5 syntax =====
-// For Express 5, use app.get('*') with a simple handler
+// ===== FALLBACK =====
 app.get('*', (req, res) => {
-  // Only serve index.html for non-API routes
   if (!req.path.startsWith('/api')) {
     res.sendFile(path.join(frontendPath, 'index.html'));
   }
@@ -63,7 +116,8 @@ app.use((err, req, res, next) => {
   console.error('Stack:', err.stack);
   res.status(500).json({
     error: 'Something went wrong!',
-    message: err.message
+    message: err.message,
+    stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
   });
 });
 
@@ -73,6 +127,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📁 Serving frontend from: ${frontendPath}`);
   console.log(`🔗 Visit: http://localhost:${PORT}`);
   console.log(`📊 Admin panel: http://localhost:${PORT}/admin.html`);
+  console.log(`🔧 Migration status: ${process.env.RUN_MIGRATION === 'true' ? 'Enabled' : 'Disabled'}`);
 });
 
 module.exports = app;
