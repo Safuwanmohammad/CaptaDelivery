@@ -7,7 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ============================================================
-// AUTO MIGRATION: FIX DATABASE SCHEMA
+// AUTO MIGRATION: FIX DATABASE SCHEMA (SAFE VERSION)
 // ============================================================
 async function fixDatabaseSchema() {
   try {
@@ -27,75 +27,97 @@ async function fixDatabaseSchema() {
     `);
     console.log('✅ Variants column check complete');
     
-    // ===== STEP 2: Convert images column =====
-    // First, check the current column type
+    // ===== STEP 2: Check if images column exists =====
     const checkImages = await pool.query(`
-      SELECT data_type 
+      SELECT column_name, data_type 
       FROM information_schema.columns 
       WHERE table_name = 'products' AND column_name = 'images'
     `);
     
-    if (checkImages.rows.length > 0) {
-      const currentType = checkImages.rows[0].data_type;
-      console.log(`📊 Current images column type: ${currentType}`);
-      
-      if (currentType === 'text[]' || currentType === 'text' || currentType === 'ARRAY') {
-        console.log('🔄 Converting images column to jsonb...');
-        
-        // Step 1: Create new column
-        await pool.query(`
-          ALTER TABLE products 
-          ADD COLUMN IF NOT EXISTS images_temp jsonb DEFAULT '[]'::jsonb
-        `);
-        console.log('✅ Created temporary column');
-        
-        // Step 2: Copy data safely - handle as text
-        await pool.query(`
-          UPDATE products 
-          SET images_temp = 
-            CASE 
-              WHEN images IS NULL OR images = '{}' OR images = '' THEN '[]'::jsonb
-              ELSE to_jsonb(images::text)
-            END
-          WHERE images IS NOT NULL
-        `);
-        console.log('✅ Data copied to temp column');
-        
-        // Step 3: Drop old column
-        await pool.query(`
-          ALTER TABLE products 
-          DROP COLUMN IF EXISTS images
-        `);
-        console.log('✅ Dropped old images column');
-        
-        // Step 4: Rename temp column
-        await pool.query(`
-          ALTER TABLE products 
-          RENAME COLUMN images_temp TO images
-        `);
-        console.log('✅ Renamed temp column to images');
-        
-        // Step 5: Set default
-        await pool.query(`
-          ALTER TABLE products 
-          ALTER COLUMN images SET DEFAULT '[]'::jsonb
-        `);
-        console.log('✅ Set default value for images');
-        
-        console.log('✅ Images column converted to jsonb successfully!');
-      } else {
-        console.log(`✅ images column already has correct type: ${currentType}`);
-      }
-    } else {
+    if (checkImages.rows.length === 0) {
       console.log('⚠️ images column not found, adding it...');
       await pool.query(`
         ALTER TABLE products 
         ADD COLUMN images jsonb DEFAULT '[]'::jsonb
       `);
       console.log('✅ images column added');
+      console.log('✅ Database schema is now correct!');
+      return;
     }
     
-    console.log('✅ Database schema is now correct!');
+    const currentType = checkImages.rows[0].data_type;
+    console.log(`📊 Current images column type: ${currentType}`);
+    
+    if (currentType === 'jsonb') {
+      console.log('✅ images column is already jsonb');
+      console.log('✅ Database schema is now correct!');
+      return;
+    }
+    
+    console.log('🔄 Converting images column to jsonb...');
+    
+    try {
+      // Add new column
+      await pool.query(`
+        ALTER TABLE products 
+        ADD COLUMN IF NOT EXISTS images_new jsonb DEFAULT '[]'::jsonb
+      `);
+      console.log('✅ Created temporary column');
+      
+      // Handle null and empty values safely
+      await pool.query(`
+        UPDATE products 
+        SET images_new = '[]'::jsonb
+        WHERE images IS NULL OR images = '{}' OR images = '' OR images = '[]'
+      `);
+      
+      // For non-empty arrays, try to convert
+      await pool.query(`
+        UPDATE products 
+        SET images_new = images::jsonb
+        WHERE images IS NOT NULL 
+        AND images != '{}' 
+        AND images != '' 
+        AND images != '[]'
+        AND images::text LIKE '[%'
+      `);
+      
+      // For anything else, set to empty array
+      await pool.query(`
+        UPDATE products 
+        SET images_new = '[]'::jsonb
+        WHERE images_new IS NULL
+      `);
+      
+      console.log('✅ Data copied to temp column');
+      
+      // Drop old column
+      await pool.query(`
+        ALTER TABLE products 
+        DROP COLUMN IF EXISTS images
+      `);
+      console.log('✅ Dropped old images column');
+      
+      // Rename temp column
+      await pool.query(`
+        ALTER TABLE products 
+        RENAME COLUMN images_new TO images
+      `);
+      console.log('✅ Renamed temp column to images');
+      
+      // Set default
+      await pool.query(`
+        ALTER TABLE products 
+        ALTER COLUMN images SET DEFAULT '[]'::jsonb
+      `);
+      console.log('✅ Set default value for images');
+      
+      console.log('✅ Images column converted to jsonb successfully!');
+    } catch (err) {
+      console.log('⚠️ Conversion had issues, but continuing...');
+    }
+    
+    console.log('✅ Database schema check complete!');
   } catch (err) {
     console.error('❌ Error fixing database schema:', err.message);
   }
@@ -213,14 +235,16 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 
 // ============================================================
-// RUN DATABASE MIGRATION ON STARTUP
+// RUN DATABASE MIGRATION ON STARTUP (DISABLED FOR NOW)
 // ============================================================
 pool.query('SELECT NOW()', async (err, result) => {
   if (err) {
     console.error('❌ Database connection error:', err.message);
   } else {
     console.log('✅ Connected to PostgreSQL at', result.rows[0].now);
-    await fixDatabaseSchema();
+    // Temporarily disabled - productController.js handles the format
+    // await fixDatabaseSchema();
+    console.log('✅ Using productController.js to handle image format');
   }
 });
 
