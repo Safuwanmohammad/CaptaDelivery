@@ -36,8 +36,28 @@ exports.getProductById = async (req, res) => {
 exports.createProduct = async (req, res) => {
   const { name, category, restaurantId, price, commission, status, images, variants } = req.body;
   try {
-    // Ensure images and variants are arrays
-    const imagesArray = Array.isArray(images) ? images : [];
+    // Handle images - convert to PostgreSQL array format if it's a JSON array
+    let imagesArray = images || [];
+    // If images is a string, try to parse it
+    if (typeof imagesArray === 'string') {
+      try {
+        imagesArray = JSON.parse(imagesArray);
+      } catch (e) {
+        imagesArray = [imagesArray];
+      }
+    }
+    // Ensure it's an array
+    if (!Array.isArray(imagesArray)) {
+      imagesArray = [imagesArray];
+    }
+    
+    // Convert to PostgreSQL array format
+    // PostgreSQL text[] format: {"url1","url2"}
+    const imagesText = imagesArray.length > 0 
+      ? `{${imagesArray.map(img => `"${img.replace(/"/g, '\\"')}"`).join(',')}}`
+      : '{}';
+    
+    // Handle variants - store as JSONB
     const variantsArray = Array.isArray(variants) ? variants : [];
     
     const result = await pool.query(
@@ -50,7 +70,7 @@ exports.createProduct = async (req, res) => {
         price, 
         commission, 
         status, 
-        JSON.stringify(imagesArray), 
+        imagesText, 
         JSON.stringify(variantsArray)
       ]
     );
@@ -65,8 +85,25 @@ exports.updateProduct = async (req, res) => {
   const { id } = req.params;
   const { name, category, restaurantId, price, commission, status, images, variants } = req.body;
   try {
-    // Ensure images and variants are arrays
-    const imagesArray = Array.isArray(images) ? images : [];
+    // Handle images - convert to PostgreSQL array format
+    let imagesArray = images || [];
+    if (typeof imagesArray === 'string') {
+      try {
+        imagesArray = JSON.parse(imagesArray);
+      } catch (e) {
+        imagesArray = [imagesArray];
+      }
+    }
+    if (!Array.isArray(imagesArray)) {
+      imagesArray = [imagesArray];
+    }
+    
+    // Convert to PostgreSQL array format: {"url1","url2"}
+    const imagesText = imagesArray.length > 0 
+      ? `{${imagesArray.map(img => `"${img.replace(/"/g, '\\"')}"`).join(',')}}`
+      : '{}';
+    
+    // Handle variants - store as JSONB string
     const variantsArray = Array.isArray(variants) ? variants : [];
     
     const result = await pool.query(
@@ -88,7 +125,7 @@ exports.updateProduct = async (req, res) => {
         price, 
         commission, 
         status, 
-        JSON.stringify(imagesArray), 
+        imagesText, 
         JSON.stringify(variantsArray), 
         id
       ]
