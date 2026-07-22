@@ -655,7 +655,10 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || errorData.error || `HTTP ${res.status}`);
+    }
     return await res.json();
   }
   async function putData(endpoint, data) {
@@ -664,7 +667,10 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || errorData.error || `HTTP ${res.status}`);
+    }
     return await res.json();
   }
   async function deleteData(endpoint) {
@@ -840,7 +846,7 @@
       settings.unavailable_days = setts.unavailable_days || '["Monday"]';
       settings.service_unavailable = setts.service_unavailable || 'false';
       
-      console.log('✅ Loaded products:', products);
+      console.log('✅ Loaded products:', products.length);
       products.forEach(p => {
         console.log(`  Product: ${p.name}, Variants:`, p.variants);
       });
@@ -1870,11 +1876,9 @@
         const response = await putData(`products/${id}`, updateData);
         console.log('✅ Product updated:', response);
         
-        // IMPORTANT: Force refresh products from server
         products = await fetchData('products');
         console.log('🔄 Refreshed products list:', products);
         
-        // Find the updated product to verify variants
         const updatedProduct = products.find(p => p.id === id);
         console.log('📦 Updated product variants:', updatedProduct ? updatedProduct.variants : 'Not found');
         
@@ -1913,39 +1917,995 @@
   }
 
   // ============================================================
-  // PLACES, CUSTOMERS, ORDERS, EARNINGS, OFFERS, NOTIFICATIONS, WHATSAPP, SETTINGS, REPORTS
+  // PLACES
   // ============================================================
-  // [All other functions remain the same as before]
-  // For brevity, I'm including placeholders. You can copy these from your existing admin.html
   function renderPlaces(el) {
-    el.innerHTML = `<p class="text-gray-500">Places management...</p>`;
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Delivery Places</h3>
+        <button onclick="openAddPlace()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Place</button>
+      </div>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>Area</th><th>Sub Area</th><th>Delivery Charge</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${(places || []).map(p => `
+              <tr>
+                <td>${p.area}</td>
+                <td>${p.sub_area}</td>
+                <td>₹${p.charge}</td>
+                <td>
+                  <div class="table-actions">
+                    <button class="btn btn-sm btn-primary" onclick="editPlace(${p.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="deletePlace(${p.id})"><i class="fas fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
   }
+
+  function openAddPlace() {
+    openModal(`
+      <h2>Add Delivery Place</h2>
+      <form id="placeForm">
+        <div class="form-group"><label>Area *</label><input id="placeArea" required placeholder="e.g. Downtown" /></div>
+        <div class="form-group"><label>Sub Area *</label><input id="placeSubArea" required placeholder="e.g. Main Street" /></div>
+        <div class="form-group"><label>Delivery Charge (₹) *</label><input id="placeCharge" type="number" step="0.01" required placeholder="30" /></div>
+        <button type="submit" class="btn btn-primary btn-block">Save</button>
+      </form>
+    `);
+    document.getElementById('placeForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const area = document.getElementById('placeArea').value.trim();
+      const subArea = document.getElementById('placeSubArea').value.trim();
+      const charge = parseFloat(document.getElementById('placeCharge').value);
+      if (!area || !subArea || isNaN(charge)) { showToast('All fields required'); return; }
+      try {
+        await postData('places', { area, subArea, charge, min_order: 0, time: '20-30 min', status: 'Active' });
+        places = await fetchData('places');
+        closeModal();
+        showToast('Place added!');
+        renderPlaces(document.getElementById('pageContent'));
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function editPlace(id) {
+    const p = (places || []).find(x => x.id === id);
+    if (!p) return;
+    openModal(`
+      <h2>Edit Place</h2>
+      <form id="placeForm">
+        <div class="form-group"><label>Area *</label><input id="placeArea" value="${p.area}" required /></div>
+        <div class="form-group"><label>Sub Area *</label><input id="placeSubArea" value="${p.sub_area}" required /></div>
+        <div class="form-group"><label>Delivery Charge (₹) *</label><input id="placeCharge" type="number" step="0.01" value="${p.charge}" required /></div>
+        <button type="submit" class="btn btn-primary btn-block">Update</button>
+      </form>
+    `);
+    document.getElementById('placeForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const area = document.getElementById('placeArea').value.trim();
+      const subArea = document.getElementById('placeSubArea').value.trim();
+      const charge = parseFloat(document.getElementById('placeCharge').value);
+      if (!area || !subArea || isNaN(charge)) { showToast('All fields required'); return; }
+      try {
+        await putData(`places/${id}`, { area, subArea, charge, min_order: p.min_order, time: p.time, status: p.status });
+        places = await fetchData('places');
+        closeModal();
+        showToast('Place updated!');
+        renderPlaces(document.getElementById('pageContent'));
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function deletePlace(id) {
+    if (!confirm('Delete this place?')) return;
+    deleteData(`places/${id}`).then(() => fetchData('places')).then(data => {
+      places = data;
+      showToast('Place deleted');
+      renderPlaces(document.getElementById('pageContent'));
+    }).catch(err => showToast('Error: ' + err.message));
+  }
+
+  // ============================================================
+  // CUSTOMERS
+  // ============================================================
   function renderCustomers(el) {
-    el.innerHTML = `<p class="text-gray-500">Customers management...</p>`;
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Customers</h3>
+        <span class="text-sm text-gray-500">Total: ${(customers || []).length}</span>
+      </div>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Phone</th><th>Orders</th><th>Blocked</th><th>Toggle</th></tr></thead>
+          <tbody>
+            ${(customers || []).map(c => `
+              <tr>
+                <td>${c.first_name || ''} ${c.last_name || ''}</td>
+                <td>${c.phone}</td>
+                <td>${c.total_orders || 0}</td>
+                <td><span class="badge ${c.blocked ? 'badge-danger' : 'badge-success'}">${c.blocked ? 'Blocked' : 'Active'}</span></td>
+                <td>
+                  <button class="btn btn-sm ${c.blocked ? 'btn-success' : 'btn-danger'}" onclick="toggleBlockCustomer(${c.id}, ${!c.blocked})">
+                    ${c.blocked ? 'Unblock' : 'Block'}
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
   }
+
+  async function toggleBlockCustomer(id, block) {
+    try {
+      await putData(`customers/${id}/block`, { blocked: block });
+      customers = await fetchData('customers');
+      showToast(`Customer ${block ? 'blocked' : 'unblocked'}`);
+      renderCustomers(document.getElementById('pageContent'));
+    } catch (err) { showToast('Error: ' + err.message); }
+  }
+
+  // ============================================================
+  // ORDERS
+  // ============================================================
   function renderOrders(el) {
-    el.innerHTML = `<p class="text-gray-500">Orders management...</p>`;
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Orders</h3>
+        <span class="text-sm text-gray-500">Total: ${(orders || []).length}</span>
+      </div>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Customer</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            ${(orders || []).map(o => `
+              <tr>
+                <td>${o.order_id || '#' + o.id}</td>
+                <td>${o.customer_id ? (customers.find(c => c.id === o.customer_id)?.first_name || 'N/A') : 'N/A'}</td>
+                <td>₹${o.grand_total || 0}</td>
+                <td><span class="badge ${o.status === 'Delivered' ? 'badge-success' : o.status === 'Cancelled' ? 'badge-danger' : 'badge-warning'}">${o.status || 'Pending'}</span></td>
+                <td>
+                  <button class="btn btn-sm btn-primary" onclick="viewOrder(${o.id})"><i class="fas fa-eye"></i></button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
   }
+
+  function viewOrder(id) {
+    const order = (orders || []).find(o => o.id === id);
+    if (!order) { showToast('Order not found'); return; }
+    const customer = customers.find(c => c.id === order.customer_id);
+    openModal(`
+      <h2>Order ${order.order_id || '#' + order.id}</h2>
+      <div class="space-y-2">
+        <p><strong>Customer:</strong> ${customer ? customer.first_name + ' ' + customer.last_name : 'N/A'}</p>
+        <p><strong>Phone:</strong> ${customer ? customer.phone : 'N/A'}</p>
+        <p><strong>Delivery Address:</strong> ${order.delivery_address || 'N/A'}</p>
+        <p><strong>Total:</strong> ₹${order.grand_total || 0}</p>
+        <p><strong>Status:</strong> ${order.status || 'Pending'}</p>
+        <p><strong>Date:</strong> ${new Date(order.date).toLocaleString()}</p>
+        <div><strong>Items:</strong>
+          <ul class="list-disc pl-5">
+            ${(order.items || []).map(item => `<li>${item.name} × ${item.quantity} = ₹${(item.price || 0) * (item.quantity || 0)}</li>`).join('') || '<li>No items</li>'}
+          </ul>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+          <button class="btn btn-sm btn-success" onclick="updateOrderStatus(${order.id}, 'Delivered')">Deliver</button>
+          <button class="btn btn-sm btn-warning" onclick="updateOrderStatus(${order.id}, 'Processing')">Processing</button>
+          <button class="btn btn-sm btn-danger" onclick="updateOrderStatus(${order.id}, 'Cancelled')">Cancel</button>
+        </div>
+      </div>
+    `);
+  }
+
+  async function updateOrderStatus(id, status) {
+    try {
+      await putData(`orders/${id}/status`, { status });
+      orders = await fetchData('orders');
+      closeModal();
+      showToast(`Order status updated to ${status}`);
+      navigateTo('orders');
+    } catch (err) { showToast('Error: ' + err.message); }
+  }
+
+  // ============================================================
+  // EARNINGS
+  // ============================================================
   function renderEarnings(el) {
-    el.innerHTML = `<p class="text-gray-500">Earnings report...</p>`;
+    const delivered = (orders || []).filter(o => o.status === 'Delivered');
+    const totalCommission = delivered.reduce((s, o) => s + (o.commission_amount || 0), 0);
+    const totalDelivery = delivered.reduce((s, o) => s + (o.delivery_charge || 0), 0);
+    const totalRain = delivered.reduce((s, o) => s + (o.rain_fare || 0), 0);
+    const totalProfit = totalCommission + totalDelivery + totalRain;
+
+    el.innerHTML = `
+      <h2 class="text-xl font-bold mb-4">Earnings</h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="stat-card"><p class="stat-label">Commission</p><p class="stat-value">₹${totalCommission.toFixed(2)}</p></div>
+        <div class="stat-card"><p class="stat-label">Delivery Charges</p><p class="stat-value">₹${totalDelivery.toFixed(2)}</p></div>
+        <div class="stat-card"><p class="stat-label">Rain Fare</p><p class="stat-value">₹${totalRain.toFixed(2)}</p></div>
+        <div class="stat-card"><p class="stat-label">Total Profit</p><p class="stat-value">₹${totalProfit.toFixed(2)}</p></div>
+      </div>
+    `;
   }
+
+  // ============================================================
+  // BEST SELLING
+  // ============================================================
   function renderBestSelling(el) {
-    el.innerHTML = `<p class="text-gray-500">Best selling products...</p>`;
+    const delivered = (orders || []).filter(o => o.status === 'Delivered');
+    const productCounts = {};
+    delivered.forEach(o => {
+      (o.items || []).forEach(item => {
+        productCounts[item.name] = (productCounts[item.name] || 0) + (item.quantity || 0);
+      });
+    });
+    const sorted = Object.entries(productCounts).sort((a, b) => b[1] - a[1]);
+
+    el.innerHTML = `
+      <h2 class="text-xl font-bold mb-4">Best Selling Products</h2>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Product</th><th>Quantity Sold</th></tr></thead>
+          <tbody>
+            ${sorted.length === 0 ? '<tr><td colspan="3" class="text-center text-gray-400">No data</td></tr>' :
+            sorted.map(([name, qty], i) => `
+              <tr>
+                <td>${i+1}</td>
+                <td>${name}</td>
+                <td>${qty}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
   }
+
+  // ============================================================
+  // OFFERS
+  // ============================================================
   function renderOffers(el) {
-    el.innerHTML = `<p class="text-gray-500">Offers management...</p>`;
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Offers</h3>
+        <button onclick="openAddOffer()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Offer</button>
+      </div>
+      <div class="card p-3 table-wrap">
+        <table>
+          <thead><tr><th>Title</th><th>Discount</th><th>Restaurant/Category</th><th>Description</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${(offers || []).map(o => {
+              const restaurant = restaurants.find(r => r.id === o.restaurant_id);
+              return `<tr>
+                <td>${o.title}</td>
+                <td>${o.discount}</td>
+                <td>${restaurant ? restaurant.name : (o.category || 'All')}</td>
+                <td>${o.description || ''}</td>
+                <td>
+                  <div class="table-actions">
+                    <button class="btn btn-sm btn-primary" onclick="editOffer(${o.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteOffer(${o.id})"><i class="fas fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
   }
+
+  function openAddOffer() {
+    const restaurantOptions = (restaurants || []).map(r => 
+      `<option value="${r.id}">${r.name}</option>`
+    ).join('');
+
+    const categoryOptions = (categories || []).map(c => 
+      `<option value="${c.name}">${c.name}</option>`
+    ).join('');
+
+    openModal(`
+      <h2>Add Offer</h2>
+      <form id="offerForm">
+        <div class="form-group"><label>Title *</label><input id="offerTitle" required placeholder="Summer Sale" /></div>
+        <div class="form-group"><label>Discount *</label><input id="offerDiscount" required placeholder="20% OFF" /></div>
+        <div class="form-group"><label>Restaurant (optional)</label>
+          <select id="offerRestaurant">
+            <option value="">All Restaurants</option>
+            ${restaurantOptions}
+          </select>
+        </div>
+        <div class="form-group"><label>Category (optional)</label>
+          <select id="offerCategory">
+            <option value="">All Categories</option>
+            ${categoryOptions}
+          </select>
+        </div>
+        <div class="form-group"><label>Description</label>
+          <textarea id="offerDescription" rows="2" placeholder="Brief description of the offer"></textarea>
+        </div>
+        <div class="form-group"><label>Background Color</label>
+          <input id="offerBg" value="linear-gradient(135deg, #667eea 0%, #764ba2 100%)" placeholder="CSS gradient" />
+        </div>
+        <div class="form-group"><label>Icon</label>
+          <input id="offerIcon" value="fa-tags" placeholder="Font Awesome icon class" />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Save Offer</button>
+      </form>
+    `);
+    document.getElementById('offerForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const title = document.getElementById('offerTitle').value.trim();
+      const discount = document.getElementById('offerDiscount').value.trim();
+      const restaurantId = document.getElementById('offerRestaurant').value || null;
+      const category = document.getElementById('offerCategory').value || null;
+      const description = document.getElementById('offerDescription').value.trim();
+      const bg = document.getElementById('offerBg').value.trim();
+      const icon = document.getElementById('offerIcon').value.trim();
+      if (!title || !discount) { showToast('Title and discount required'); return; }
+      try {
+        await postData('offers', { 
+          title, discount, restaurant_id: restaurantId, category, description, 
+          bg: bg || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+          icon: icon || 'fa-tags' 
+        });
+        offers = await fetchData('offers');
+        closeModal();
+        showToast('Offer added!');
+        renderOffers(document.getElementById('pageContent'));
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function editOffer(id) {
+    const o = (offers || []).find(x => x.id === id);
+    if (!o) return;
+    const restaurantOptions = (restaurants || []).map(r => 
+      `<option value="${r.id}" ${o.restaurant_id === r.id ? 'selected' : ''}>${r.name}</option>`
+    ).join('');
+
+    const categoryOptions = (categories || []).map(c => 
+      `<option value="${c.name}" ${o.category === c.name ? 'selected' : ''}>${c.name}</option>`
+    ).join('');
+
+    openModal(`
+      <h2>Edit Offer</h2>
+      <form id="offerForm">
+        <div class="form-group"><label>Title *</label><input id="offerTitle" value="${o.title}" required /></div>
+        <div class="form-group"><label>Discount *</label><input id="offerDiscount" value="${o.discount}" required /></div>
+        <div class="form-group"><label>Restaurant (optional)</label>
+          <select id="offerRestaurant">
+            <option value="">All Restaurants</option>
+            ${restaurantOptions}
+          </select>
+        </div>
+        <div class="form-group"><label>Category (optional)</label>
+          <select id="offerCategory">
+            <option value="">All Categories</option>
+            ${categoryOptions}
+          </select>
+        </div>
+        <div class="form-group"><label>Description</label>
+          <textarea id="offerDescription" rows="2">${o.description || ''}</textarea>
+        </div>
+        <div class="form-group"><label>Background Color</label>
+          <input id="offerBg" value="${o.bg || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}" />
+        </div>
+        <div class="form-group"><label>Icon</label>
+          <input id="offerIcon" value="${o.icon || 'fa-tags'}" />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Update</button>
+      </form>
+    `);
+    document.getElementById('offerForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const title = document.getElementById('offerTitle').value.trim();
+      const discount = document.getElementById('offerDiscount').value.trim();
+      const restaurantId = document.getElementById('offerRestaurant').value || null;
+      const category = document.getElementById('offerCategory').value || null;
+      const description = document.getElementById('offerDescription').value.trim();
+      const bg = document.getElementById('offerBg').value.trim();
+      const icon = document.getElementById('offerIcon').value.trim();
+      if (!title || !discount) { showToast('Title and discount required'); return; }
+      try {
+        await putData(`offers/${id}`, { 
+          title, discount, restaurant_id: restaurantId, category, description,
+          bg: bg || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+          icon: icon || 'fa-tags' 
+        });
+        offers = await fetchData('offers');
+        closeModal();
+        showToast('Offer updated!');
+        renderOffers(document.getElementById('pageContent'));
+      } catch (err) { showToast('Error: ' + err.message); }
+    });
+  }
+
+  function deleteOffer(id) {
+    if (!confirm('Delete this offer?')) return;
+    deleteData(`offers/${id}`).then(() => fetchData('offers')).then(data => {
+      offers = data;
+      showToast('Offer deleted');
+      renderOffers(document.getElementById('pageContent'));
+    }).catch(err => showToast('Error: ' + err.message));
+  }
+
+  // ============================================================
+  // NOTIFICATIONS
+  // ============================================================
   function renderNotifications(el) {
-    el.innerHTML = `<p class="text-gray-500">Notifications...</p>`;
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <h3 class="text-lg font-bold">Notifications</h3>
+        <button onclick="sendTestNotification()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-bell"></i> Send Test</button>
+      </div>
+      <div class="card p-4">
+        <p class="text-gray-500 text-sm">Notifications will appear here.</p>
+        <div class="mt-2 space-y-2">
+          ${(notifications || []).map(n => `
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg flex justify-between">
+              <span>${n.message}</span>
+              <span class="text-xs text-gray-400">${new Date(n.timestamp).toLocaleString()}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
   }
+
+  function sendTestNotification() {
+    showToast('Test notification sent!');
+    notifications.push({ message: 'Test notification at ' + new Date().toLocaleString(), timestamp: new Date().toISOString() });
+    renderNotifications(document.getElementById('pageContent'));
+  }
+
+  // ============================================================
+  // WHATSAPP
+  // ============================================================
   function renderWhatsApp(el) {
-    el.innerHTML = `<p class="text-gray-500">WhatsApp integration...</p>`;
+    el.innerHTML = `
+      <h2 class="text-xl font-bold mb-4">WhatsApp Integration</h2>
+      <div class="card p-6 max-w-xl">
+        <p class="mb-4">Send WhatsApp messages to customers</p>
+        <div class="flex flex-col gap-3">
+          <input type="tel" id="whatsappPhone" placeholder="Phone number with country code" class="border rounded-lg px-4 py-2" />
+          <textarea id="whatsappMessage" rows="3" placeholder="Message" class="border rounded-lg px-4 py-2"></textarea>
+          <button onclick="sendWhatsAppMessage()" class="btn btn-success"><i class="fab fa-whatsapp"></i> Send via WhatsApp</button>
+        </div>
+        <div class="mt-4">
+          <button onclick="viewWhatsAppLogs()" class="btn btn-outline"><i class="fas fa-history"></i> View Logs</button>
+        </div>
+      </div>
+    `;
   }
+
+  async function sendWhatsAppMessage() {
+    const phone = document.getElementById('whatsappPhone').value.trim();
+    const message = document.getElementById('whatsappMessage').value.trim();
+    if (!phone || !message) { showToast('Please enter both phone and message'); return; }
+    try {
+      const res = await fetch(`${API_BASE}/whatsapp/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, message })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send');
+      showToast('WhatsApp message sent!');
+    } catch (err) { showToast('Error: ' + err.message); }
+  }
+
+  function viewWhatsAppLogs() {
+    fetch(`${API_BASE}/whatsapp/logs`)
+      .then(res => res.json())
+      .then(logs => {
+        let html = `
+          <h2 class="text-xl font-bold mb-4">📋 WhatsApp Logs</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Order ID</th><th>Phone</th><th>Status</th><th>Sent At</th></tr></thead>
+              <tbody>
+                ${logs.length === 0 ? '<tr><td colspan="4" class="text-center text-gray-400">No logs found</td></tr>' :
+                logs.map(log => `
+                  <tr>
+                    <td>${log.order_id}</td>
+                    <td>${log.recipient_phone}</td>
+                    <td><span class="badge ${log.status === 'sent' ? 'badge-success' : 'badge-danger'}">${log.status}</span></td>
+                    <td>${new Date(log.sent_at).toLocaleString()}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+        openModal(html);
+      })
+      .catch(err => showToast('Error loading logs: ' + err.message));
+  }
+
+  // ============================================================
+  // SETTINGS
+  // ============================================================
   function renderSettings(el) {
-    el.innerHTML = `<p class="text-gray-500">Settings...</p>`;
+    const adminPhones = settings.admin_phones 
+      ? JSON.parse(settings.admin_phones) 
+      : ['+919019825189', '+91827079552', '+919999999999'];
+    
+    const unavailableDays = settings.unavailable_days 
+      ? JSON.parse(settings.unavailable_days) 
+      : [];
+    
+    const serviceUnavailable = settings.service_unavailable === 'true';
+    const rainFareEnabled = settings.rain_fare_enabled !== 'false';
+    
+    el.innerHTML = `
+      <h2 class="text-xl font-bold mb-4">⚙️ Settings</h2>
+      <div class="space-y-6">
+        <div class="card p-6">
+          <h3 class="font-semibold text-lg mb-3">🔌 Service Status</h3>
+          <div class="flex items-center gap-4">
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="serviceToggle" class="sr-only peer" ${serviceUnavailable ? 'checked' : ''} onchange="toggleServiceStatus(this.checked)">
+              <div class="w-14 h-7 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-600"></div>
+            </label>
+            <span id="serviceStatusLabel" class="font-medium text-lg ${serviceUnavailable ? 'text-red-600' : 'text-green-600'}">
+              ${serviceUnavailable ? '🔴 Service Unavailable' : '🟢 Service Active'}
+            </span>
+          </div>
+        </div>
+
+        <div class="card p-6">
+          <h3 class="font-semibold text-lg mb-3">🌧️ Rain Fare</h3>
+          <div class="flex items-center gap-4">
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="rainFareToggle" class="sr-only peer" ${rainFareEnabled ? 'checked' : ''} onchange="toggleRainFare(this.checked)">
+              <div class="w-14 h-7 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+            <span id="rainFareStatus" class="font-medium text-lg ${rainFareEnabled ? 'text-green-600' : 'text-gray-500'}">
+              ${rainFareEnabled ? '✅ Rain Fare Enabled' : '❌ Rain Fare Disabled'}
+            </span>
+          </div>
+          <div class="mt-3 flex gap-2">
+            <input type="number" id="rainFare" value="${settings.rain_fare || 20}" class="flex-1 border rounded-lg px-4 py-2" step="0.01" />
+            <button onclick="updateRainFare()" class="btn btn-primary">Update Amount</button>
+          </div>
+          <p class="text-sm text-gray-500 mt-2">Rain fare will ${rainFareEnabled ? 'be applied' : 'not be applied'} to orders</p>
+        </div>
+
+        <div class="card p-6">
+          <h3 class="font-semibold text-lg mb-3">📱 Admin Phone Numbers</h3>
+          <p class="text-sm text-gray-500 mb-3">These numbers can receive admin OTPs</p>
+          <div id="adminPhonesList" class="space-y-2 mb-3">
+            ${adminPhones.map((phone, index) => `
+              <div class="flex items-center gap-2">
+                <input type="tel" value="${phone}" class="flex-1 px-3 py-2 rounded-lg border border-gray-300 bg-gray-50 text-sm" onchange="updateAdminPhone(${index}, this.value)" />
+                <button onclick="removeAdminPhone(${index})" class="text-red-500 hover:text-red-700 px-2 py-2"><i class="fas fa-trash"></i></button>
+              </div>
+            `).join('')}
+          </div>
+          <button onclick="addAdminPhone()" class="btn btn-sm btn-outline mb-4"><i class="fas fa-plus"></i> Add Phone Number</button>
+          <button onclick="saveAdminPhones()" class="btn btn-primary"><i class="fas fa-save"></i> Save Phone Numbers</button>
+          <p id="adminPhoneStatus" class="text-sm mt-2 text-gray-500"></p>
+        </div>
+
+        <div class="card p-6">
+          <h3 class="font-semibold text-lg mb-3">🔑 Active Admin Phone (Login)</h3>
+          <div class="flex gap-2">
+            <select id="adminPhoneSelect" class="flex-1 border rounded-lg px-4 py-2 bg-white dark:bg-gray-700">
+              ${adminPhones.map(p => `<option value="${p}" ${settings.active_admin_phone === p ? 'selected' : ''}>${p}</option>`).join('')}
+            </select>
+            <button onclick="updateActiveAdminPhone()" class="btn btn-primary">Update</button>
+          </div>
+          <p id="activePhoneStatus" class="text-sm mt-2 text-gray-500"></p>
+        </div>
+
+        <div class="card p-6">
+          <h3 class="font-semibold text-lg mb-3">💰 Commission Rate</h3>
+          <div class="flex gap-2">
+            <input type="number" id="commissionRate" value="${settings.default_commission || 10}" class="flex-1 border rounded-lg px-4 py-2" step="0.01" />
+            <button onclick="updateSetting('default_commission', document.getElementById('commissionRate').value)" class="btn btn-primary">Save</button>
+          </div>
+          <p class="text-sm text-gray-500 mt-1">Accepts decimal values (e.g., 10.5)</p>
+        </div>
+
+        <div class="card p-6">
+          <h3 class="font-semibold text-lg mb-3">🕐 Delivery Hours</h3>
+          <div class="flex gap-2">
+            <input type="text" id="deliveryHours" value="${settings.delivery_hours || '9:00 AM - 10:00 PM'}" class="flex-1 border rounded-lg px-4 py-2" />
+            <button onclick="updateSetting('delivery_hours', document.getElementById('deliveryHours').value)" class="btn btn-primary">Save</button>
+          </div>
+        </div>
+
+        <div class="card p-6">
+          <h3 class="font-semibold text-lg mb-3">📅 Unavailable Days</h3>
+          <p class="text-sm text-gray-500 mb-3">Days when delivery is not available</p>
+          <div class="flex gap-2 flex-wrap">
+            ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
+              const isChecked = unavailableDays.includes(day);
+              return `
+                <label class="inline-flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border ${isChecked ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-primary'}">
+                  <input type="checkbox" class="unavailable-day" value="${day}" ${isChecked ? 'checked' : ''} onchange="updateUnavailableDays()" />
+                  <span class="text-sm">${day}</span>
+                </label>
+              `;
+            }).join('')}
+          </div>
+          <button onclick="saveUnavailableDays()" class="btn btn-primary mt-4">Save Unavailable Days</button>
+        </div>
+      </div>
+    `;
   }
+
+  // ============================================================
+  // SETTINGS HELPER FUNCTIONS
+  // ============================================================
+  function toggleServiceStatus(isChecked) {
+    const status = isChecked ? 'true' : 'false';
+    fetch(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'service_unavailable', value: status })
+    })
+    .then(res => res.json())
+    .then(() => {
+      settings.service_unavailable = status;
+      const label = document.getElementById('serviceStatusLabel');
+      if (label) {
+        label.textContent = isChecked ? '🔴 Service Unavailable' : '🟢 Service Active';
+        label.className = `font-medium text-lg ${isChecked ? 'text-red-600' : 'text-green-600'}`;
+      }
+      showToast(isChecked ? 'Service marked as unavailable' : 'Service is now active');
+    })
+    .catch(err => showToast('Error: ' + err.message));
+  }
+
+  function toggleRainFare(isChecked) {
+    const status = isChecked ? 'true' : 'false';
+    fetch(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'rain_fare_enabled', value: status })
+    })
+    .then(res => res.json())
+    .then(() => {
+      settings.rain_fare_enabled = status;
+      const label = document.getElementById('rainFareStatus');
+      if (label) {
+        label.textContent = isChecked ? '✅ Rain Fare Enabled' : '❌ Rain Fare Disabled';
+        label.className = `font-medium text-lg ${isChecked ? 'text-green-600' : 'text-gray-500'}`;
+      }
+      showToast(isChecked ? 'Rain fare enabled' : 'Rain fare disabled');
+    })
+    .catch(err => showToast('Error: ' + err.message));
+  }
+
+  function updateRainFare() {
+    const value = document.getElementById('rainFare').value;
+    if (!value || isNaN(value)) {
+      showToast('Please enter a valid amount');
+      return;
+    }
+    fetch(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'rain_fare', value: value })
+    })
+    .then(res => res.json())
+    .then(() => {
+      settings.rain_fare = value;
+      showToast('Rain fare updated to ₹' + value);
+    })
+    .catch(err => showToast('Error: ' + err.message));
+  }
+
+  function addAdminPhone() {
+    const container = document.getElementById('adminPhonesList');
+    const index = adminPhonesList.length;
+    const div = document.createElement('div');
+    div.className = 'flex items-center gap-2';
+    div.innerHTML = `
+      <input type="tel" placeholder="+91XXXXXXXXXX" class="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm" onchange="updateAdminPhone(${index}, this.value)" />
+      <button onclick="removeAdminPhone(${index})" class="text-red-500 hover:text-red-700 px-2 py-2"><i class="fas fa-trash"></i></button>
+    `;
+    container.appendChild(div);
+    adminPhonesList.push('');
+  }
+
+  function updateAdminPhone(index, value) {
+    adminPhonesList[index] = value.trim();
+  }
+
+  function removeAdminPhone(index) {
+    if (!confirm('Remove this phone number?')) return;
+    adminPhonesList.splice(index, 1);
+    renderSettings(document.getElementById('pageContent'));
+  }
+
+  function saveAdminPhones() {
+    const validPhones = adminPhonesList.filter(p => p && p.length >= 10);
+    if (validPhones.length === 0) {
+      showToast('At least one valid phone number is required');
+      return;
+    }
+    fetch(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'admin_phones', value: JSON.stringify(validPhones) })
+    })
+    .then(res => res.json())
+    .then(() => {
+      settings.admin_phones = JSON.stringify(validPhones);
+      document.getElementById('adminPhoneStatus').textContent = '✅ Phone numbers saved!';
+      setTimeout(() => document.getElementById('adminPhoneStatus').textContent = '', 3000);
+      showToast('Admin phones updated');
+      const select = document.getElementById('adminPhoneSelect');
+      if (select) {
+        select.innerHTML = validPhones.map(p => `<option value="${p}">${p}</option>`).join('');
+      }
+    })
+    .catch(err => showToast('Error: ' + err.message));
+  }
+
+  function updateActiveAdminPhone() {
+    const phone = document.getElementById('adminPhoneSelect').value;
+    if (!phone) { showToast('Please select a phone number'); return; }
+    fetch(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'active_admin_phone', value: phone })
+    })
+    .then(res => res.json())
+    .then(() => {
+      settings.active_admin_phone = phone;
+      document.getElementById('activePhoneStatus').textContent = '✅ Active admin phone updated!';
+      setTimeout(() => document.getElementById('activePhoneStatus').textContent = '', 3000);
+      showToast('Active admin phone updated to ' + phone);
+    })
+    .catch(err => showToast('Error: ' + err.message));
+  }
+
+  function updateSetting(key, value) {
+    fetch(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, value })
+    })
+    .then(res => res.json())
+    .then(() => {
+      showToast('Setting updated successfully');
+      renderSettings(document.getElementById('pageContent'));
+    })
+    .catch(err => showToast('Error: ' + err.message));
+  }
+
+  function updateUnavailableDays() {}
+
+  function saveUnavailableDays() {
+    const checkboxes = document.querySelectorAll('.unavailable-day:checked');
+    const days = Array.from(checkboxes).map(cb => cb.value);
+    fetch(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'unavailable_days', value: JSON.stringify(days) })
+    })
+    .then(res => res.json())
+    .then(() => {
+      settings.unavailable_days = JSON.stringify(days);
+      showToast('Unavailable days saved');
+    })
+    .catch(err => showToast('Error: ' + err.message));
+  }
+
+  // ============================================================
+  // REPORTS
+  // ============================================================
   function renderReports(el) {
-    el.innerHTML = `<p class="text-gray-500">Reports...</p>`;
+    el.innerHTML = `
+      <h2 class="text-xl font-bold mb-4">Reports</h2>
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button class="tab-btn active" onclick="showCommissionReport('daily')">Daily Commission</button>
+        <button class="tab-btn" onclick="showCommissionReport('weekly')">Weekly Commission</button>
+        <button class="tab-btn" onclick="showCommissionReport('monthly')">Monthly Commission</button>
+        <button class="tab-btn" onclick="showRestaurantReport()">Restaurant Report</button>
+        <button class="tab-btn" onclick="showCategoryCommission()">Category Commission</button>
+      </div>
+      <div id="reportContent"></div>
+    `;
+    showCommissionReport('daily');
+  }
+
+  async function showCommissionReport(period) {
+    const container = document.getElementById('reportContent');
+    container.innerHTML = `<div class="flex justify-center py-8"><div class="spinner"></div></div>`;
+    try {
+      const data = await fetchData(`reports/commission?period=${period}`);
+      let html = `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="stat-card"><p class="stat-label">Total Commission</p><p class="stat-value">₹${data.totalCommission.toFixed(2)}</p></div>
+          <div class="stat-card"><p class="stat-label">Total Sales</p><p class="stat-value">₹${data.totalSales.toFixed(2)}</p></div>
+          <div class="stat-card"><p class="stat-label">Total Orders</p><p class="stat-value">${data.totalOrders}</p></div>
+        </div>
+        <div class="card p-4 mb-4">
+          <h3 class="font-semibold mb-2">Commission Trend (${period})</h3>
+          <div class="chart-container"><canvas id="commissionChart"></canvas></div>
+        </div>
+        <div class="card p-4 table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Orders</th><th>Sales</th><th>Commission</th></tr></thead>
+            <tbody>
+              ${data.labels.map((label, i) => `
+                <tr>
+                  <td>${label}</td>
+                  <td>${data.orderCounts[i]}</td>
+                  <td>₹${data.salesData[i].toFixed(2)}</td>
+                  <td>₹${data.commissionData[i].toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      container.innerHTML = html;
+      new Chart(document.getElementById('commissionChart'), {
+        type: 'bar',
+        data: {
+          labels: data.labels,
+          datasets: [
+            { label: 'Commission (₹)', data: data.commissionData, backgroundColor: '#007BFF', borderRadius: 4 },
+            { label: 'Sales (₹)', data: data.salesData, backgroundColor: '#22c55e', borderRadius: 4 }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
+      });
+    } catch (err) {
+      container.innerHTML = `<p class="text-red-500">Error loading report: ${err.message}</p>`;
+    }
+  }
+
+  async function showRestaurantReport() {
+    const container = document.getElementById('reportContent');
+    const foodRestaurants = (restaurants || []).filter(r => r.category === 'Food');
+    if (foodRestaurants.length === 0) {
+      container.innerHTML = `<p class="text-gray-500">No restaurants in Food category.</p>`;
+      return;
+    }
+    let options = foodRestaurants.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+    container.innerHTML = `
+      <div class="card p-4 mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Select Restaurant</label>
+        <select id="restaurantSelect" class="w-full border rounded-lg px-3 py-2 text-sm" onchange="loadRestaurantReport()">
+          <option value="">-- Select --</option>
+          ${options}
+        </select>
+      </div>
+      <div id="restaurantReportDetails"></div>
+    `;
+    if (foodRestaurants.length > 0) {
+      document.getElementById('restaurantSelect').value = foodRestaurants[0].id;
+      loadRestaurantReport();
+    }
+  }
+
+  async function loadRestaurantReport() {
+    const select = document.getElementById('restaurantSelect');
+    const id = select.value;
+    if (!id) { document.getElementById('restaurantReportDetails').innerHTML = ''; return; }
+    const container = document.getElementById('restaurantReportDetails');
+    container.innerHTML = `<div class="flex justify-center py-8"><div class="spinner"></div></div>`;
+    try {
+      const data = await fetchData(`reports/restaurant/${id}`);
+      let html = `
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <div class="stat-card"><p class="stat-label">Total Orders</p><p class="stat-value">${data.totalOrders}</p></div>
+          <div class="stat-card"><p class="stat-label">Total Revenue</p><p class="stat-value">₹${data.totalRevenue.toFixed(2)}</p></div>
+          <div class="stat-card"><p class="stat-label">Commission</p><p class="stat-value">₹${data.totalCommission.toFixed(2)}</p></div>
+          <div class="stat-card"><p class="stat-label">Restaurant Earnings</p><p class="stat-value">₹${data.restaurantRevenue.toFixed(2)}</p></div>
+        </div>
+        <div class="card p-3 table-wrap">
+          <table>
+            <thead><tr><th>Order ID</th><th>Date</th><th>Grand Total</th><th>Commission</th><th>Restaurant Revenue</th></tr></thead>
+            <tbody>
+              ${data.orders.map(o => `
+                <tr>
+                  <td>${o.orderId}</td>
+                  <td>${new Date(o.date).toLocaleDateString()}</td>
+                  <td>₹${o.grandTotal}</td>
+                  <td>₹${o.commission}</td>
+                  <td>₹${o.restaurantRevenue}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      container.innerHTML = html;
+    } catch (err) {
+      container.innerHTML = `<p class="text-red-500">Error loading restaurant report: ${err.message}</p>`;
+    }
+  }
+
+  async function showCategoryCommission() {
+    const container = document.getElementById('reportContent');
+    container.innerHTML = `<div class="flex justify-center py-8"><div class="spinner"></div></div>`;
+
+    try {
+      const data = await fetchData('reports/category-commission');
+      
+      let html = `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="stat-card">
+            <p class="stat-label">Total Orders</p>
+            <p class="stat-value">${data.totalOrders}</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-label">Total Revenue</p>
+            <p class="stat-value">₹${data.totalRevenue.toFixed(2)}</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-label">Total Commission</p>
+            <p class="stat-value">₹${data.totalCommission.toFixed(2)}</p>
+          </div>
+        </div>
+        
+        <div class="card p-4 mb-4">
+          <h3 class="font-semibold mb-2">Category-wise Commission Breakdown</h3>
+          <div class="chart-container"><canvas id="categoryCommissionChart"></canvas></div>
+        </div>
+        
+        <div class="card p-4 table-wrap">
+          <table>
+            <thead><tr><th>Category</th><th>Commission (₹)</th><th>Percentage</th></tr></thead>
+            <tbody>
+              ${data.labels.map((cat, i) => `
+                <tr>
+                  <td>${cat}</td>
+                  <td>₹${data.data[i].toFixed(2)}</td>
+                  <td>${data.totalCommission > 0 ? ((data.data[i] / data.totalCommission) * 100).toFixed(1) : 0}%</td>
+                </tr>
+              `).join('')}
+              <tr class="font-bold">
+                <td>Total</td>
+                <td>₹${data.totalCommission.toFixed(2)}</td>
+                <td>100%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+      container.innerHTML = html;
+
+      new Chart(document.getElementById('categoryCommissionChart'), {
+        type: 'doughnut',
+        data: {
+          labels: data.labels,
+          datasets: [{
+            data: data.data,
+            backgroundColor: ['#007BFF', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8 } }
+          }
+        }
+      });
+    } catch (err) {
+      container.innerHTML = `<p class="text-red-500">Error loading category commission: ${err.message}</p>`;
+    }
   }
 
   // ============================================================
@@ -1964,14 +2924,41 @@
   window.deleteProduct = deleteProduct;
   window.addVariantRow = addVariantRow;
   window.removeExistingImage = removeExistingImage;
+  window.openAddPlace = openAddPlace;
+  window.editPlace = editPlace;
+  window.deletePlace = deletePlace;
+  window.toggleBlockCustomer = toggleBlockCustomer;
+  window.viewOrder = viewOrder;
+  window.updateOrderStatus = updateOrderStatus;
+  window.openAddOffer = openAddOffer;
+  window.editOffer = editOffer;
+  window.deleteOffer = deleteOffer;
+  window.sendTestNotification = sendTestNotification;
+  window.sendWhatsAppMessage = sendWhatsAppMessage;
+  window.viewWhatsAppLogs = viewWhatsAppLogs;
   window.toggleSidebar = toggleSidebar;
   window.closeSidebar = closeSidebar;
   window.closeModal = closeModal;
   window.showToast = showToast;
   window.sendAdminOtp = sendAdminOtp;
   window.verifyAdminOtp = verifyAdminOtp;
-  window.logoutAdmin = logoutAdmin;
+  window.updateSetting = updateSetting;
   window.toggleRestaurantStatus = toggleRestaurantStatus;
+  window.showCommissionReport = showCommissionReport;
+  window.showRestaurantReport = showRestaurantReport;
+  window.loadRestaurantReport = loadRestaurantReport;
+  window.logoutAdmin = logoutAdmin;
+  window.toggleServiceStatus = toggleServiceStatus;
+  window.toggleRainFare = toggleRainFare;
+  window.updateRainFare = updateRainFare;
+  window.addAdminPhone = addAdminPhone;
+  window.updateAdminPhone = updateAdminPhone;
+  window.removeAdminPhone = removeAdminPhone;
+  window.saveAdminPhones = saveAdminPhones;
+  window.updateActiveAdminPhone = updateActiveAdminPhone;
+  window.updateUnavailableDays = updateUnavailableDays;
+  window.saveUnavailableDays = saveUnavailableDays;
+  window.showCategoryCommission = showCategoryCommission;
 
   // ============================================================
   // INIT

@@ -12,11 +12,20 @@ function safeParseJSONB(value) {
       return [];
     }
   }
+  if (typeof value === 'object' && value !== null) {
+    // If it's an object with numeric keys, convert to array
+    const values = Object.values(value);
+    if (Array.isArray(values) && values.length > 0) {
+      return values;
+    }
+    return [];
+  }
   return [];
 }
 
 // Helper: Parse product row
 function parseProduct(row) {
+  if (!row) return null;
   return {
     ...row,
     variants: safeParseJSONB(row.variants),
@@ -29,15 +38,7 @@ exports.getAllProducts = async (req, res) => {
     const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
     const products = result.rows.map(row => parseProduct(row));
     
-    // Debug log - shows variants in terminal
     console.log(`✅ Returning ${products.length} products`);
-    products.forEach(p => {
-      console.log(`  - ${p.name}: ${p.variants ? p.variants.length : 0} variants`);
-      if (p.variants && p.variants.length > 0) {
-        console.log(`    Variants:`, JSON.stringify(p.variants));
-      }
-    });
-    
     res.json(products);
   } catch (err) {
     console.error('Error in getAllProducts:', err);
@@ -87,6 +88,8 @@ exports.createProduct = async (req, res) => {
         } catch (e) {
           variantsArray = [];
         }
+      } else if (typeof variants === 'object' && variants !== null) {
+        variantsArray = Object.values(variants);
       }
     }
     
@@ -109,16 +112,16 @@ exports.createProduct = async (req, res) => {
     const result = await pool.query(
       `INSERT INTO products (name, category, restaurant_id, price, commission, status, images, variants)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [name, category, restaurantId || null, price, commission || 0, status || 'Active', imagesArray, variantsArray]
+      [name, category, restaurantId || null, price || 0, commission || 0, status || 'Active', imagesArray, JSON.stringify(variantsArray)]
     );
     
     const product = parseProduct(result.rows[0]);
-    console.log(`✅ Product created with ${product.variants.length} variants:`, product.variants);
+    console.log(`✅ Product created with ${product.variants.length} variants`);
     
     res.status(201).json(product);
   } catch (err) {
     console.error('Error in createProduct:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message, stack: err.stack });
   }
 };
 
@@ -140,6 +143,8 @@ exports.updateProduct = async (req, res) => {
         } catch (e) {
           variantsArray = [];
         }
+      } else if (typeof variants === 'object' && variants !== null) {
+        variantsArray = Object.values(variants);
       }
     }
     
@@ -159,6 +164,10 @@ exports.updateProduct = async (req, res) => {
     
     console.log(`✅ Updating product with ${variantsArray.length} variants:`, variantsArray);
     
+    // Convert to JSON string for PostgreSQL
+    const variantsJson = JSON.stringify(variantsArray);
+    const imagesJson = JSON.stringify(imagesArray);
+    
     const result = await pool.query(
       `UPDATE products SET 
         name = $1, 
@@ -167,11 +176,11 @@ exports.updateProduct = async (req, res) => {
         price = $4, 
         commission = $5, 
         status = $6, 
-        images = $7, 
-        variants = $8
+        images = $7::jsonb, 
+        variants = $8::jsonb
        WHERE id = $9 
        RETURNING *`,
-      [name, category, restaurantId || null, price, commission || 0, status || 'Active', imagesArray, variantsArray, id]
+      [name, category, restaurantId || null, price || 0, commission || 0, status || 'Active', imagesJson, variantsJson, id]
     );
     
     if (result.rows.length === 0) {
@@ -184,7 +193,8 @@ exports.updateProduct = async (req, res) => {
     res.json(product);
   } catch (err) {
     console.error('Error in updateProduct:', err);
-    res.status(500).json({ error: err.message });
+    console.error('Stack:', err.stack);
+    res.status(500).json({ error: err.message, stack: err.stack });
   }
 };
 

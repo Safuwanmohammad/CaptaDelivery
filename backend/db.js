@@ -9,13 +9,28 @@ const pool = new Pool({
   }
 });
 
-// Add type parsing for JSONB
+// IMPORTANT: Add type parsing for JSONB
 const { types } = require('pg');
+
+// Parse JSONB to JavaScript object/array
 types.setTypeParser(types.builtins.JSONB, (val) => {
+  if (!val) return [];
+  try {
+    const parsed = JSON.parse(val);
+    return parsed;
+  } catch (e) {
+    console.warn('⚠️ Failed to parse JSONB:', val);
+    return [];
+  }
+});
+
+// Parse JSON (if any)
+types.setTypeParser(types.builtins.JSON, (val) => {
+  if (!val) return [];
   try {
     return JSON.parse(val);
   } catch (e) {
-    return val;
+    return [];
   }
 });
 

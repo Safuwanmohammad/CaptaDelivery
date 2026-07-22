@@ -11,6 +11,15 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// ===== DEBUG: Log all requests =====
+app.use((req, res, next) => {
+  console.log(`📡 ${req.method} ${req.url}`);
+  if (req.method === 'PUT' || req.method === 'POST') {
+    console.log('  Body:', JSON.stringify(req.body, null, 2));
+  }
+  next();
+});
+
 // ===== HEALTH CHECK =====
 app.get('/health', async (req, res) => {
   try {
@@ -48,9 +57,11 @@ const frontendPath = path.join(__dirname, '../frontend');
 console.log(`📁 Serving frontend from: ${frontendPath}`);
 app.use(express.static(frontendPath));
 
-// ===== FALLBACK: serve index.html for unknown routes =====
-app.get('/*', (req, res) => {
-  res.sendFile(path.join(frontendPath, 'index.html'));
+// ===== FALLBACK =====
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  }
 });
 
 // ===== ERROR HANDLING =====
@@ -59,7 +70,8 @@ app.use((err, req, res, next) => {
   console.error('Stack:', err.stack);
   res.status(500).json({
     error: 'Something went wrong!',
-    message: err.message
+    message: err.message,
+    stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
   });
 });
 
