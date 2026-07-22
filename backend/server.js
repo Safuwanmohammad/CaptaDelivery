@@ -6,28 +6,87 @@ const pool = require('./db');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ===== AUTO MIGRATION: ADD VARIANTS COLUMN =====
-async function ensureVariantsColumn() {
+// ===== AUTO MIGRATION: FIX DATABASE SCHEMA =====
+async function fixDatabaseSchema() {
   try {
-    console.log('🔍 Checking if variants column exists...');
-    const checkColumn = await pool.query(`
+    console.log('🔍 Checking database schema...');
+    
+    // Step 1: Add variants column if it doesn't exist
+    const checkVariants = await pool.query(`
       SELECT column_name 
       FROM information_schema.columns 
       WHERE table_name = 'products' AND column_name = 'variants'
     `);
     
-    if (checkColumn.rows.length === 0) {
+    if (checkVariants.rows.length === 0) {
       console.log('🔄 Adding variants column...');
       await pool.query(`
         ALTER TABLE products 
         ADD COLUMN variants jsonb DEFAULT '[]'::jsonb
       `);
-      console.log('✅ Variants column added successfully!');
+      console.log('✅ Variants column added!');
     } else {
       console.log('✅ Variants column already exists');
     }
+    
+    // Step 2: Check if images column is text[] and convert if needed
+    const checkImages = await pool.query(`
+      SELECT data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'products' AND column_name = 'images'
+    `);
+    
+    if (checkImages.rows.length > 0 && checkImages.rows[0].data_type === 'text[]') {
+      console.log('🔄 Converting images column from text[] to jsonb...');
+      
+      // Add a temporary jsonb column
+      await pool.query(`
+        ALTER TABLE products 
+        ADD COLUMN IF NOT EXISTS images_new jsonb DEFAULT '[]'::jsonb
+      `);
+      
+      // Copy data from old column to new column, handling the conversion
+      await pool.query(`
+        UPDATE products 
+        SET images_new = COALESCE(
+          CASE 
+            WHEN images IS NULL OR images = '{}' THEN '[]'::jsonb
+            ELSE images::jsonb
+          END,
+          '[]'::jsonb
+        )
+        WHERE images IS NOT NULL AND images != '{}'
+      `);
+      console.log('✅ Data copied to images_new');
+      
+      // Drop the old column
+      await pool.query(`
+        ALTER TABLE products 
+        DROP COLUMN IF EXISTS images
+      `);
+      console.log('✅ Dropped old images column');
+      
+      // Rename the new column
+      await pool.query(`
+        ALTER TABLE products 
+        RENAME COLUMN images_new TO images
+      `);
+      console.log('✅ Renamed images_new to images');
+      
+      // Set default value
+      await pool.query(`
+        ALTER TABLE products 
+        ALTER COLUMN images SET DEFAULT '[]'::jsonb
+      `);
+      console.log('✅ Set default value for images');
+    } else if (checkImages.rows.length > 0) {
+      console.log(`✅ images column already is ${checkImages.rows[0].data_type}`);
+    }
+    
+    console.log('✅ Database schema check complete!');
   } catch (err) {
-    console.error('❌ Error ensuring variants column:', err.message);
+    console.error('❌ Error fixing database schema:', err.message);
+    // Don't exit, just log the error
   }
 }
 
@@ -101,14 +160,22 @@ app.use((err, req, res, next) => {
 });
 
 // ===== START SERVER =====
-app.listen(PORT, '0.0.0.0', async () => {
-  // Run migration on startup
-  await ensureVariantsColumn();
-  
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server is running on port ${PORT}`);
   console.log(`📁 Serving frontend from: ${frontendPath}`);
   console.log(`🔗 Visit: http://localhost:${PORT}`);
   console.log(`📊 Admin panel: http://localhost:${PORT}/admin.html`);
+});
+
+// Run database schema fix after connection is established
+pool.query('SELECT NOW()', async (err, result) => {
+  if (err) {
+    console.error('❌ Database connection error:', err.message);
+  } else {
+    console.log('✅ Connected to PostgreSQL at', result.rows[0].now);
+    // Run schema fix
+    await fixDatabaseSchema();
+  }
 });
 
 module.exports = app;
