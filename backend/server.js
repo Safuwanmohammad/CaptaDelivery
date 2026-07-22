@@ -6,19 +6,29 @@ const pool = require('./db');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ===== RUN MIGRATION ON STARTUP =====
-// Set RUN_MIGRATION=true in environment variables to enable
-if (process.env.RUN_MIGRATION === 'true') {
-  console.log('🔄 Running database migration...');
-  const { exec } = require('child_process');
-  exec('node migrate-db.js', (error, stdout, stderr) => {
-    if (error) {
-      console.error(`❌ Migration error: ${error}`);
-      console.error(`stderr: ${stderr}`);
-      return;
+// ===== AUTO MIGRATION: ADD VARIANTS COLUMN =====
+async function ensureVariantsColumn() {
+  try {
+    console.log('🔍 Checking if variants column exists...');
+    const checkColumn = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'products' AND column_name = 'variants'
+    `);
+    
+    if (checkColumn.rows.length === 0) {
+      console.log('🔄 Adding variants column...');
+      await pool.query(`
+        ALTER TABLE products 
+        ADD COLUMN variants jsonb DEFAULT '[]'::jsonb
+      `);
+      console.log('✅ Variants column added successfully!');
+    } else {
+      console.log('✅ Variants column already exists');
     }
-    console.log(`✅ Migration output: ${stdout}`);
-  });
+  } catch (err) {
+    console.error('❌ Error ensuring variants column:', err.message);
+  }
 }
 
 // ===== MIDDLEWARE =====
@@ -66,7 +76,6 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/whatsapp', require('./routes/whatsapp'));
 app.use('/api/reports', require('./routes/reports'));
-app.use('/api/migration', require('./migration-api'));
 
 // ===== SERVE STATIC FRONTEND =====
 const frontendPath = path.join(__dirname, '../frontend');
@@ -92,12 +101,14 @@ app.use((err, req, res, next) => {
 });
 
 // ===== START SERVER =====
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
+  // Run migration on startup
+  await ensureVariantsColumn();
+  
   console.log(`✅ Server is running on port ${PORT}`);
   console.log(`📁 Serving frontend from: ${frontendPath}`);
   console.log(`🔗 Visit: http://localhost:${PORT}`);
   console.log(`📊 Admin panel: http://localhost:${PORT}/admin.html`);
-  console.log(`🔧 Migration status: ${process.env.RUN_MIGRATION === 'true' ? 'Enabled' : 'Disabled'}`);
 });
 
 module.exports = app;
