@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('./db');
 
-// Manual migration endpoint
+// Manual migration endpoint - Add variants column
 router.post('/run', async (req, res) => {
   try {
     console.log('🔄 Running manual migration...');
@@ -15,9 +15,11 @@ router.post('/run', async (req, res) => {
     `);
     
     if (checkColumn.rows.length > 0) {
+      console.log('✅ variants column already exists');
       return res.json({ 
         success: true, 
-        message: '✅ variants column already exists' 
+        message: '✅ variants column already exists',
+        alreadyExists: true
       });
     }
     
@@ -39,6 +41,24 @@ router.post('/run', async (req, res) => {
       success: false, 
       error: err.message 
     });
+  }
+});
+
+// Check migration status
+router.get('/status', async (req, res) => {
+  try {
+    const checkColumn = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'products' AND column_name = 'variants'
+    `);
+    
+    res.json({
+      exists: checkColumn.rows.length > 0,
+      columnExists: checkColumn.rows.length > 0
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
