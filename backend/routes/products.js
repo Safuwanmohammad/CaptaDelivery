@@ -12,7 +12,7 @@ const {
 // IMPORTANT: Order matters! Specific routes before generic ones
 router.get('/', getAllProducts);
 router.get('/category/:category', getProductsByCategory);
-router.get('/:id', getProductById);
+router.get('/:id', getProductById);  // This should be after specific routes
 router.post('/', createProduct);
 router.put('/:id', updateProduct);
 router.delete('/:id', deleteProduct);

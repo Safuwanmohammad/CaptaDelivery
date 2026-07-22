@@ -4,7 +4,6 @@ const seed = async () => {
   try {
     console.log('🌱 Seeding database...');
 
-    // Test connection first
     const test = await pool.query('SELECT NOW()');
     console.log('✅ Database connected:', test.rows[0].now);
 
@@ -47,8 +46,8 @@ const seed = async () => {
         restaurant_id INTEGER REFERENCES restaurants(id) ON DELETE SET NULL,
         commission NUMERIC(5,2) DEFAULT 0,
         status TEXT DEFAULT 'Active',
-        images TEXT[] DEFAULT '{}',
-        variants JSONB DEFAULT '[]',
+        images JSONB DEFAULT '[]'::jsonb,  -- Changed from TEXT[] to JSONB
+        variants JSONB DEFAULT '[]'::jsonb,
         created_at TIMESTAMP DEFAULT NOW()
       );
 
@@ -145,14 +144,14 @@ const seed = async () => {
       ON CONFLICT DO NOTHING;
 
       INSERT INTO products (name, category, restaurant_id, price, commission, status, images, variants) VALUES
-      ('Pepperoni Pizza', 'Food', 1, 299, 10, 'Active', ARRAY['https://placehold.co/400x400/FF6B6B/white?text=Pizza'], 
+      ('Pepperoni Pizza', 'Food', 1, 299, 10, 'Active', '["https://placehold.co/400x400/FF6B6B/white?text=Pizza"]'::jsonb, 
        '[{"label":"Small","price":199,"description":"6 inches"},{"label":"Medium","price":299,"description":"10 inches"},{"label":"Large","price":399,"description":"12 inches"}]'::jsonb),
-      ('Chicken Biryani', 'Food', 2, 249, 10, 'Active', ARRAY['https://placehold.co/400x400/FFA94D/white?text=Biryani'], 
+      ('Chicken Biryani', 'Food', 2, 249, 10, 'Active', '["https://placehold.co/400x400/FFA94D/white?text=Biryani"]'::jsonb, 
        '[{"label":"Regular","price":249,"description":"Single serving"},{"label":"Family Pack","price":499,"description":"Serves 4"}]'::jsonb),
-      ('Organic Apples', 'Vegetables', NULL, 99, 8, 'Active', ARRAY['https://placehold.co/400x400/22c55e/white?text=Apples'], '[]'::jsonb),
-      ('Cola', 'Cool Drinks', NULL, 40, 5, 'Active', ARRAY['https://placehold.co/400x400/06b6d4/white?text=Cola'], 
+      ('Organic Apples', 'Vegetables', NULL, 99, 8, 'Active', '["https://placehold.co/400x400/22c55e/white?text=Apples"]'::jsonb, '[]'::jsonb),
+      ('Cola', 'Cool Drinks', NULL, 40, 5, 'Active', '["https://placehold.co/400x400/06b6d4/white?text=Cola"]'::jsonb, 
        '[{"label":"750ml","price":40,"description":"Bottle"},{"label":"2L","price":100,"description":"Family size"}]'::jsonb),
-      ('Veggie Delight', 'Food', 3, 199, 10, 'Active', ARRAY['https://placehold.co/400x400/008000/white?text=Veggie'], 
+      ('Veggie Delight', 'Food', 3, 199, 10, 'Active', '["https://placehold.co/400x400/008000/white?text=Veggie"]'::jsonb, 
        '[{"label":"Regular","price":199,"description":"Standard"},{"label":"Large","price":299,"description":"Extra large"}]'::jsonb)
       ON CONFLICT DO NOTHING;
 
