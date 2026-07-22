@@ -2,7 +2,6 @@ const pool = require('./db');
 
 async function createVariantsTable() {
   try {
-    // Check if product_variants table exists
     const check = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -15,7 +14,6 @@ async function createVariantsTable() {
       process.exit(0);
     }
     
-    // Create the table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS product_variants (
         id SERIAL PRIMARY KEY,

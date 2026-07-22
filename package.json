@@ -1,20 +1,37 @@
 {
-  "name": "swingy-website",
+  "name": "captadelivery",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Full-stack delivery platform for groceries and food with product variants support",
+  "main": "backend/server.js",
   "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "seed": "node backend/seed.js",
+    "create-variants": "node backend/createVariantsTable.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "delivery",
+    "ecommerce",
+    "food",
+    "grocery",
+    "restaurant",
+    "variants",
+    "jsonb",
+    "postgresql"
+  ],
+  "author": "CaptaDelivery Team",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "2factor": "^1.0.6",
     "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.2",
     "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
