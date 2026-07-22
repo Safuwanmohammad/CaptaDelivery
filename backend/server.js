@@ -8,31 +8,27 @@ const PORT = process.env.PORT || 5000;
 
 // ============================================================
 // AUTO MIGRATION: FIX DATABASE SCHEMA
-// This runs automatically when the server starts
 // ============================================================
 async function fixDatabaseSchema() {
   try {
     console.log('🔍 Checking database schema...');
     
     // ===== STEP 1: Add variants column if it doesn't exist =====
-    const checkVariants = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'products' AND column_name = 'variants'
+    await pool.query(`
+      DO $$ 
+      BEGIN 
+        BEGIN
+          ALTER TABLE products ADD COLUMN variants jsonb DEFAULT '[]'::jsonb;
+        EXCEPTION
+          WHEN duplicate_column THEN 
+            RAISE NOTICE 'Column variants already exists, skipping...';
+        END;
+      END $$;
     `);
+    console.log('✅ Variants column check complete');
     
-    if (checkVariants.rows.length === 0) {
-      console.log('🔄 Adding variants column...');
-      await pool.query(`
-        ALTER TABLE products 
-        ADD COLUMN variants jsonb DEFAULT '[]'::jsonb
-      `);
-      console.log('✅ Variants column added successfully!');
-    } else {
-      console.log('✅ Variants column already exists');
-    }
-    
-    // ===== STEP 2: Convert images column from text[] to jsonb =====
+    // ===== STEP 2: Convert images column =====
+    // First, check the current column type
     const checkImages = await pool.query(`
       SELECT data_type 
       FROM information_schema.columns 
@@ -43,76 +39,50 @@ async function fixDatabaseSchema() {
       const currentType = checkImages.rows[0].data_type;
       console.log(`📊 Current images column type: ${currentType}`);
       
-      // If it's text[] or text, convert it
       if (currentType === 'text[]' || currentType === 'text' || currentType === 'ARRAY') {
-        console.log('🔄 Converting images column from text[] to jsonb...');
+        console.log('🔄 Converting images column to jsonb...');
         
-        try {
-          // Method 1: Try direct conversion
-          await pool.query(`
-            ALTER TABLE products 
-            ALTER COLUMN images TYPE jsonb 
-            USING COALESCE(
-              CASE 
-                WHEN images IS NULL OR images = '{}' THEN '[]'::jsonb
-                ELSE images::jsonb
-              END,
-              '[]'::jsonb
-            )
-          `);
-          console.log('✅ Images column converted to jsonb successfully!');
-        } catch (err) {
-          console.log('⚠️ Direct conversion failed, trying alternative method...');
-          
-          // Method 2: Add temporary column, copy data, drop old, rename
-          await pool.query(`
-            ALTER TABLE products 
-            ADD COLUMN IF NOT EXISTS images_new jsonb DEFAULT '[]'::jsonb
-          `);
-          console.log('✅ Created temporary images_new column');
-          
-          await pool.query(`
-            UPDATE products 
-            SET images_new = COALESCE(
-              CASE 
-                WHEN images IS NULL OR images = '{}' OR images = '[]' THEN '[]'::jsonb
-                ELSE images::jsonb
-              END,
-              '[]'::jsonb
-            )
-            WHERE images IS NOT NULL
-          `);
-          console.log('✅ Data copied to images_new');
-          
-          await pool.query(`
-            ALTER TABLE products 
-            DROP COLUMN IF EXISTS images
-          `);
-          console.log('✅ Dropped old images column');
-          
-          await pool.query(`
-            ALTER TABLE products 
-            RENAME COLUMN images_new TO images
-          `);
-          console.log('✅ Renamed images_new to images');
-          
-          await pool.query(`
-            ALTER TABLE products 
-            ALTER COLUMN images SET DEFAULT '[]'::jsonb
-          `);
-          console.log('✅ Set default value for images');
-          
-          console.log('✅ Images column converted to jsonb successfully!');
-        }
-        
-        // Verify the conversion
-        const verify = await pool.query(`
-          SELECT data_type 
-          FROM information_schema.columns 
-          WHERE table_name = 'products' AND column_name = 'images'
+        // Step 1: Create new column
+        await pool.query(`
+          ALTER TABLE products 
+          ADD COLUMN IF NOT EXISTS images_temp jsonb DEFAULT '[]'::jsonb
         `);
-        console.log(`✅ Verification: images column is now ${verify.rows[0].data_type}`);
+        console.log('✅ Created temporary column');
         
+        // Step 2: Copy data safely - handle as text
+        await pool.query(`
+          UPDATE products 
+          SET images_temp = 
+            CASE 
+              WHEN images IS NULL OR images = '{}' OR images = '' THEN '[]'::jsonb
+              ELSE to_jsonb(images::text)
+            END
+          WHERE images IS NOT NULL
+        `);
+        console.log('✅ Data copied to temp column');
+        
+        // Step 3: Drop old column
+        await pool.query(`
+          ALTER TABLE products 
+          DROP COLUMN IF EXISTS images
+        `);
+        console.log('✅ Dropped old images column');
+        
+        // Step 4: Rename temp column
+        await pool.query(`
+          ALTER TABLE products 
+          RENAME COLUMN images_temp TO images
+        `);
+        console.log('✅ Renamed temp column to images');
+        
+        // Step 5: Set default
+        await pool.query(`
+          ALTER TABLE products 
+          ALTER COLUMN images SET DEFAULT '[]'::jsonb
+        `);
+        console.log('✅ Set default value for images');
+        
+        console.log('✅ Images column converted to jsonb successfully!');
       } else {
         console.log(`✅ images column already has correct type: ${currentType}`);
       }
@@ -128,7 +98,6 @@ async function fixDatabaseSchema() {
     console.log('✅ Database schema is now correct!');
   } catch (err) {
     console.error('❌ Error fixing database schema:', err.message);
-    console.error('Stack:', err.stack);
   }
 }
 
@@ -170,18 +139,18 @@ app.get('/health', async (req, res) => {
 });
 
 // ============================================================
-// MIGRATION API ENDPOINT (for manual trigger if needed)
+// MIGRATION API ENDPOINT
 // ============================================================
 app.post('/api/migration/run', async (req, res) => {
   try {
-    console.log('🔄 Running manual migration via API...');
+    console.log('🔄 Running manual migration...');
     await fixDatabaseSchema();
     res.json({ 
       success: true, 
-      message: '✅ Database migration completed successfully!' 
+      message: '✅ Migration completed successfully!' 
     });
   } catch (err) {
-    console.error('❌ Migration API error:', err.message);
+    console.error('❌ Migration error:', err.message);
     res.status(500).json({ 
       success: false, 
       error: err.message 
@@ -246,13 +215,11 @@ app.listen(PORT, '0.0.0.0', () => {
 // ============================================================
 // RUN DATABASE MIGRATION ON STARTUP
 // ============================================================
-// Wait for database connection, then run migration
 pool.query('SELECT NOW()', async (err, result) => {
   if (err) {
     console.error('❌ Database connection error:', err.message);
   } else {
     console.log('✅ Connected to PostgreSQL at', result.rows[0].now);
-    // Run the migration
     await fixDatabaseSchema();
   }
 });
