@@ -1,26 +1,41 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-const menuItemSchema = new mongoose.Schema({
-  id: Number,
-  name: String,
-  price: Number,
-  oldPrice: Number,
-  discount: String,
-  image: String,
-  rating: Number,
-  weight: String
+const Restaurant = sequelize.define('Restaurant', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
+    name: {
+        type: DataTypes.STRING(200),
+        allowNull: false
+    },
+    category: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+    },
+    logo: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    status: {
+        type: DataTypes.STRING(20),
+        defaultValue: 'Active'
+    },
+    createdAt: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW
+    },
+    updatedAt: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW
+    }
+}, {
+    tableName: 'restaurants',
+    timestamps: true,
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
 });
 
-const restaurantSchema = new mongoose.Schema({
-  id: Number,
-  name: String,
-  type: String,
-  cuisine: String,
-  rating: Number,
-  deliveryTime: String,
-  minOrder: Number,
-  image: String,
-  menu: [menuItemSchema]
-});
-
-module.exports = mongoose.model('Restaurant', restaurantSchema);
+module.exports = Restaurant;
