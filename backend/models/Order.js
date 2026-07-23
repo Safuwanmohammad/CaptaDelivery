@@ -22,7 +22,22 @@ const Order = sequelize.define('Order', {
     },
     items: {
         type: DataTypes.JSONB,
-        defaultValue: []
+        defaultValue: [],
+        get() {
+            const value = this.getDataValue('items');
+            if (!value) return [];
+            if (typeof value === 'string') {
+                try { return JSON.parse(value); } catch (e) { return []; }
+            }
+            return value;
+        },
+        set(value) {
+            if (typeof value === 'string') {
+                try { this.setDataValue('items', JSON.parse(value)); } catch (e) { this.setDataValue('items', []); }
+            } else {
+                this.setDataValue('items', value || []);
+            }
+        }
     },
     product_total: {
         type: DataTypes.DECIMAL(10, 2),
