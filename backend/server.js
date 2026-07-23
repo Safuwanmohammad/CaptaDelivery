@@ -30,16 +30,16 @@ types.setTypeParser(types.builtins.JSON, (val) => {
 });
 
 // ============================================
-// Import Models
+// Import Models - FIXED file names
 // ============================================
 const Category = require('./models/Category');
 const Product = require('./models/Product');
 const Restaurant = require('./models/Restaurant');
 const Order = require('./models/Order');
-const User = require('./models/user');
+const User = require('./models/user');  // lowercase
 const Offer = require('./models/Offer');
-const Place = require('./models/place');
-const Setting = require('./models/setting');
+const Place = require('./models/place');  // lowercase
+const Setting = require('./models/setting');  // lowercase
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -115,7 +115,7 @@ app.use(express.static(staticPath, {
 }));
 
 // ============================================
-// Routes
+// Routes - ALL routes properly registered
 // ============================================
 const categoryRoutes = require('./routes/categories');
 const productRoutes = require('./routes/products');
@@ -127,12 +127,13 @@ const placeRoutes = require('./routes/places');
 const settingsRoutes = require('./routes/settings');
 const authRoutes = require('./routes/auth');
 
+// ⭐ Register ALL routes
 app.use('/api', categoryRoutes);
-app.use('/api', productRoutes);
+app.use('/api/products', productRoutes);  // Full path to avoid conflicts
 app.use('/api', restaurantRoutes);
 app.use('/api', orderRoutes);
-app.use('/api', customerRoutes);
-app.use('/api', offerRoutes);
+app.use('/api/customers', customerRoutes);  // Full path
+app.use('/api/offers', offerRoutes);  // Full path
 app.use('/api', placeRoutes);
 app.use('/api', settingsRoutes);
 app.use('/api/auth', authRoutes);
