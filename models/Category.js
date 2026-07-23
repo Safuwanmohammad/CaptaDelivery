@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../db.js'); // Ensure this path points to your Sequelize instance
+const sequelize = require('../config/database');
 
 const Category = sequelize.define('Category', {
     id: {
