@@ -1,11 +1,12 @@
 {
   "name": "captadelivery-backend",
-  "version": "1.0.3",
+  "version": "1.0.1",
   "description": "CapTA Delivery Backend API with PostgreSQL",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "sync": "node sync-db.js"
   },
   "dependencies": {
     "compression": "^1.7.4",

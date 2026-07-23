@@ -5,10 +5,22 @@ const path = require('path');
 const fs = require('fs');
 const sequelize = require('./config/database');
 
+// ⭐ Import ALL models so Sequelize knows about them
+const Category = require('./models/Category');
+const Product = require('./models/Product');
+const Restaurant = require('./models/Restaurant');
+const Order = require('./models/Order');
+const User = require('./models/User');
+const Offer = require('./models/Offer');
+const Place = require('./models/Place');
+const Setting = require('./models/Setting');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// ============================================
 // Middleware
+// ============================================
 app.use(cors({
     origin: process.env.CORS_ORIGIN || '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
@@ -20,7 +32,9 @@ app.use(compression());
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
-// Static files
+// ============================================
+// Static Files
+// ============================================
 const staticPath = path.join(__dirname, '../frontend');
 app.use(express.static(staticPath, {
     setHeaders: (res) => {
@@ -35,7 +49,9 @@ app.use(express.static(staticPath, {
     }
 }));
 
+// ============================================
 // Routes
+// ============================================
 const categoryRoutes = require('./routes/categories');
 const productRoutes = require('./routes/products');
 const restaurantRoutes = require('./routes/restaurants');
@@ -56,7 +72,9 @@ app.use('/api', placeRoutes);
 app.use('/api', settingsRoutes);
 app.use('/api/auth', authRoutes);
 
+// ============================================
 // Frontend
+// ============================================
 app.get('/', (req, res) => {
     res.sendFile(path.join(staticPath, 'index.html'));
 });
@@ -65,7 +83,9 @@ app.get('/admin.html', (req, res) => {
     res.sendFile(path.join(staticPath, 'admin.html'));
 });
 
-// Health check
+// ============================================
+// Health Check
+// ============================================
 app.get('/health', async (req, res) => {
     try {
         await sequelize.authenticate();
@@ -75,7 +95,9 @@ app.get('/health', async (req, res) => {
     }
 });
 
-// Error handling
+// ============================================
+// Error Handling
+// ============================================
 app.use((req, res) => {
     res.status(404).json({ success: false, message: 'Route not found' });
 });
@@ -85,23 +107,30 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, message: err.message });
 });
 
-// ⭐ AUTO-SYNC DATABASE - THIS FIXES THE 500 ERRORS
+// ============================================
+// ⭐ START SERVER WITH AUTO-SYNC
+// ============================================
 async function startServer() {
     try {
+        // Test connection
         await sequelize.authenticate();
         console.log('✅ Connected to NeonDB');
         
-        // ⭐ This automatically adds missing columns - NO SQL NEEDED!
+        // ⭐ IMPORTANT: This adds all missing columns automatically
+        // No SQL needed - Sequelize does it for you!
         await sequelize.sync({ alter: true });
         console.log('✅ Database synced - all tables/columns updated');
         
         // Log what tables exist
-        console.log('📊 Tables:', Object.keys(sequelize.models).join(', '));
+        const models = Object.keys(sequelize.models);
+        console.log(`📊 Tables: ${models.join(', ')}`);
         
+        // Start server
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 Server running on port ${PORT}`);
             console.log(`🔗 http://localhost:${PORT}`);
         });
+        
     } catch (error) {
         console.error('❌ Failed to start:', error.message);
         process.exit(1);
