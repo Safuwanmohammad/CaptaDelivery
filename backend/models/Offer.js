@@ -1,12 +1,57 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-const offerSchema = new mongoose.Schema({
-  id: Number,
-  title: String,
-  discount: String,
-  code: String,
-  bg: String,
-  icon: String
+const Offer = sequelize.define('Offer', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
+    title: {
+        type: DataTypes.STRING(200),
+        allowNull: false
+    },
+    discount: {
+        type: DataTypes.STRING(50),
+        allowNull: false
+    },
+    code: {
+        type: DataTypes.STRING(50),
+        allowNull: true
+    },
+    bg: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    icon: {
+        type: DataTypes.STRING(50),
+        allowNull: true
+    },
+    restaurant_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    category: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+    },
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    createdAt: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW
+    },
+    updatedAt: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW
+    }
+}, {
+    tableName: 'offers',
+    timestamps: true,
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
 });
 
-module.exports = mongoose.model('Offer', offerSchema);
+module.exports = Offer;
