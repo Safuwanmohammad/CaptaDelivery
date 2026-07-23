@@ -12,8 +12,8 @@ const Restaurant = require('./models/Restaurant');
 const Order = require('./models/Order');
 const User = require('./models/user');
 const Offer = require('./models/Offer');
-const Place = require('./models/Place');
-const Setting = require('./models/Setting');
+const Place = require('./models/place');
+const Setting = require('./models/setting');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
