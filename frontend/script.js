@@ -1,4 +1,9 @@
 // ============================================================
+// CAPTADELIVERY - MAIN APPLICATION SCRIPT
+// FULLY UPDATED FOR POSTGRESQL BACKEND
+// ============================================================
+
+// ============================================================
 // API BASE – dynamically uses the current domain
 // ============================================================
 const API_BASE = window.location.origin + '/api';
@@ -93,7 +98,7 @@ const navLogo = document.getElementById('navLogo');
 const cartBadge = document.getElementById('cartBadge');
 
 // ============================================================
-// API HELPERS
+// API HELPERS - FIXED FOR POSTGRESQL
 // ============================================================
 async function fetchData(endpoint) {
   try {
@@ -107,29 +112,56 @@ async function fetchData(endpoint) {
 }
 
 async function postData(endpoint, data) {
-  const res = await fetch(`${API_BASE}/${endpoint}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || `HTTP ${res.status}`);
+  try {
+    const res = await fetch(`${API_BASE}/${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error(`❌ Error posting to ${endpoint}:`, error);
+    throw error;
   }
-  return await res.json();
 }
 
 async function putData(endpoint, data) {
-  const res = await fetch(`${API_BASE}/${endpoint}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || `HTTP ${res.status}`);
+  try {
+    const res = await fetch(`${API_BASE}/${endpoint}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error(`❌ Error putting to ${endpoint}:`, error);
+    throw error;
   }
-  return await res.json();
+}
+
+async function deleteData(endpoint) {
+  try {
+    const res = await fetch(`${API_BASE}/${endpoint}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error(`❌ Error deleting ${endpoint}:`, error);
+    throw error;
+  }
 }
 
 // ============================================================
@@ -276,7 +308,179 @@ function validateImageFile(file, maxSizeMB = 2) {
 }
 
 // ============================================================
-// LOAD ALL DATA (FIXED)
+// TOAST NOTIFICATION SYSTEM
+// ============================================================
+function createToastContainer() {
+  const container = document.createElement('div');
+  container.className = 'toast-container';
+  container.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 400px;
+    width: 100%;
+  `;
+  document.body.appendChild(container);
+  return container;
+}
+
+function showToast(message, type = 'info', duration = 3000) {
+  const container = document.querySelector('.toast-container') || createToastContainer();
+  
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.style.cssText = `
+    padding: 12px 20px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    animation: slideIn 0.3s ease-out;
+    transform-origin: top right;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  `;
+  
+  const icons = {
+    success: '✅',
+    error: '❌',
+    warning: '⚠️',
+    info: 'ℹ️'
+  };
+  
+  toast.innerHTML = `
+    <span>${icons[type] || 'ℹ️'}</span>
+    <span style="flex: 1;">${message}</span>
+    <span style="cursor: pointer; opacity: 0.7;">✕</span>
+  `;
+  
+  const colors = {
+    success: '#4CAF50',
+    error: '#f44336',
+    warning: '#FF9800',
+    info: '#2196F3'
+  };
+  toast.style.backgroundColor = colors[type] || colors.info;
+  
+  toast.querySelector('span:last-child').addEventListener('click', () => {
+    dismissToast(toast);
+  });
+  
+  container.appendChild(toast);
+  
+  setTimeout(() => {
+    dismissToast(toast);
+  }, duration);
+  
+  return toast;
+}
+
+function dismissToast(toast) {
+  toast.style.animation = 'slideOut 0.3s ease-in';
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.remove();
+    }
+  }, 300);
+}
+
+// Add toast animations
+const toastStyles = document.createElement('style');
+toastStyles.textContent = `
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+  }
+`;
+document.head.appendChild(toastStyles);
+
+// ============================================================
+// LOADING INDICATOR
+// ============================================================
+function showLoading(message = 'Processing...') {
+  let loader = document.getElementById('loadingIndicator');
+  
+  if (!loader) {
+    loader = document.createElement('div');
+    loader.id = 'loadingIndicator';
+    loader.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      backdrop-filter: blur(4px);
+    `;
+    
+    loader.innerHTML = `
+      <div style="
+        background: white;
+        padding: 30px 40px;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        min-width: 200px;
+      ">
+        <div style="
+          width: 48px;
+          height: 48px;
+          border: 4px solid #f3f3f3;
+          border-top: 4px solid #3498db;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+          margin: 0 auto 15px;
+        "></div>
+        <div class="loading-message" style="
+          color: #333;
+          font-size: 16px;
+          font-weight: 500;
+        ">${message}</div>
+      </div>
+    `;
+    
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(loader);
+  } else {
+    const msgEl = loader.querySelector('.loading-message');
+    if (msgEl) msgEl.textContent = message;
+  }
+  
+  loader.style.display = 'flex';
+}
+
+function hideLoading() {
+  const loader = document.getElementById('loadingIndicator');
+  if (loader) {
+    loader.style.display = 'none';
+  }
+}
+
+// ============================================================
+// LOAD ALL DATA (FIXED FOR POSTGRESQL)
 // ============================================================
 async function loadAllData() {
   try {
@@ -295,15 +499,15 @@ async function loadAllData() {
     ]);
     
     // Parse results with fallbacks
-    categories = results[0].status === 'fulfilled' ? (results[0].value || []) : [];
-    restaurants = results[1].status === 'fulfilled' ? (results[1].value || []) : [];
-    products = results[2].status === 'fulfilled' ? (results[2].value || []) : [];
-    offers = results[3].status === 'fulfilled' ? (results[3].value || []) : [];
-    orders = results[4].status === 'fulfilled' ? (results[4].value || []) : [];
-    users = results[5].status === 'fulfilled' ? (results[5].value || []) : [];
+    categories = results[0].status === 'fulfilled' ? (results[0].value.data || results[0].value || []) : [];
+    restaurants = results[1].status === 'fulfilled' ? (results[1].value.data || results[1].value || []) : [];
+    products = results[2].status === 'fulfilled' ? (results[2].value.data || results[2].value || []) : [];
+    offers = results[3].status === 'fulfilled' ? (results[3].value.data || results[3].value || []) : [];
+    orders = results[4].status === 'fulfilled' ? (results[4].value.data || results[4].value || []) : [];
+    users = results[5].status === 'fulfilled' ? (results[5].value.data || results[5].value || []) : [];
     
     // Parse settings with fallbacks
-    const settingsRes = results[7].status === 'fulfilled' ? results[7].value : {};
+    const settingsRes = results[7].status === 'fulfilled' ? (results[7].value.data || results[7].value || {}) : {};
     settings.rain_fare = parseFloat(settingsRes.rain_fare) || 20;
     settings.rain_fare_enabled = settingsRes.rain_fare_enabled !== 'false';
     settings.delivery_hours = settingsRes.delivery_hours || '9:00 AM - 10:00 PM';
@@ -311,7 +515,7 @@ async function loadAllData() {
     settings.service_unavailable = settingsRes.service_unavailable === 'true';
     
     // Parse places
-    const placesRes = results[4].status === 'fulfilled' ? (results[4].value || []) : [];
+    const placesRes = results[4].status === 'fulfilled' ? (results[4].value.data || results[4].value || []) : [];
     const areas = {};
     placesRes.forEach(p => {
       if (!areas[p.area]) areas[p.area] = { subAreas: {} };
@@ -340,28 +544,13 @@ async function loadAllData() {
   } catch (err) {
     console.error('Failed to load data:', err);
     state.loading = false;
-    showToast('Error connecting to server. Check your backend.');
+    showToast('Error connecting to server. Check your backend.', 'error');
     renderContent();
   }
 }
 
 // ============================================================
-// TOAST
-// ============================================================
-let toastTimeout;
-
-function showToast(message) {
-  state.toastMsg = message;
-  renderContent();
-  clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => {
-    state.toastMsg = null;
-    renderContent();
-  }, 3000);
-}
-
-// ============================================================
-// CART
+// CART FUNCTIONS
 // ============================================================
 function saveCart() {
   localStorage.setItem('swingy_cart', JSON.stringify(cart));
@@ -412,7 +601,8 @@ function addToCart(product, qty, selectedVariant) {
     quantity: qty,
     selectedVariant: selectedVariant || null,
     category: product.category || 'Uncategorized',
-    commission: product.commission || 0
+    commission: product.commission || 0,
+    id: product.id || product._id // Support both PostgreSQL and MongoDB
   };
   
   if (selectedVariant && hasVariants && variantsArray.length > 0) {
@@ -428,7 +618,7 @@ function addToCart(product, qty, selectedVariant) {
     cartItem.price = product.price || 0;
   }
 
-  const existing = cart.find(i => i.id === product.id && i.variantLabel === cartItem.variantLabel);
+  const existing = cart.find(i => i.id === cartItem.id && i.variantLabel === cartItem.variantLabel);
   if (existing) {
     existing.quantity += qty;
   } else {
@@ -436,7 +626,7 @@ function addToCart(product, qty, selectedVariant) {
   }
   saveCart();
   updateBadges();
-  showToast(`Added ${qty} ${cartItem.displayName}`);
+  showToast(`Added ${qty} ${cartItem.displayName}`, 'success');
   renderContent();
 }
 
@@ -483,7 +673,7 @@ function updateDeliveryCharge() {
 // ============================================================
 function proceedToCheckout() {
   if (cart.length === 0) {
-    showToast('Your cart is empty!');
+    showToast('Your cart is empty!', 'warning');
     return;
   }
 
@@ -534,11 +724,11 @@ function closeOrderSummary() {
 // ============================================================
 function proceedToPayment() {
   if (!state.orderSummary.selectedMainArea || !state.orderSummary.selectedSubArea) {
-    showToast('Please select your delivery area');
+    showToast('Please select your delivery area', 'warning');
     return;
   }
   if (!user) {
-    showToast('Please login to place order');
+    showToast('Please login to place order', 'warning');
     openLogin();
     return;
   }
@@ -643,7 +833,7 @@ function renderPaymentPage() {
 // ============================================================
 async function confirmPayment(method) {
   if (method === 'upi') {
-    showToast('UPI/Razorpay integration coming soon!');
+    showToast('UPI/Razorpay integration coming soon!', 'info');
     return;
   }
   await placeOrder();
@@ -731,10 +921,10 @@ async function placeOrder() {
     updateBadges();
     state.showOrderSummary = false;
     state.showPayment = false;
-    showToast('✅ Order placed! #' + orderNumber);
+    showToast('✅ Order placed! #' + orderNumber, 'success');
     renderContent();
   } catch (err) {
-    showToast('❌ Failed to place order: ' + err.message);
+    showToast('❌ Failed to place order: ' + err.message, 'error');
   }
 }
 
@@ -858,7 +1048,7 @@ function switchTab(tab) {
 async function sendLoginOtp() {
   const phone = document.getElementById('loginPhone').value.trim();
   if (!phone || phone.length < 10) {
-    showToast('Please enter a valid phone number');
+    showToast('Please enter a valid phone number', 'warning');
     return;
   }
   try {
@@ -870,18 +1060,18 @@ async function sendLoginOtp() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
     otpCode = data.otp;
-    showToast(`OTP sent: ${otpCode} (demo)`);
+    showToast(`OTP sent: ${otpCode} (demo)`, 'success');
     document.getElementById('loginOtpSection').classList.remove('hidden');
     document.getElementById('loginSendOtpBtn').textContent = 'Resend OTP';
   } catch (err) {
-    showToast(err.message);
+    showToast(err.message, 'error');
   }
 }
 
 async function verifyLoginOtp() {
   const phone = document.getElementById('loginPhone').value.trim();
   const otp = document.getElementById('loginOtp').value.trim();
-  if (!otp) { showToast('Enter OTP'); return; }
+  if (!otp) { showToast('Enter OTP', 'warning'); return; }
   try {
     const res = await fetch(`${API_BASE}/auth/verify-otp`, {
       method: 'POST',
@@ -893,13 +1083,13 @@ async function verifyLoginOtp() {
     user = data.user;
     localStorage.setItem('swingy_user', JSON.stringify(user));
     closeLogin();
-    showToast(`Welcome ${user.first_name}!`);
+    showToast(`Welcome ${user.first_name}!`, 'success');
     users = await fetchData('customers');
     orders = await fetchData('orders');
     updateNavUser();
     renderContent();
   } catch (err) {
-    showToast(err.message);
+    showToast(err.message, 'error');
   }
 }
 
@@ -910,7 +1100,7 @@ async function sendSignupOtp() {
   const address = document.getElementById('signupAddress').value.trim();
   const pincode = document.getElementById('signupPincode').value.trim();
   if (!firstName || !lastName || !address || !pincode || !phone || phone.length < 10) {
-    showToast('Please fill all mandatory fields and valid phone');
+    showToast('Please fill all mandatory fields and valid phone', 'warning');
     return;
   }
   window.signupData = { firstName, lastName, address, pincode, phone };
@@ -923,19 +1113,19 @@ async function sendSignupOtp() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
     otpCode = data.otp;
-    showToast(`OTP sent: ${otpCode} (demo)`);
+    showToast(`OTP sent: ${otpCode} (demo)`, 'success');
     document.getElementById('signupOtpSection').classList.remove('hidden');
     document.getElementById('signupSendOtpBtn').textContent = 'Resend OTP';
   } catch (err) {
-    showToast(err.message);
+    showToast(err.message, 'error');
   }
 }
 
 async function verifySignupOtp() {
   const otp = document.getElementById('signupOtp').value.trim();
-  if (!otp) { showToast('Enter OTP'); return; }
+  if (!otp) { showToast('Enter OTP', 'warning'); return; }
   const data = window.signupData;
-  if (!data) { showToast('Please fill details first'); return; }
+  if (!data) { showToast('Please fill details first', 'warning'); return; }
   try {
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
@@ -947,12 +1137,12 @@ async function verifySignupOtp() {
     user = result.user;
     localStorage.setItem('swingy_user', JSON.stringify(user));
     closeLogin();
-    showToast(`Welcome ${user.first_name}!`);
+    showToast(`Welcome ${user.first_name}!`, 'success');
     users = await fetchData('customers');
     updateNavUser();
     renderContent();
   } catch (err) {
-    showToast(err.message);
+    showToast(err.message, 'error');
   }
 }
 
@@ -961,7 +1151,7 @@ function logout() {
   localStorage.removeItem('swingy_user');
   updateNavUser();
   renderContent();
-  showToast('Logged out');
+  showToast('Logged out', 'info');
 }
 
 // ============================================================
@@ -2270,7 +2460,7 @@ function handleOrderAgain(orderItems) {
   saveCart();
   updateBadges();
   state.showOrders = false;
-  showToast('Items added to cart');
+  showToast('Items added to cart', 'success');
   renderContent();
 }
 

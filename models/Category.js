@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const sequelize = require('../db.js'); // Ensure this path points to your Sequelize instance
 
 const Category = sequelize.define('Category', {
     id: {
@@ -26,18 +26,13 @@ const Category = sequelize.define('Category', {
         validate: {
             isValidImage(value) {
                 if (!value) return true;
-                
-                // Allow URLs
                 if (value.startsWith('http://') || value.startsWith('https://')) {
                     return true;
                 }
-                
-                // Validate base64 image
                 if (value.startsWith('data:image/')) {
                     try {
                         const base64Data = value.split(',')[1] || value;
                         const buffer = Buffer.from(base64Data, 'base64');
-                        // Limit to 200KB
                         if (buffer.length > 200 * 1024) {
                             throw new Error('Image too large (max 200KB)');
                         }
@@ -46,7 +41,6 @@ const Category = sequelize.define('Category', {
                         throw new Error('Invalid image format');
                     }
                 }
-                
                 throw new Error('Invalid image format. Use URL or base64 image.');
             }
         }
