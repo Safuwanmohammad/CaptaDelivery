@@ -1,29 +1,46 @@
-const { Sequelize } = require('sequelize');
+const { Pool } = require('pg');
+require('dotenv').config();
 
-// Use the DATABASE_URL from your environment variables
-const databaseUrl = process.env.DATABASE_URL;
-
-if (!databaseUrl) {
-    console.error('❌ FATAL: DATABASE_URL is not set in environment variables.');
-    console.error('Please set DATABASE_URL in your Render environment variables.');
-    process.exit(1);
-}
-
-const sequelize = new Sequelize(databaseUrl, {
-    dialect: 'postgres',
-    dialectOptions: {
-        ssl: {
-            require: true,
-            rejectUnauthorized: false
-        }
-    },
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
-    pool: {
-        max: 5,
-        min: 0,
-        acquire: 30000,
-        idle: 10000
-    }
+// PostgreSQL connection
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-module.exports = sequelize;
+// Add type parsing for JSONB
+const { types } = require('pg');
+
+// Parse JSONB to JavaScript object/array
+types.setTypeParser(types.builtins.JSONB, (val) => {
+  if (!val) return [];
+  try {
+    const parsed = JSON.parse(val);
+    return parsed;
+  } catch (e) {
+    console.warn('⚠️ Failed to parse JSONB:', val);
+    return [];
+  }
+});
+
+// Parse JSON
+types.setTypeParser(types.builtins.JSON, (val) => {
+  if (!val) return [];
+  try {
+    return JSON.parse(val);
+  } catch (e) {
+    return [];
+  }
+});
+
+// Test connection
+pool.query('SELECT NOW()', (err, result) => {
+  if (err) {
+    console.error('❌ Database connection error:', err.message);
+  } else {
+    console.log('✅ Connected to PostgreSQL at', result.rows[0].now);
+  }
+});
+
+module.exports = pool;
