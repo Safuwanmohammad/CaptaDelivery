@@ -45,6 +45,8 @@
       gap: 12px;
       border-radius: 0 8px 8px 0;
       margin: 2px 8px 2px 0;
+      cursor: pointer;
+      text-decoration: none;
     }
     .sidebar a:hover, .sidebar a.active {
       background: #334155;
@@ -115,7 +117,6 @@
       flex-shrink: 0;
     }
     .top-bar .page-title .menu-btn:hover { background: #f1f5f9; }
-    .top-bar .page-title h1 { font-size: 1.25rem; font-weight: 700; }
     .top-bar .right-actions {
       display: flex;
       align-items: center;
@@ -136,24 +137,13 @@
       justify-content: center;
     }
     .top-bar .right-actions .theme-btn:hover { background: #f1f5f9; }
-    .top-bar .right-actions .admin-badge {
-      background: #e2e8f0;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #475569;
-      display: none;
-    }
 
     .card {
       background: white;
       border-radius: 14px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      transition: 0.2s;
       overflow: hidden;
     }
-    .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
 
     .stat-card {
       padding: 16px;
@@ -162,7 +152,6 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
       transition: 0.2s;
     }
-    .stat-card:active { transform: scale(0.97); }
     .stat-card .icon {
       width: 44px; height: 44px;
       border-radius: 12px;
@@ -183,86 +172,6 @@
     @media (min-width:480px) { .stat-grid { grid-template-columns: repeat(3,1fr); } }
     @media (min-width:768px) { .stat-grid { grid-template-columns: repeat(4,1fr); } }
     @media (min-width:1024px) { .stat-grid { grid-template-columns: repeat(6,1fr); } }
-
-    .tab-btn {
-      padding: 8px 14px;
-      border-radius: 10px;
-      font-weight: 500;
-      transition: 0.2s;
-      cursor: pointer;
-      font-size: 0.85rem;
-      border: none;
-      background: transparent;
-      color: #64748b;
-      white-space: nowrap;
-    }
-    .tab-btn.active {
-      background: #007BFF;
-      color: white;
-      box-shadow: 0 4px 12px rgba(0,123,255,0.25);
-    }
-    .tab-btn:hover:not(.active) { background: #e2e8f0; }
-
-    .tab-group-scroll {
-      display: flex;
-      gap: 4px;
-      overflow-x: auto;
-      padding: 4px 0 8px;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-    .tab-group-scroll::-webkit-scrollbar { display: none; }
-
-    .table-wrap {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      margin: 0 -4px;
-      padding: 0 4px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-      min-width: 600px;
-    }
-    th {
-      background: #f8fafc;
-      text-align: left;
-      padding: 10px 12px;
-      font-weight: 600;
-      font-size: 0.75rem;
-      color: #475569;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-      white-space: nowrap;
-    }
-    td {
-      padding: 10px 12px;
-      border-bottom: 1px solid #e9edf2;
-      vertical-align: middle;
-    }
-    tr:hover td { background: #f8fafc; }
-
-    .table-actions {
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
-    }
-    .table-actions .btn { padding: 4px 10px; font-size: 0.75rem; border-radius: 8px; }
-
-    .badge {
-      padding: 3px 12px;
-      border-radius: 20px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      display: inline-block;
-      white-space: nowrap;
-    }
-    .badge-success { background: #dcfce7; color: #166534; }
-    .badge-warning { background: #fef9c3; color: #854d0e; }
-    .badge-danger { background: #fee2e2; color: #991b1b; }
-    .badge-info { background: #dbeafe; color: #1e40af; }
-    .badge-secondary { background: #e5e7eb; color: #374151; }
 
     .btn {
       padding: 8px 16px;
@@ -293,6 +202,36 @@
     .btn-sm { padding: 4px 10px; font-size: 0.75rem; border-radius: 8px; }
     .btn-block { width: 100%; justify-content: center; }
 
+    .badge {
+      padding: 3px 12px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      display: inline-block;
+      white-space: nowrap;
+    }
+    .badge-success { background: #dcfce7; color: #166534; }
+    .badge-warning { background: #fef9c3; color: #854d0e; }
+    .badge-danger { background: #fee2e2; color: #991b1b; }
+    .badge-info { background: #dbeafe; color: #1e40af; }
+
+    .form-group { margin-bottom:14px; }
+    .form-group label { display:block; font-weight:500; font-size:0.85rem; margin-bottom:4px; color:#374151; }
+    .form-group input, .form-group select, .form-group textarea {
+      width:100%;
+      padding:10px 14px;
+      border:1px solid #d1d5db;
+      border-radius:10px;
+      outline:none;
+      transition:0.2s;
+      font-size:0.95rem;
+      background:white;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color:#007BFF;
+      box-shadow:0 0 0 3px rgba(0,123,255,0.15);
+    }
+
     .modal-overlay {
       background: rgba(0,0,0,0.5);
       backdrop-filter: blur(4px);
@@ -301,6 +240,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      position: fixed;
+      inset: 0;
     }
     .modal-box {
       max-height: 90vh;
@@ -325,92 +266,36 @@
       padding:4px 8px;
       z-index:10;
     }
-    .modal-box .modal-close:hover { color:#1e293b; }
-    .modal-box h2 { font-size:1.3rem; font-weight:700; margin-bottom:16px; padding-right:40px; }
 
-    .form-group { margin-bottom:14px; }
-    .form-group label { display:block; font-weight:500; font-size:0.85rem; margin-bottom:4px; color:#374151; }
-    .form-group input, .form-group select, .form-group textarea {
-      width:100%;
-      padding:10px 14px;
-      border:1px solid #d1d5db;
-      border-radius:10px;
-      outline:none;
-      transition:0.2s;
-      font-size:0.95rem;
-      background:white;
-      -webkit-appearance:none;
-      appearance:none;
-    }
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-      border-color:#007BFF;
-      box-shadow:0 0 0 3px rgba(0,123,255,0.15);
-    }
-    .form-group textarea { resize:vertical; min-height:60px; }
+    .table-wrap { overflow-x: auto; }
+    table { width:100%; border-collapse: collapse; font-size:0.85rem; min-width:600px; }
+    th { background: #f8fafc; text-align:left; padding:10px 12px; font-weight:600; font-size:0.75rem; color:#475569; }
+    td { padding:10px 12px; border-bottom:1px solid #e9edf2; vertical-align:middle; }
+    tr:hover td { background: #f8fafc; }
 
-    .image-preview-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 8px;
-    }
-    .image-preview-grid .preview-item {
-      position: relative;
-      width: 68px; height: 68px;
-      border-radius: 10px;
-      overflow: hidden;
-      border: 2px solid #e5e7eb;
-      flex-shrink:0;
-    }
-    .image-preview-grid .preview-item img { width:100%; height:100%; object-fit:cover; }
-    .image-preview-grid .preview-item .remove-img {
-      position: absolute;
-      top: -6px; right: -6px;
-      width: 20px; height: 20px;
-      background: #ef4444;
-      color: white;
-      border-radius: 9999px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      cursor: pointer;
-      border: 2px solid white;
-      transition: 0.2s;
-      touch-action: manipulation;
-    }
-    .image-preview-grid .preview-item .remove-img:active { transform: scale(0.85); }
+    .table-actions { display: flex; gap: 4px; flex-wrap: wrap; }
 
-    .file-input-wrapper {
-      position: relative;
-      overflow: hidden;
-      display: inline-block;
-      width: 100%;
+    .image-preview-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .preview-item { position: relative; width: 68px; height: 68px; border-radius: 10px; overflow: hidden; border: 2px solid #e5e7eb; flex-shrink:0; }
+    .preview-item img { width:100%; height:100%; object-fit:cover; }
+
+    .hide-mobile { display: none !important; }
+    @media (min-width:768px) {
+      .hide-mobile { display: inline-flex !important; }
+      .show-mobile { display: none !important; }
+      .sidebar {
+        transform: none !important;
+        position: fixed;
+        left:0; top:0;
+        width:280px;
+        display: block !important;
+        z-index:30;
+      }
+      .sidebar-backdrop { display: none !important; }
+      .main-content { margin-left:280px; padding:24px 32px; }
+      .top-bar .page-title .menu-btn { display: none !important; }
     }
-    .file-input-wrapper input[type="file"] {
-      position: absolute;
-      left:0; top:0;
-      opacity:0;
-      width:100%; height:100%;
-      cursor:pointer;
-    }
-    .file-input-wrapper .file-btn {
-      width:100%;
-      padding:12px;
-      border:2px dashed #d1d5db;
-      border-radius:12px;
-      background:#f8fafc;
-      color:#64748b;
-      font-size:0.9rem;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:8px;
-      transition:0.2s;
-      cursor:pointer;
-    }
-    .file-input-wrapper .file-btn:hover { border-color:#007BFF; background:#eff6ff; }
-    .file-input-wrapper .file-btn:active { transform:scale(0.98); }
+    .show-mobile { display: inline-flex !important; }
 
     #notificationContainer {
       position: fixed;
@@ -439,73 +324,10 @@
       gap: 10px;
       animation: slideIn 0.3s ease;
     }
-    #notificationContainer .toast i { color:#22c55e; font-size:1.1rem; flex-shrink:0; }
     @keyframes slideIn {
       from { transform:translateX(100%); opacity:0; }
       to { transform:translateX(0); opacity:1; }
     }
-
-    .hide-mobile { display: none !important; }
-    @media (min-width:768px) {
-      .hide-mobile { display: inline-flex !important; }
-      .show-mobile { display: none !important; }
-    }
-    .show-mobile { display: inline-flex !important; }
-
-    ::-webkit-scrollbar { width:4px; height:4px; }
-    ::-webkit-scrollbar-track { background:transparent; }
-    ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:10px; }
-    ::-webkit-scrollbar-thumb:hover { background:#94a3b8; }
-
-    .gap-1 { gap:4px; } .gap-2 { gap:8px; } .gap-3 { gap:12px; }
-    .flex-wrap { flex-wrap:wrap; } .items-center { align-items:center; } .justify-between { justify-content:space-between; }
-    .text-truncate { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px; }
-    @media (min-width:480px) { .text-truncate { max-width:200px; } }
-
-    .fade-in { animation:fadeIn 0.3s ease; }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-
-    .chart-container { position:relative; height:200px; width:100%; }
-    @media (max-width:480px) { .chart-container { height:160px; } }
-    .dashboard-charts { display:grid; grid-template-columns:1fr; gap:16px; }
-    @media (min-width:768px) { .dashboard-charts { grid-template-columns:1fr 1fr; } }
-
-    @media (min-width:768px) {
-      .sidebar {
-        transform: none !important;
-        position: fixed;
-        left:0; top:0;
-        width:280px;
-        display: block !important;
-        z-index:30;
-      }
-      .sidebar-backdrop { display: none !important; }
-      .main-content { margin-left:280px; padding:24px 32px; }
-      .top-bar .page-title .menu-btn { display: none !important; }
-      .top-bar .right-actions .admin-badge { display: inline-flex !important; }
-      .hide-mobile { display: table-cell !important; }
-    }
-
-    .dark .card { background:#1e293b; color:#e2e8f0; }
-    .dark .stat-card { background:#1e293b; color:#e2e8f0; }
-    .dark .table-wrap table th { background:#1e293b; color:#94a3b8; }
-    .dark .table-wrap table td { border-bottom-color:#334155; }
-    .dark .table-wrap tr:hover td { background:#2d3a4f; }
-    .dark .form-group input, .dark .form-group select { background:#0f172a; border-color:#334155; color:#e2e8f0; }
-    .dark .form-group input:focus, .dark .form-group select:focus { border-color:#007BFF; box-shadow:0 0 0 3px rgba(0,123,255,0.2); }
-    .dark .modal-box { background:#1e293b; color:#e2e8f0; }
-    .dark .modal-box .modal-close { color:#94a3b8; }
-    .dark .modal-box .modal-close:hover { color:#e2e8f0; }
-    .dark .tab-btn:hover:not(.active) { background:#334155; }
-    .dark .tab-btn:not(.active) { color:#94a3b8; }
-    .dark .badge-secondary { background:#334155; color:#94a3b8; }
-    .dark .top-bar .page-title { color:#e2e8f0; }
-    .dark .top-bar .page-title .menu-btn { background:#1e293b; color:#e2e8f0; border:1px solid #334155; }
-    .dark .top-bar .right-actions .theme-btn { background:#1e293b; color:#e2e8f0; border:1px solid #334155; }
-    .dark .top-bar .right-actions .admin-badge { background:#334155; color:#94a3b8; }
-    .dark .file-input-wrapper .file-btn { background:#0f172a; border-color:#334155; color:#94a3b8; }
-    .dark .file-input-wrapper .file-btn:hover { border-color:#007BFF; background:#1a2a4a; }
-    .dark #notificationContainer .toast { background:#1e293b; border:1px solid #334155; }
 
     .spinner {
       border: 3px solid #f3f3f3;
@@ -521,52 +343,68 @@
       100% { transform: rotate(360deg); }
     }
 
-    @media (max-width: 767px) {
-      .btn-block {
-        font-size: 0.8rem !important;
-        padding: 8px 12px !important;
-        min-height: 44px;
-      }
-      .top-bar .page-title h1 {
-        font-size: 1rem !important;
-      }
-      .modal-box {
-        padding: 12px !important;
-        margin: 8px !important;
-      }
-      .form-group input, .form-group select, .form-group textarea {
-        font-size: 0.85rem !important;
-        padding: 8px 10px !important;
-      }
-      .tab-btn {
-        font-size: 0.75rem !important;
-        padding: 6px 10px !important;
-      }
+    .fade-in { animation:fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    .chart-container { position:relative; height:200px; width:100%; }
+    .dashboard-charts { display:grid; grid-template-columns:1fr; gap:16px; }
+    @media (min-width:768px) { .dashboard-charts { grid-template-columns:1fr 1fr; } }
+
+    .tab-btn {
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-weight: 500;
+      transition: 0.2s;
+      cursor: pointer;
+      font-size: 0.85rem;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      white-space: nowrap;
     }
+    .tab-btn.active { background: #007BFF; color: white; box-shadow: 0 4px 12px rgba(0,123,255,0.25); }
+    .tab-btn:hover:not(.active) { background: #e2e8f0; }
+    .tab-group-scroll {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      padding: 4px 0 8px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .tab-group-scroll::-webkit-scrollbar { display: none; }
+
+    .gradient-btn {
+      background: linear-gradient(135deg, #007BFF 0%, #0056b3 100%);
+      color: white;
+      border: none;
+      transition: all 0.3s ease;
+    }
+    .gradient-btn:hover { background: linear-gradient(135deg, #0056b3 0%, #004099 100%); }
   </style>
 </head>
 <body>
 
 <!-- ========== ADMIN LOGIN OVERLAY ========== -->
 <div id="adminLoginOverlay" class="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900/80 backdrop-blur-sm">
-  <div class="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full shadow-2xl">
-    <h2 class="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-white">Admin Login</h2>
-    <p class="text-sm text-center text-gray-500 dark:text-gray-400 mb-4">Enter your registered admin phone</p>
+  <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
+    <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Admin Login</h2>
+    <p class="text-sm text-center text-gray-500 mb-4">Enter your registered admin phone</p>
     <div class="space-y-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone</label>
-        <input type="tel" id="adminPhone" placeholder="Enter admin phone" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+        <label class="block text-sm font-medium text-gray-700">Phone</label>
+        <input type="tel" id="adminPhone" placeholder="Enter admin phone" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" />
       </div>
       <div id="adminOtpSection" class="hidden">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">OTP</label>
+        <label class="block text-sm font-medium text-gray-700">OTP</label>
         <div class="flex gap-2">
-          <input type="text" id="adminOtp" placeholder="Enter OTP" class="flex-1 px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+          <input type="text" id="adminOtp" placeholder="Enter OTP" class="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none" />
           <button onclick="verifyAdminOtp()" class="btn btn-primary px-6 py-3 rounded-xl font-semibold">Verify</button>
         </div>
       </div>
       <button onclick="sendAdminOtp()" id="adminSendOtpBtn" class="btn btn-primary w-full text-white py-3 rounded-xl font-semibold">Send OTP</button>
     </div>
-    <p class="text-center text-xs text-gray-400 dark:text-gray-500 mt-4">OTP will be sent to your phone. Check console if not received.</p>
+    <p class="text-center text-xs text-gray-400 mt-4">OTP will be sent to your phone.</p>
   </div>
 </div>
 
@@ -589,8 +427,6 @@
     <a href="#" data-page="reports"><i class="fas fa-chart-bar"></i><span>Reports</span></a>
     <a href="#" data-page="bestselling"><i class="fas fa-crown"></i><span>Best Selling</span></a>
     <a href="#" data-page="offers"><i class="fas fa-tags"></i><span>Offers</span></a>
-    <a href="#" data-page="notifications"><i class="fas fa-bell"></i><span>Notifications</span></a>
-    <a href="#" data-page="whatsapp"><i class="fab fa-whatsapp"></i><span>WhatsApp</span></a>
     <a href="#" data-page="settings"><i class="fas fa-cog"></i><span>Settings</span></a>
   </nav>
   <div class="absolute bottom-4 left-0 w-full px-4 space-y-1">
@@ -636,366 +472,326 @@
 <div id="notificationContainer"></div>
 
 <script>
-  // ============================================================
-  // API BASE
-  // ============================================================
-  const API_BASE = window.location.origin + '/api';
+// ============================================================
+// API BASE
+// ============================================================
+const API_BASE = window.location.origin + '/api';
 
-  // ============================================================
-  // DATA HELPERS
-  // ============================================================
-  async function fetchData(endpoint) {
-    const res = await fetch(`${API_BASE}/${endpoint}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
+// ============================================================
+// DATA HELPERS
+// ============================================================
+async function fetchData(endpoint) {
+  const res = await fetch(`${API_BASE}/${endpoint}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return await res.json();
+}
+
+async function postData(endpoint, data) {
+  const res = await fetch(`${API_BASE}/${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || errorData.error || `HTTP ${res.status}`);
   }
-  async function postData(endpoint, data) {
-    const res = await fetch(`${API_BASE}/${endpoint}`, {
+  return await res.json();
+}
+
+async function putData(endpoint, data) {
+  const res = await fetch(`${API_BASE}/${endpoint}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || errorData.error || `HTTP ${res.status}`);
+  }
+  return await res.json();
+}
+
+async function deleteData(endpoint) {
+  const res = await fetch(`${API_BASE}/${endpoint}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return await res.json();
+}
+
+// ============================================================
+// GLOBAL STATE
+// ============================================================
+let categories = [];
+let restaurants = [];
+let products = [];
+let places = [];
+let customers = [];
+let orders = [];
+let offers = [];
+let settings = {};
+let currentPage = 'dashboard';
+let catalogTab = 'categories';
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg) {
+  const container = document.getElementById('notificationContainer');
+  if (!container) { alert(msg); return; }
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = `<i class="fas fa-check-circle"></i> ${msg}`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(100%)';
+    toast.style.transition = '0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// ============================================================
+// SIDEBAR / MODAL / THEME
+// ============================================================
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarBackdrop').classList.toggle('active');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarBackdrop').classList.remove('active');
+}
+
+function openModal(html) {
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalContainer').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modalContainer').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.getElementById('closeModal').addEventListener('click', closeModal);
+document.getElementById('modalContainer').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+document.querySelectorAll('#sidebarNav a').forEach(link => {
+  link.addEventListener('click', function(e) {
+    e.preventDefault();
+    navigateTo(this.dataset.page);
+    closeSidebar();
+  });
+});
+
+function navigateTo(page) {
+  currentPage = page;
+  document.querySelectorAll('#sidebarNav a').forEach(a => a.classList.remove('active'));
+  const sidebarLink = document.querySelector(`#sidebarNav a[data-page="${page}"]`);
+  if (sidebarLink) sidebarLink.classList.add('active');
+
+  const titles = {
+    dashboard: 'Dashboard',
+    catalog: 'Catalog',
+    places: 'Delivery Places',
+    customers: 'Customers',
+    orders: 'Orders',
+    earnings: 'Earnings',
+    reports: 'Reports',
+    bestselling: 'Best Selling',
+    offers: 'Offers',
+    settings: 'Settings'
+  };
+  document.getElementById('pageTitle').textContent = titles[page] || page.charAt(0).toUpperCase() + page.slice(1).replace('-', ' ');
+  renderPage(page);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ============================================================
+// PAGE RENDERER
+// ============================================================
+function renderPage(page) {
+  const content = document.getElementById('pageContent');
+  content.style.opacity = '0';
+  content.style.transform = 'translateY(8px)';
+  content.style.transition = '0.2s ease';
+  setTimeout(() => {
+    switch (page) {
+      case 'dashboard': renderDashboard(content); break;
+      case 'catalog': renderCatalog(content); break;
+      case 'places': renderPlaces(content); break;
+      case 'customers': renderCustomers(content); break;
+      case 'orders': renderOrders(content); break;
+      case 'earnings': renderEarnings(content); break;
+      case 'reports': renderReports(content); break;
+      case 'bestselling': renderBestSelling(content); break;
+      case 'offers': renderOffers(content); break;
+      case 'settings': renderSettings(content); break;
+      default: content.innerHTML = '<p class="text-gray-500 text-center py-8">Page not found</p>';
+    }
+    content.style.opacity = '1';
+    content.style.transform = 'translateY(0)';
+  }, 50);
+}
+
+// ============================================================
+// LOAD DATA
+// ============================================================
+async function loadAllData() {
+  try {
+    const [cats, rests, prods, plcs, custs, ords, offs, setts] = await Promise.all([
+      fetchData('categories'),
+      fetchData('restaurants'),
+      fetchData('products'),
+      fetchData('places'),
+      fetchData('customers'),
+      fetchData('orders'),
+      fetchData('offers'),
+      fetchData('settings')
+    ]);
+    categories = cats || [];
+    restaurants = rests || [];
+    products = prods || [];
+    places = plcs || [];
+    customers = custs || [];
+    orders = ords || [];
+    offers = offs || [];
+    settings = setts || {};
+    console.log('✅ Loaded data:', { categories: categories.length, products: products.length, orders: orders.length });
+  } catch (err) {
+    console.error('Failed to load data:', err);
+    showToast('Error loading data from server. Check backend.');
+  }
+}
+
+// ============================================================
+// ADMIN LOGIN
+// ============================================================
+async function sendAdminOtp() {
+  const phone = document.getElementById('adminPhone').value.trim();
+  if (!phone || phone.length < 10) {
+    showToast('Please enter a valid phone number');
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/auth/admin/send-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: JSON.stringify({ phone })
     });
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || errorData.error || `HTTP ${res.status}`);
-    }
-    return await res.json();
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+    document.getElementById('adminOtpSection').classList.remove('hidden');
+    document.getElementById('adminSendOtpBtn').textContent = 'Resend OTP';
+    showToast('OTP sent to your phone!');
+  } catch (err) {
+    showToast(err.message);
   }
-  async function putData(endpoint, data) {
-    const res = await fetch(`${API_BASE}/${endpoint}`, {
-      method: 'PUT',
+}
+
+async function verifyAdminOtp() {
+  const phone = document.getElementById('adminPhone').value.trim();
+  const otp = document.getElementById('adminOtp').value.trim();
+  if (!otp) { showToast('Enter OTP'); return; }
+  try {
+    const res = await fetch(`${API_BASE}/auth/admin/verify-otp`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: JSON.stringify({ phone, otp })
     });
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || errorData.error || `HTTP ${res.status}`);
-    }
-    return await res.json();
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Verification failed');
+    localStorage.setItem('adminLoggedIn', 'true');
+    localStorage.setItem('adminPhone', phone);
+    document.getElementById('adminLoginOverlay').classList.add('hidden');
+    showToast('Welcome Admin!');
+    loadAllData().then(() => navigateTo('dashboard'));
+  } catch (err) {
+    showToast(err.message);
   }
-  async function deleteData(endpoint) {
-    const res = await fetch(`${API_BASE}/${endpoint}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
+}
+
+function logoutAdmin() {
+  if (confirm('Are you sure you want to logout?')) {
+    localStorage.removeItem('adminLoggedIn');
+    localStorage.removeItem('adminPhone');
+    location.reload();
   }
+}
 
-  // ============================================================
-  // GLOBAL STATE
-  // ============================================================
-  let categories = [];
-  let restaurants = [];
-  let products = [];
-  let places = [];
-  let customers = [];
-  let orders = [];
-  let offers = [];
-  let settings = {};
-  let notifications = [];
-  let currentPage = 'dashboard';
-  let catalogTab = 'categories';
-  let adminPhonesList = [];
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard(el) {
+  const totalOrders = orders.length;
+  const delivered = orders.filter(o => o.status === 'Delivered');
+  const pending = orders.filter(o => o.status === 'Pending');
+  const processing = orders.filter(o => o.status === 'Processing');
+  const cancelled = orders.filter(o => o.status === 'Cancelled');
+  const totalSales = delivered.reduce((sum, o) => sum + (o.grand_total || 0), 0);
+  const totalCommission = delivered.reduce((sum, o) => sum + (o.commission_amount || 0), 0);
+  const totalDelivery = delivered.reduce((sum, o) => sum + (o.delivery_charge || 0), 0);
+  const totalRain = delivered.reduce((sum, o) => sum + (o.rain_fare || 0), 0);
+  const totalProfit = totalCommission + totalDelivery + totalRain;
+  const today = new Date().toDateString();
+  const todayRevenue = delivered.filter(o => new Date(o.date).toDateString() === today).reduce((s, o) => s + (o.grand_total || 0), 0);
+  const customersCount = customers.length;
 
-  // ============================================================
-  // TOAST
-  // ============================================================
-  function showToast(msg) {
-    const container = document.getElementById('notificationContainer');
-    if (!container) { alert(msg); return; }
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.innerHTML = `<i class="fas fa-check-circle"></i> ${msg}`;
-    container.appendChild(toast);
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateX(100%)';
-      toast.style.transition = '0.3s ease';
-      setTimeout(() => toast.remove(), 300);
-    }, 2500);
-  }
+  const stats = [
+    { label: 'Total Orders', value: totalOrders, icon: 'fa-shopping-cart', color: 'blue' },
+    { label: 'Total Sales', value: '₹' + totalSales.toFixed(2), icon: 'fa-rupee-sign', color: 'green' },
+    { label: 'Commission', value: '₹' + totalCommission.toFixed(2), icon: 'fa-coins', color: 'yellow' },
+    { label: 'Delivery', value: '₹' + totalDelivery.toFixed(2), icon: 'fa-truck', color: 'purple' },
+    { label: 'Rain Fare', value: '₹' + totalRain.toFixed(2), icon: 'fa-cloud-rain', color: 'indigo' },
+    { label: 'Profit', value: '₹' + totalProfit.toFixed(2), icon: 'fa-hand-holding-usd', color: 'pink' },
+    { label: 'Pending', value: pending.length, icon: 'fa-clock', color: 'red' },
+    { label: 'Delivered', value: delivered.length, icon: 'fa-check-circle', color: 'green' },
+    { label: 'Customers', value: customersCount, icon: 'fa-users', color: 'teal' },
+    { label: "Today's Revenue", value: '₹' + todayRevenue.toFixed(2), icon: 'fa-calendar-day', color: 'amber' }
+  ];
 
-  // ============================================================
-  // SIDEBAR / MODAL / THEME
-  // ============================================================
-  function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('sidebarBackdrop').classList.toggle('active');
-  }
-  function closeSidebar() {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('sidebarBackdrop').classList.remove('active');
-  }
+  const colorMap = {
+    blue: 'bg-blue-100 text-blue-600',
+    green: 'bg-green-100 text-green-600',
+    yellow: 'bg-yellow-100 text-yellow-600',
+    purple: 'bg-purple-100 text-purple-600',
+    indigo: 'bg-indigo-100 text-indigo-600',
+    red: 'bg-red-100 text-red-600',
+    teal: 'bg-teal-100 text-teal-600',
+    pink: 'bg-pink-100 text-pink-600',
+    amber: 'bg-amber-100 text-amber-600'
+  };
 
-  function openModal(html) {
-    document.getElementById('modalBody').innerHTML = html;
-    document.getElementById('modalContainer').style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-  }
-  function closeModal() {
-    document.getElementById('modalContainer').style.display = 'none';
-    document.body.style.overflow = '';
-  }
-  document.getElementById('closeModal').addEventListener('click', closeModal);
-  document.getElementById('modalContainer').addEventListener('click', function(e) {
-    if (e.target === this) closeModal();
-  });
-
-  let darkMode = localStorage.getItem('capta_darkMode') === 'true';
-  if (darkMode) document.documentElement.classList.add('dark');
-  document.getElementById('themeToggle').addEventListener('click', function() {
-    darkMode = !darkMode;
-    document.documentElement.classList.toggle('dark');
-    localStorage.setItem('capta_darkMode', darkMode);
-    this.innerHTML = darkMode ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
-  });
-
-  // ============================================================
-  // NAVIGATION
-  // ============================================================
-  document.querySelectorAll('#sidebarNav a').forEach(link => {
-    link.addEventListener('click', function(e) {
-      e.preventDefault();
-      navigateTo(this.dataset.page);
-      closeSidebar();
-    });
-  });
-
-  function navigateTo(page) {
-    currentPage = page;
-    document.querySelectorAll('#sidebarNav a').forEach(a => a.classList.remove('active'));
-    const sidebarLink = document.querySelector(`#sidebarNav a[data-page="${page}"]`);
-    if (sidebarLink) sidebarLink.classList.add('active');
-
-    const titles = {
-      dashboard: 'Dashboard',
-      catalog: 'Catalog',
-      places: 'Delivery Places',
-      customers: 'Customers',
-      orders: 'Orders',
-      earnings: 'Earnings',
-      reports: 'Reports',
-      bestselling: 'Best Selling',
-      offers: 'Offers',
-      notifications: 'Notifications',
-      whatsapp: 'WhatsApp',
-      settings: 'Settings'
-    };
-    document.getElementById('pageTitle').textContent = titles[page] || page.charAt(0).toUpperCase() + page.slice(1).replace('-', ' ');
-    renderPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  // ============================================================
-  // PAGE RENDERER
-  // ============================================================
-  function renderPage(page) {
-    const content = document.getElementById('pageContent');
-    content.style.opacity = '0';
-    content.style.transform = 'translateY(8px)';
-    content.style.transition = '0.2s ease';
-    setTimeout(() => {
-      switch (page) {
-        case 'dashboard': renderDashboard(content); break;
-        case 'catalog': renderCatalog(content); break;
-        case 'places': renderPlaces(content); break;
-        case 'customers': renderCustomers(content); break;
-        case 'orders': renderOrders(content); break;
-        case 'earnings': renderEarnings(content); break;
-        case 'reports': renderReports(content); break;
-        case 'bestselling': renderBestSelling(content); break;
-        case 'offers': renderOffers(content); break;
-        case 'notifications': renderNotifications(content); break;
-        case 'whatsapp': renderWhatsApp(content); break;
-        case 'settings': renderSettings(content); break;
-        default: content.innerHTML = '<p class="text-gray-500 text-center py-8">Page not found</p>';
-      }
-      content.style.opacity = '1';
-      content.style.transform = 'translateY(0)';
-    }, 50);
-  }
-
-  // ============================================================
-  // LOAD DATA
-  // ============================================================
-  async function loadAllData() {
-    try {
-      const [cats, rests, prods, plcs, custs, ords, offs, setts] = await Promise.all([
-        fetchData('categories'),
-        fetchData('restaurants'),
-        fetchData('products'),
-        fetchData('places'),
-        fetchData('customers'),
-        fetchData('orders'),
-        fetchData('offers'),
-        fetchData('settings')
-      ]);
-      categories = cats || [];
-      restaurants = rests || [];
-      products = prods || [];
-      places = plcs || [];
-      customers = custs || [];
-      orders = ords || [];
-      offers = offs || [];
-      
-      settings = {};
-      settings.active_admin_phone = setts.active_admin_phone || '+919019825189';
-      settings.admin_phones = setts.admin_phones || '["+919019825189","+91827079552","+919999999999"]';
-      settings.default_commission = setts.default_commission || '10';
-      settings.rain_fare = setts.rain_fare || '20';
-      settings.rain_fare_enabled = setts.rain_fare_enabled || 'true';
-      settings.delivery_hours = setts.delivery_hours || '9:00 AM - 10:00 PM';
-      settings.unavailable_days = setts.unavailable_days || '["Monday"]';
-      settings.service_unavailable = setts.service_unavailable || 'false';
-      
-      console.log('✅ Loaded products:', products.length);
-      products.forEach(p => {
-        console.log(`  Product: ${p.name}, Variants:`, p.variants);
-      });
-      
-    } catch (err) {
-      console.error('Failed to load data:', err);
-      showToast('Error loading data from server. Check backend.');
-    }
-  }
-
-  // ============================================================
-  // ADMIN LOGIN
-  // ============================================================
-  async function sendAdminOtp() {
-    const phone = document.getElementById('adminPhone').value.trim();
-    if (!phone || phone.length < 10) {
-      showToast('Please enter a valid phone number');
-      return;
-    }
-    try {
-      const res = await fetch(`${API_BASE}/auth/admin/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
-      document.getElementById('adminOtpSection').classList.remove('hidden');
-      document.getElementById('adminSendOtpBtn').textContent = 'Resend OTP';
-      showToast('OTP sent to your phone! (Check console for demo)');
-    } catch (err) {
-      showToast(err.message);
-    }
-  }
-
-  async function verifyAdminOtp() {
-    const phone = document.getElementById('adminPhone').value.trim();
-    const otp = document.getElementById('adminOtp').value.trim();
-    if (!otp) { showToast('Enter OTP'); return; }
-    try {
-      const res = await fetch(`${API_BASE}/auth/admin/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, otp })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Verification failed');
-      localStorage.setItem('adminLoggedIn', 'true');
-      localStorage.setItem('adminPhone', phone);
-      document.getElementById('adminLoginOverlay').classList.add('hidden');
-      showToast('Welcome Admin!');
-      loadAllData().then(() => navigateTo('dashboard'));
-    } catch (err) {
-      showToast(err.message);
-    }
-  }
-
-  // ============================================================
-  // LOGOUT
-  // ============================================================
-  function logoutAdmin() {
-    if (confirm('Are you sure you want to logout?')) {
-      localStorage.removeItem('adminLoggedIn');
-      localStorage.removeItem('adminPhone');
-      location.reload();
-    }
-  }
-
-  // ============================================================
-  // DASHBOARD
-  // ============================================================
-  function renderDashboard(el) {
-    const totalOrders = orders.length;
-    const delivered = orders.filter(o => o.status === 'Delivered');
-    const pending = orders.filter(o => o.status === 'Pending');
-    const processing = orders.filter(o => o.status === 'Processing');
-    const cancelled = orders.filter(o => o.status === 'Cancelled');
-    const totalSales = delivered.reduce((sum, o) => sum + (o.grand_total || 0), 0);
-    const totalCommission = delivered.reduce((sum, o) => sum + (o.commission_amount || 0), 0);
-    const totalDelivery = delivered.reduce((sum, o) => sum + (o.delivery_charge || 0), 0);
-    const totalRain = delivered.reduce((sum, o) => sum + (o.rain_fare || 0), 0);
-    const totalProfit = totalCommission + totalDelivery + totalRain;
-    const today = new Date().toDateString();
-    const todayRevenue = delivered.filter(o => new Date(o.date).toDateString() === today).reduce((s, o) => s + (o.grand_total || 0), 0);
-    const customersCount = customers.length;
-    let bestProduct = { name: 'N/A', count: 0 };
-    const productCounts = {};
-    delivered.forEach(o => {
-      (o.items || []).forEach(item => {
-        productCounts[item.name] = (productCounts[item.name] || 0) + item.quantity;
-      });
-    });
-    for (const [name, count] of Object.entries(productCounts)) {
-      if (count > bestProduct.count) bestProduct = { name, count };
-    }
-
-    const stats = [
-      { label: 'Total Orders', value: totalOrders, icon: 'fa-shopping-cart', color: 'blue' },
-      { label: 'Total Sales', value: '₹' + totalSales.toFixed(2), icon: 'fa-rupee-sign', color: 'green' },
-      { label: 'Commission', value: '₹' + totalCommission.toFixed(2), icon: 'fa-coins', color: 'yellow' },
-      { label: 'Delivery', value: '₹' + totalDelivery.toFixed(2), icon: 'fa-truck', color: 'purple' },
-      { label: 'Rain Fare', value: '₹' + totalRain.toFixed(2), icon: 'fa-cloud-rain', color: 'indigo' },
-      { label: 'Profit', value: '₹' + totalProfit.toFixed(2), icon: 'fa-hand-holding-usd', color: 'pink' },
-      { label: 'Pending', value: pending.length, icon: 'fa-clock', color: 'red' },
-      { label: 'Delivered', value: delivered.length, icon: 'fa-check-circle', color: 'green' },
-      { label: 'Customers', value: customersCount, icon: 'fa-users', color: 'teal' },
-      { label: 'Best Seller', value: bestProduct.name, sub: bestProduct.count + ' orders', icon: 'fa-crown', color: 'emerald' },
-      { label: "Today's Revenue", value: '₹' + todayRevenue.toFixed(2), icon: 'fa-calendar-day', color: 'amber' }
-    ];
-
-    const colorMap = {
-      blue: 'bg-blue-100 text-blue-600',
-      green: 'bg-green-100 text-green-600',
-      yellow: 'bg-yellow-100 text-yellow-600',
-      purple: 'bg-purple-100 text-purple-600',
-      indigo: 'bg-indigo-100 text-indigo-600',
-      red: 'bg-red-100 text-red-600',
-      teal: 'bg-teal-100 text-teal-600',
-      pink: 'bg-pink-100 text-pink-600',
-      emerald: 'bg-emerald-100 text-emerald-600',
-      amber: 'bg-amber-100 text-amber-600'
-    };
-
-    let statsHtml = stats.map(s => `
-      <div class="stat-card">
-        <div class="flex items-center gap-3">
-          <div class="icon ${colorMap[s.color] || 'bg-gray-100 text-gray-600'}">
-            <i class="fas ${s.icon}"></i>
-          </div>
-          <div class="min-w-0">
-            <p class="stat-label">${s.label}</p>
-            <p class="stat-value text-truncate">${s.value}</p>
-            ${s.sub ? `<p class="text-xs text-gray-400">${s.sub}</p>` : ''}
-          </div>
+  let statsHtml = stats.map(s => `
+    <div class="stat-card">
+      <div class="flex items-center gap-3">
+        <div class="icon ${colorMap[s.color] || 'bg-gray-100 text-gray-600'}">
+          <i class="fas ${s.icon}"></i>
+        </div>
+        <div class="min-w-0">
+          <p class="stat-label">${s.label}</p>
+          <p class="stat-value">${s.value}</p>
         </div>
       </div>
-    `).join('');
+    </div>
+  `).join('');
 
-    el.innerHTML = `
-      <div class="stat-grid mb-6">${statsHtml}</div>
-      <div class="dashboard-charts">
-        <div class="card p-4"><h3 class="font-semibold mb-2 text-sm">Daily Sales</h3><div class="chart-container"><canvas id="dailyChart"></canvas></div></div>
-        <div class="card p-4"><h3 class="font-semibold mb-2 text-sm">Orders Overview</h3><div class="chart-container"><canvas id="ordersChart"></canvas></div></div>
-        <div class="card p-4"><h3 class="font-semibold mb-2 text-sm">Revenue Breakdown</h3><div class="chart-container"><canvas id="profitChart"></canvas></div></div>
-        <div class="card p-4"><h3 class="font-semibold mb-2 text-sm">Top Products</h3><div class="chart-container"><canvas id="bestSellingChart"></canvas></div></div>
-      </div>
-    `;
+  el.innerHTML = `
+    <div class="stat-grid mb-6">${statsHtml}</div>
+    <div class="dashboard-charts">
+      <div class="card p-4"><h3 class="font-semibold mb-2 text-sm">Daily Sales</h3><div class="chart-container"><canvas id="dailyChart"></canvas></div></div>
+      <div class="card p-4"><h3 class="font-semibold mb-2 text-sm">Orders Overview</h3><div class="chart-container"><canvas id="ordersChart"></canvas></div></div>
+    </div>
+  `;
 
-    setTimeout(() => {
+  setTimeout(() => {
+    if (typeof Chart !== 'undefined') {
       const days = [];
       const sales = [];
       for (let i = 6; i >= 0; i--) {
@@ -1018,1148 +814,885 @@
         data: { labels: statuses, datasets: [{ data: counts, backgroundColor: ['#f59e0b', '#3b82f6', '#22c55e', '#ef4444'] }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8 } } } }
       });
-
-      const deliveredOrders = orders.filter(o => o.status === 'Delivered');
-      const totalComm = deliveredOrders.reduce((s, o) => s + (o.commission_amount || 0), 0);
-      const totalDeliv = deliveredOrders.reduce((s, o) => s + (o.delivery_charge || 0), 0);
-      const totalRain = deliveredOrders.reduce((s, o) => s + (o.rain_fare || 0), 0);
-      new Chart(document.getElementById('profitChart'), {
-        type: 'bar',
-        data: { labels: ['Commission', 'Delivery', 'Rain Fare'], datasets: [{ label: 'Amount (₹)', data: [totalComm, totalDeliv, totalRain], backgroundColor: ['#f59e0b', '#3b82f6', '#8b5cf6'], borderRadius: 4 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-      });
-
-      const prodCounts = {};
-      deliveredOrders.forEach(o => {
-        (o.items || []).forEach(item => { prodCounts[item.name] = (prodCounts[item.name] || 0) + item.quantity; });
-      });
-      const sorted = Object.entries(prodCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
-      new Chart(document.getElementById('bestSellingChart'), {
-        type: 'bar',
-        data: { labels: sorted.map(s => s[0].length > 12 ? s[0].slice(0,12)+'…' : s[0]), datasets: [{ label: 'Sold', data: sorted.map(s => s[1]), backgroundColor: '#8b5cf6', borderRadius: 4 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-      });
-    }, 150);
-  }
-
-  // ============================================================
-  // CATALOG
-  // ============================================================
-  function renderCatalog(el) {
-    el.innerHTML = `
-      <div class="tab-group-scroll mb-4" id="catalogTabs">
-        <button class="tab-btn ${catalogTab === 'categories' ? 'active' : ''}" onclick="switchCatalogTab('categories')">Categories</button>
-        <button class="tab-btn ${catalogTab === 'restaurants' ? 'active' : ''}" onclick="switchCatalogTab('restaurants')">Restaurants</button>
-        <button class="tab-btn ${catalogTab === 'products' ? 'active' : ''}" onclick="switchCatalogTab('products')">Products</button>
-      </div>
-      <div id="catalogTabContent"></div>
-    `;
-    renderCatalogTab(catalogTab);
-  }
-
-  function switchCatalogTab(tab) {
-    catalogTab = tab;
-    renderCatalog(document.getElementById('pageContent'));
-  }
-
-  function renderCatalogTab(tab) {
-    const container = document.getElementById('catalogTabContent');
-    if (!container) return;
-    if (tab === 'categories') renderCategoriesList(container);
-    else if (tab === 'restaurants') renderRestaurantsList(container);
-    else if (tab === 'products') renderProductsList(container);
-  }
-
-  // ============================================================
-  // CATEGORIES CRUD
-  // ============================================================
-  function renderCategoriesList(el) {
-    el.innerHTML = `
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-        <h3 class="text-lg font-bold">Categories</h3>
-        <button onclick="openAddCategory()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Category</button>
-      </div>
-      <div class="card p-3 table-wrap">
-        <table>
-          <thead><tr><th>Image</th><th>Name</th><th class="hide-mobile">Restaurants</th><th>Actions</th></tr></thead>
-          <tbody>
-            ${(categories || []).map(c => {
-              const count = (restaurants || []).filter(r => r.category === c.name).length;
-              const img = c.image || 'https://placehold.co/60';
-              return `<tr>
-                <td data-label="Image"><img src="${img}" class="w-10 h-10 object-cover rounded" /></td>
-                <td data-label="Name">${c.name}</td>
-                <td class="hide-mobile" data-label="Restaurants">${count}</td>
-                <td data-label="Actions">
-                  <div class="table-actions">
-                    <button class="btn btn-sm btn-primary" onclick="editCategory(${c.id})"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteCategory(${c.id})"><i class="fas fa-trash"></i></button>
-                  </div>
-                </td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
-
-  function openAddCategory() {
-    openModal(`
-      <h2>Add Category</h2>
-      <form id="categoryForm">
-        <div class="form-group"><label>Category Name *</label><input id="catName" required placeholder="e.g. Beverages" /></div>
-        <div class="form-group"><label>Category Image</label>
-          <div class="file-input-wrapper">
-            <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload Image</div>
-            <input id="catImage" type="file" accept="image/*" />
-          </div>
-          <div id="catImagePreview" class="image-preview-grid"></div>
-        </div>
-        <button type="submit" class="btn btn-primary btn-block">Save Category</button>
-      </form>
-    `);
-    
-    const fileInput = document.getElementById('catImage');
-    const previewContainer = document.getElementById('catImagePreview');
-    let imageDataUrl = null;
-
-    fileInput.addEventListener('change', function() {
-      previewContainer.innerHTML = '';
-      const file = this.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          imageDataUrl = e.target.result;
-          const div = document.createElement('div');
-          div.className = 'preview-item';
-          div.innerHTML = `<img src="${e.target.result}" /><button type="button" class="remove-img" onclick="this.parentElement.remove(); imageDataUrl = null;"><i class="fas fa-times"></i></button>`;
-          previewContainer.appendChild(div);
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    document.getElementById('categoryForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const name = document.getElementById('catName').value.trim();
-      if (!name) { showToast('Name required'); return; }
-      try {
-        await postData('categories', { name, image: imageDataUrl });
-        categories = await fetchData('categories');
-        closeModal();
-        showToast('Category added!');
-        switchCatalogTab('categories');
-      } catch (err) { showToast('Error: ' + err.message); }
-    });
-  }
-
-  function editCategory(id) {
-    const c = (categories || []).find(x => x.id === id);
-    if (!c) return;
-    openModal(`
-      <h2>Edit Category</h2>
-      <form id="categoryForm">
-        <div class="form-group"><label>Category Name *</label><input id="catName" value="${c.name}" required /></div>
-        <div class="form-group"><label>Current Image</label>
-          ${c.image ? `<img src="${c.image}" class="w-20 h-20 object-cover rounded" />` : '<p class="text-gray-400">No image</p>'}
-        </div>
-        <div class="form-group"><label>Upload New Image (optional)</label>
-          <div class="file-input-wrapper">
-            <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload New Image</div>
-            <input id="catImage" type="file" accept="image/*" />
-          </div>
-          <div id="catImagePreview" class="image-preview-grid"></div>
-        </div>
-        <button type="submit" class="btn btn-primary btn-block">Update</button>
-      </form>
-    `);
-    
-    const fileInput = document.getElementById('catImage');
-    const previewContainer = document.getElementById('catImagePreview');
-    let imageDataUrl = null;
-
-    fileInput.addEventListener('change', function() {
-      previewContainer.innerHTML = '';
-      const file = this.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          imageDataUrl = e.target.result;
-          const div = document.createElement('div');
-          div.className = 'preview-item';
-          div.innerHTML = `<img src="${e.target.result}" /><button type="button" class="remove-img" onclick="this.parentElement.remove(); imageDataUrl = null;"><i class="fas fa-times"></i></button>`;
-          previewContainer.appendChild(div);
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    document.getElementById('categoryForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const name = document.getElementById('catName').value.trim();
-      const image = imageDataUrl || c.image;
-      try {
-        await putData(`categories/${id}`, { name, image });
-        categories = await fetchData('categories');
-        closeModal();
-        showToast('Category updated!');
-        switchCatalogTab('categories');
-      } catch (err) { showToast('Error: ' + err.message); }
-    });
-  }
-
-  function deleteCategory(id) {
-    if (!confirm('Delete this category?')) return;
-    deleteData(`categories/${id}`).then(() => fetchData('categories')).then(data => {
-      categories = data;
-      showToast('Category deleted');
-      switchCatalogTab('categories');
-    }).catch(err => showToast('Error: ' + err.message));
-  }
-
-  // ============================================================
-  // RESTAURANTS CRUD
-  // ============================================================
-  function renderRestaurantsList(el) {
-    el.innerHTML = `
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-        <h3 class="text-lg font-bold">Restaurants</h3>
-        <button onclick="openAddRestaurant()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Restaurant</button>
-      </div>
-      <div class="card p-3 table-wrap">
-        <table>
-          <thead><tr><th>Name</th><th class="hide-mobile">Category</th><th>Logo</th><th>Status</th><th>Toggle</th><th>Actions</th></tr></thead>
-          <tbody>
-            ${(restaurants || []).map(r => `
-              <tr>
-                <td data-label="Name" class="text-truncate" style="max-width:80px;">${r.name}</td>
-                <td class="hide-mobile" data-label="Category">${r.category}</td>
-                <td data-label="Logo"><img src="${r.logo || 'https://placehold.co/40'}" class="w-8 h-8 rounded-full object-cover" /></td>
-                <td data-label="Status"><span class="badge ${r.status === 'Active' ? 'badge-success' : 'badge-danger'}">${r.status}</span></td>
-                <td data-label="Toggle">
-                  <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" class="sr-only peer" ${r.status === 'Active' ? 'checked' : ''} onchange="toggleRestaurantStatus(${r.id}, this.checked)">
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                  </label>
-                </td>
-                <td data-label="Actions">
-                  <div class="table-actions">
-                    <button class="btn btn-sm btn-primary" onclick="editRestaurant(${r.id})"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteRestaurant(${r.id})"><i class="fas fa-trash"></i></button>
-                  </div>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
-
-  function openAddRestaurant() {
-    const categoryOptions = (categories || []).map(c => 
-      `<option value="${c.name}">${c.name}</option>`
-    ).join('');
-
-    openModal(`
-      <h2>Add Restaurant</h2>
-      <form id="restaurantForm">
-        <div class="form-group"><label>Restaurant Name *</label><input id="restName" required placeholder="e.g. Pizza Hut" /></div>
-        <div class="form-group"><label>Category *</label>
-          <select id="restCategory" required>
-            <option value="">Select Category</option>
-            ${categoryOptions}
-          </select>
-        </div>
-        <div class="form-group"><label>Restaurant Logo</label>
-          <div class="file-input-wrapper">
-            <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload Logo</div>
-            <input id="restLogoFile" type="file" accept="image/*" />
-          </div>
-          <div id="restLogoPreview" class="image-preview-grid"></div>
-        </div>
-        <div class="form-group"><label>Status</label>
-          <select id="restStatus">
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-          </select>
-        </div>
-        <button type="submit" class="btn btn-primary btn-block">Save Restaurant</button>
-      </form>
-    `);
-
-    const fileInput = document.getElementById('restLogoFile');
-    const previewContainer = document.getElementById('restLogoPreview');
-    let logoDataUrl = null;
-
-    fileInput.addEventListener('change', function() {
-      previewContainer.innerHTML = '';
-      const file = this.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          logoDataUrl = e.target.result;
-          const div = document.createElement('div');
-          div.className = 'preview-item';
-          div.innerHTML = `<img src="${e.target.result}" /><button type="button" class="remove-img" onclick="this.parentElement.remove(); logoDataUrl = null;"><i class="fas fa-times"></i></button>`;
-          previewContainer.appendChild(div);
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    document.getElementById('restaurantForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const name = document.getElementById('restName').value.trim();
-      const category = document.getElementById('restCategory').value;
-      const status = document.getElementById('restStatus').value;
-      const logo = logoDataUrl || 'https://placehold.co/100';
-      if (!name || !category) { showToast('Name and category required'); return; }
-      try {
-        await postData('restaurants', { name, category, logo, status });
-        restaurants = await fetchData('restaurants');
-        closeModal();
-        showToast('Restaurant added!');
-        switchCatalogTab('restaurants');
-      } catch (err) { showToast('Error: ' + err.message); }
-    });
-  }
-
-  function editRestaurant(id) {
-    const r = (restaurants || []).find(x => x.id === id);
-    if (!r) { showToast('Restaurant not found'); return; }
-    const categoryOptions = (categories || []).map(c => 
-      `<option value="${c.name}" ${r.category === c.name ? 'selected' : ''}>${c.name}</option>`
-    ).join('');
-
-    openModal(`
-      <h2>Edit Restaurant</h2>
-      <form id="restaurantForm">
-        <div class="form-group"><label>Restaurant Name *</label><input id="restName" value="${r.name}" required /></div>
-        <div class="form-group"><label>Category *</label>
-          <select id="restCategory" required>
-            <option value="">Select Category</option>
-            ${categoryOptions}
-          </select>
-        </div>
-        <div class="form-group"><label>Current Logo</label>
-          ${r.logo ? `<img src="${r.logo}" class="w-20 h-20 object-cover rounded" />` : '<p class="text-gray-400">No logo</p>'}
-        </div>
-        <div class="form-group"><label>Upload New Logo (optional)</label>
-          <div class="file-input-wrapper">
-            <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload New Logo</div>
-            <input id="restLogoFile" type="file" accept="image/*" />
-          </div>
-          <div id="restLogoPreview" class="image-preview-grid"></div>
-        </div>
-        <div class="form-group"><label>Status</label>
-          <select id="restStatus">
-            <option value="Active" ${r.status === 'Active' ? 'selected' : ''}>Active</option>
-            <option value="Inactive" ${r.status === 'Inactive' ? 'selected' : ''}>Inactive</option>
-          </select>
-        </div>
-        <button type="submit" class="btn btn-primary btn-block">Update Restaurant</button>
-      </form>
-    `);
-
-    const fileInput = document.getElementById('restLogoFile');
-    const previewContainer = document.getElementById('restLogoPreview');
-    let logoDataUrl = null;
-
-    fileInput.addEventListener('change', function() {
-      previewContainer.innerHTML = '';
-      const file = this.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          logoDataUrl = e.target.result;
-          const div = document.createElement('div');
-          div.className = 'preview-item';
-          div.innerHTML = `<img src="${e.target.result}" /><button type="button" class="remove-img" onclick="this.parentElement.remove(); logoDataUrl = null;"><i class="fas fa-times"></i></button>`;
-          previewContainer.appendChild(div);
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    document.getElementById('restaurantForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const name = document.getElementById('restName').value.trim();
-      const category = document.getElementById('restCategory').value;
-      const status = document.getElementById('restStatus').value;
-      const logo = logoDataUrl || r.logo || 'https://placehold.co/100';
-      if (!name || !category) { showToast('Name and category required'); return; }
-      try {
-        await putData(`restaurants/${id}`, { name, category, logo, status });
-        restaurants = await fetchData('restaurants');
-        closeModal();
-        showToast('Restaurant updated!');
-        switchCatalogTab('restaurants');
-      } catch (err) { showToast('Error: ' + err.message); }
-    });
-  }
-
-  function deleteRestaurant(id) {
-    if (!confirm('Delete this restaurant?')) return;
-    deleteData(`restaurants/${id}`).then(() => fetchData('restaurants')).then(data => {
-      restaurants = data;
-      showToast('Restaurant deleted');
-      switchCatalogTab('restaurants');
-    }).catch(err => showToast('Error: ' + err.message));
-  }
-
-  async function toggleRestaurantStatus(id, isActive) {
-    const status = isActive ? 'Active' : 'Inactive';
-    try {
-      const result = await putData(`reports/restaurant/${id}/toggle`, { status });
-      const idx = restaurants.findIndex(r => r.id === id);
-      if (idx !== -1) restaurants[idx] = result;
-      showToast(`Restaurant ${isActive ? 'activated' : 'deactivated'}`);
-      renderRestaurantsList(document.getElementById('catalogTabContent'));
-    } catch (err) {
-      showToast('Error: ' + err.message);
-    }
-  }
-
-  // ============================================================
-  // PRODUCTS CRUD - WITH VARIANTS FIX
-  // ============================================================
-  
-  function addVariantRow() {
-    const container = document.getElementById('variantsContainer');
-    if (!container) return;
-    const div = document.createElement('div');
-    div.className = 'variant-row flex flex-wrap gap-2 mb-2 p-3 border rounded-lg bg-gray-50';
-    div.innerHTML = `
-      <input type="text" class="variant-label flex-1 min-w-[100px] px-3 py-2 border rounded-lg" placeholder="Label (e.g. Large)" />
-      <input type="number" class="variant-price w-32 px-3 py-2 border rounded-lg" placeholder="Price" step="0.01" />
-      <input type="text" class="variant-description flex-1 min-w-[150px] px-3 py-2 border rounded-lg" placeholder="Description (e.g. 12 inches)" />
-      <button type="button" class="btn btn-sm btn-danger remove-variant" onclick="this.parentElement.remove()">
-        <i class="fas fa-times"></i>
-      </button>
-    `;
-    container.appendChild(div);
-  }
-
-  function renderProductsList(el) {
-    el.innerHTML = `
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-        <h3 class="text-lg font-bold">Products</h3>
-        <button onclick="openAddProduct()" class="btn btn-primary btn-block sm:btn-auto" style="min-width: 120px;"><i class="fas fa-plus"></i> Add Product</button>
-      </div>
-      <div class="card p-3 table-wrap">
-        <table>
-          <thead><tr><th>Image</th><th>Name</th><th>Restaurant</th><th>Price</th><th>Category</th><th>Commission</th><th>Variants</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody>
-            ${(products || []).map(p => {
-              const restaurant = restaurants.find(r => r.id === p.restaurant_id);
-              const img = (p.images && p.images.length > 0) ? p.images[0] : 'https://placehold.co/40';
-              const variantCount = (p.variants && p.variants.length > 0) ? p.variants.length : 0;
-              return `<tr>
-                <td><img src="${img}" class="w-10 h-10 object-cover rounded" /></td>
-                <td class="text-truncate" style="max-width:80px;">${p.name}</td>
-                <td>${restaurant ? restaurant.name : 'N/A'}</td>
-                <td>₹${p.price || 0}</td>
-                <td>${p.category || 'N/A'}</td>
-                <td>${p.commission || 0}%</td>
-                <td>${variantCount > 0 ? `<span class="badge badge-info">${variantCount} variants</span>` : 'None'}</td>
-                <td><span class="badge ${p.status === 'Active' ? 'badge-success' : 'badge-danger'}">${p.status || 'Active'}</span></td>
-                <td>
-                  <div class="table-actions">
-                    <button class="btn btn-sm btn-primary" onclick="editProduct(${p.id})"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})"><i class="fas fa-trash"></i></button>
-                  </div>
-                </td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
-
-  // ---- Open Add Product Modal ----
-  function openAddProduct() {
-    const restaurantOptions = (restaurants || []).map(r => 
-      `<option value="${r.id}">${r.name}</option>`
-    ).join('');
-
-    const categoryOptions = (categories || []).map(c => 
-      `<option value="${c.name}">${c.name}</option>`
-    ).join('');
-
-    openModal(`
-      <h2>Add Product</h2>
-      <form id="productForm">
-        <div class="form-group">
-          <label>Product Name *</label>
-          <input id="prodName" required placeholder="e.g. Pepperoni Pizza" />
-        </div>
-        
-        <div class="form-group">
-          <label>Category *</label>
-          <select id="prodCategory" required>
-            <option value="">Select Category</option>
-            ${categoryOptions}
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label>Restaurant (optional)</label>
-          <select id="prodRestaurant">
-            <option value="">None</option>
-            ${restaurantOptions}
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label>Base Price (₹) *</label>
-          <input id="prodPrice" type="number" step="0.01" required placeholder="299" />
-        </div>
-        
-        <div class="form-group">
-          <label>Commission (%)</label>
-          <input id="prodCommission" type="number" step="0.01" value="10" placeholder="10" />
-          <p class="text-xs text-gray-400 mt-1">Accepts decimal values (e.g., 10.5)</p>
-        </div>
-        
-        <div class="form-group">
-          <label>Status</label>
-          <select id="prodStatus">
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label>Product Images</label>
-          <div class="file-input-wrapper">
-            <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload Images</div>
-            <input id="prodImages" type="file" accept="image/*" multiple />
-          </div>
-          <div id="prodImagePreview" class="image-preview-grid"></div>
-        </div>
-        
-        <div class="form-group">
-          <label>Variants</label>
-          <div id="variantsContainer">
-            <div class="variant-row flex flex-wrap gap-2 mb-2 p-3 border rounded-lg bg-gray-50">
-              <input type="text" class="variant-label flex-1 min-w-[100px] px-3 py-2 border rounded-lg" placeholder="Label (e.g. Small)" />
-              <input type="number" class="variant-price w-32 px-3 py-2 border rounded-lg" placeholder="Price" step="0.01" />
-              <input type="text" class="variant-description flex-1 min-w-[150px] px-3 py-2 border rounded-lg" placeholder="Description (e.g. 6 inches)" />
-              <button type="button" class="btn btn-sm btn-danger remove-variant" onclick="this.parentElement.remove()">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-          </div>
-          <button type="button" onclick="addVariantRow()" class="btn btn-sm btn-outline">
-            <i class="fas fa-plus"></i> Add Variant
-          </button>
-          <p class="text-xs text-gray-400 mt-1">Add variants with description</p>
-        </div>
-        
-        <button type="submit" class="btn btn-primary btn-block">Save Product</button>
-      </form>
-    `);
-
-    const fileInput = document.getElementById('prodImages');
-    const previewContainer = document.getElementById('prodImagePreview');
-    let imageUrls = [];
-
-    fileInput.addEventListener('change', function() {
-      previewContainer.innerHTML = '';
-      imageUrls = [];
-      const files = this.files;
-      for (let i = 0; i < files.length; i++) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          imageUrls.push(e.target.result);
-          const div = document.createElement('div');
-          div.className = 'preview-item';
-          div.innerHTML = `
-            <img src="${e.target.result}" />
-            <button type="button" class="remove-img" onclick="this.parentElement.remove()">
-              <i class="fas fa-times"></i>
-            </button>
-          `;
-          previewContainer.appendChild(div);
-        };
-        reader.readAsDataURL(files[i]);
-      }
-    });
-
-    document.getElementById('productForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const name = document.getElementById('prodName').value.trim();
-      const category = document.getElementById('prodCategory').value;
-      const restaurantId = document.getElementById('prodRestaurant').value || null;
-      const price = parseFloat(document.getElementById('prodPrice').value);
-      const commission = parseFloat(document.getElementById('prodCommission').value) || 0;
-      const status = document.getElementById('prodStatus').value;
-      
-      const variantRows = document.querySelectorAll('.variant-row');
-      const variants = [];
-      variantRows.forEach(row => {
-        const labelInput = row.querySelector('.variant-label');
-        const priceInput = row.querySelector('.variant-price');
-        const descInput = row.querySelector('.variant-description');
-        
-        const label = labelInput ? labelInput.value.trim() : '';
-        const priceVal = priceInput ? parseFloat(priceInput.value) : NaN;
-        const description = descInput ? descInput.value.trim() : '';
-        
-        if (label && !isNaN(priceVal)) {
-          variants.push({ 
-            label: label, 
-            price: priceVal, 
-            description: description 
-          });
-        }
-      });
-      
-      console.log('Collected variants:', JSON.stringify(variants));
-      
-      if (!name) { showToast('Product name required'); return; }
-      if (!category) { showToast('Category required'); return; }
-      if (!price || isNaN(price)) { showToast('Valid price required'); return; }
-
-      try {
-        const productData = { 
-          name, 
-          category, 
-          restaurantId: restaurantId ? parseInt(restaurantId) : null, 
-          price, 
-          commission, 
-          status, 
-          images: imageUrls, 
-          variants: variants 
-        };
-        
-        console.log('Sending product data:', JSON.stringify(productData));
-        
-        const response = await postData('products', productData);
-        console.log('Product created:', response);
-        
-        products = await fetchData('products');
-        closeModal();
-        showToast('Product added successfully!');
-        switchCatalogTab('products');
-      } catch (err) { 
-        console.error('Error:', err);
-        showToast('Error: ' + err.message); 
-      }
-    });
-  }
-
-  // ---- Edit Product Modal ----
-  function editProduct(id) {
-    console.log('✏️ Editing product:', id);
-    
-    const p = (products || []).find(x => x.id === id);
-    if (!p) { 
-      showToast('Product not found'); 
-      return; 
-    }
-
-    console.log('Current product data:', p);
-    console.log('Current variants:', p.variants);
-
-    const restaurantOptions = (restaurants || []).map(r => 
-      `<option value="${r.id}" ${p.restaurant_id === r.id ? 'selected' : ''}>${r.name}</option>`
-    ).join('');
-
-    const categoryOptions = (categories || []).map(c => 
-      `<option value="${c.name}" ${p.category === c.name ? 'selected' : ''}>${c.name}</option>`
-    ).join('');
-
-    let imagePreviewHtml = '';
-    if (p.images && p.images.length > 0) {
-      p.images.forEach((img, index) => {
-        imagePreviewHtml += `
-          <div class="preview-item" id="img-container-${index}">
-            <img src="${img}" />
-            <button type="button" class="remove-img" onclick="removeExistingImage(${index}, '${p.id}')">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        `;
-      });
-    }
-
-    let variantsHtml = '';
-    const variantsArray = Array.isArray(p.variants) ? p.variants : [];
-    
-    console.log('Building variants HTML from:', variantsArray);
-    
-    if (variantsArray.length > 0) {
-      variantsArray.forEach((variant) => {
-        const description = variant.description || '';
-        variantsHtml += `
-          <div class="variant-row flex flex-wrap gap-2 mb-2 p-3 border rounded-lg bg-gray-50">
-            <input type="text" class="variant-label flex-1 min-w-[100px] px-3 py-2 border rounded-lg" value="${variant.label}" placeholder="Label" />
-            <input type="number" class="variant-price w-32 px-3 py-2 border rounded-lg" value="${variant.price}" placeholder="Price" step="0.01" />
-            <input type="text" class="variant-description flex-1 min-w-[150px] px-3 py-2 border rounded-lg" value="${description}" placeholder="Description" />
-            <button type="button" class="btn btn-sm btn-danger remove-variant" onclick="this.parentElement.remove()">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        `;
-      });
     } else {
-      variantsHtml = `
-        <div class="variant-row flex flex-wrap gap-2 mb-2 p-3 border rounded-lg bg-gray-50">
-          <input type="text" class="variant-label flex-1 min-w-[100px] px-3 py-2 border rounded-lg" placeholder="Label (e.g. Small)" />
-          <input type="number" class="variant-price w-32 px-3 py-2 border rounded-lg" placeholder="Price" step="0.01" />
-          <input type="text" class="variant-description flex-1 min-w-[150px] px-3 py-2 border rounded-lg" placeholder="Description (e.g. 6 inches)" />
-          <button type="button" class="btn btn-sm btn-danger remove-variant" onclick="this.parentElement.remove()">
+      console.warn('Chart.js not loaded');
+    }
+  }, 200);
+}
+
+// ============================================================
+// CATALOG
+// ============================================================
+function renderCatalog(el) {
+  el.innerHTML = `
+    <div class="tab-group-scroll mb-4" id="catalogTabs">
+      <button class="tab-btn ${catalogTab === 'categories' ? 'active' : ''}" onclick="switchCatalogTab('categories')">Categories</button>
+      <button class="tab-btn ${catalogTab === 'restaurants' ? 'active' : ''}" onclick="switchCatalogTab('restaurants')">Restaurants</button>
+      <button class="tab-btn ${catalogTab === 'products' ? 'active' : ''}" onclick="switchCatalogTab('products')">Products</button>
+    </div>
+    <div id="catalogTabContent"><p class="text-gray-500 text-center py-8">Loading...</p></div>
+  `;
+  renderCatalogTab(catalogTab);
+}
+
+function switchCatalogTab(tab) {
+  catalogTab = tab;
+  renderCatalog(document.getElementById('pageContent'));
+}
+
+function renderCatalogTab(tab) {
+  const container = document.getElementById('catalogTabContent');
+  if (!container) return;
+  
+  if (tab === 'categories') renderCategoriesList(container);
+  else if (tab === 'restaurants') renderRestaurantsList(container);
+  else if (tab === 'products') renderProductsList(container);
+}
+
+// ============================================================
+// CATEGORIES CRUD
+// ============================================================
+function renderCategoriesList(el) {
+  el.innerHTML = `
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+      <h3 class="text-lg font-bold">Categories</h3>
+      <button onclick="openAddCategory()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Category</button>
+    </div>
+    <div class="card p-3 table-wrap">
+      <table>
+        <thead><tr><th>Image</th><th>Name</th><th class="hide-mobile">Restaurants</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${(categories || []).map(c => {
+            const count = (restaurants || []).filter(r => r.category === c.name).length;
+            const img = c.image || 'https://placehold.co/60';
+            return `<tr>
+              <td data-label="Image"><img src="${img}" class="w-10 h-10 object-cover rounded" /></td>
+              <td data-label="Name">${c.name}</td>
+              <td class="hide-mobile" data-label="Restaurants">${count}</td>
+              <td data-label="Actions">
+                <div class="table-actions">
+                  <button class="btn btn-sm btn-primary" onclick="editCategory(${c.id})"><i class="fas fa-edit"></i></button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteCategory(${c.id})"><i class="fas fa-trash"></i></button>
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openAddCategory() {
+  openModal(`
+    <h2>Add Category</h2>
+    <form id="categoryForm">
+      <div class="form-group"><label>Category Name *</label><input id="catName" required placeholder="e.g. Beverages" /></div>
+      <div class="form-group"><label>Category Image</label>
+        <div class="file-input-wrapper">
+          <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload Image</div>
+          <input id="catImage" type="file" accept="image/*" />
+        </div>
+        <div id="catImagePreview" class="image-preview-grid"></div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Save Category</button>
+    </form>
+  `);
+  
+  const fileInput = document.getElementById('catImage');
+  const previewContainer = document.getElementById('catImagePreview');
+  let imageDataUrl = null;
+
+  fileInput.addEventListener('change', function() {
+    previewContainer.innerHTML = '';
+    const file = this.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        imageDataUrl = e.target.result;
+        const div = document.createElement('div');
+        div.className = 'preview-item';
+        div.innerHTML = `<img src="${e.target.result}" /><button type="button" class="remove-img" onclick="this.parentElement.remove(); imageDataUrl = null;"><i class="fas fa-times"></i></button>`;
+        previewContainer.appendChild(div);
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  document.getElementById('categoryForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const name = document.getElementById('catName').value.trim();
+    if (!name) { showToast('Name required'); return; }
+    try {
+      await postData('categories', { name, image: imageDataUrl });
+      categories = await fetchData('categories');
+      closeModal();
+      showToast('Category added!');
+      switchCatalogTab('categories');
+    } catch (err) { showToast('Error: ' + err.message); }
+  });
+}
+
+function editCategory(id) {
+  const c = (categories || []).find(x => x.id === id);
+  if (!c) return;
+  openModal(`
+    <h2>Edit Category</h2>
+    <form id="categoryForm">
+      <div class="form-group"><label>Category Name *</label><input id="catName" value="${c.name}" required /></div>
+      <div class="form-group"><label>Current Image</label>
+        ${c.image ? `<img src="${c.image}" class="w-20 h-20 object-cover rounded" />` : '<p class="text-gray-400">No image</p>'}
+      </div>
+      <div class="form-group"><label>Upload New Image (optional)</label>
+        <div class="file-input-wrapper">
+          <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload New Image</div>
+          <input id="catImage" type="file" accept="image/*" />
+        </div>
+        <div id="catImagePreview" class="image-preview-grid"></div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Update</button>
+    </form>
+  `);
+  
+  const fileInput = document.getElementById('catImage');
+  const previewContainer = document.getElementById('catImagePreview');
+  let imageDataUrl = null;
+
+  fileInput.addEventListener('change', function() {
+    previewContainer.innerHTML = '';
+    const file = this.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        imageDataUrl = e.target.result;
+        const div = document.createElement('div');
+        div.className = 'preview-item';
+        div.innerHTML = `<img src="${e.target.result}" /><button type="button" class="remove-img" onclick="this.parentElement.remove(); imageDataUrl = null;"><i class="fas fa-times"></i></button>`;
+        previewContainer.appendChild(div);
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  document.getElementById('categoryForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const name = document.getElementById('catName').value.trim();
+    const image = imageDataUrl || c.image;
+    try {
+      await putData(`categories/${id}`, { name, image });
+      categories = await fetchData('categories');
+      closeModal();
+      showToast('Category updated!');
+      switchCatalogTab('categories');
+    } catch (err) { showToast('Error: ' + err.message); }
+  });
+}
+
+function deleteCategory(id) {
+  if (!confirm('Delete this category?')) return;
+  deleteData(`categories/${id}`).then(() => fetchData('categories')).then(data => {
+    categories = data;
+    showToast('Category deleted');
+    switchCatalogTab('categories');
+  }).catch(err => showToast('Error: ' + err.message));
+}
+
+// ============================================================
+// RESTAURANTS CRUD
+// ============================================================
+function renderRestaurantsList(el) {
+  el.innerHTML = `
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+      <h3 class="text-lg font-bold">Restaurants</h3>
+      <button onclick="openAddRestaurant()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Restaurant</button>
+    </div>
+    <div class="card p-3 table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th class="hide-mobile">Category</th><th>Logo</th><th>Status</th><th>Toggle</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${(restaurants || []).map(r => `
+            <tr>
+              <td data-label="Name" class="text-truncate" style="max-width:80px;">${r.name}</td>
+              <td class="hide-mobile" data-label="Category">${r.category}</td>
+              <td data-label="Logo"><img src="${r.logo || 'https://placehold.co/40'}" class="w-8 h-8 rounded-full object-cover" /></td>
+              <td data-label="Status"><span class="badge ${r.status === 'Active' ? 'badge-success' : 'badge-danger'}">${r.status}</span></td>
+              <td data-label="Toggle">
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" class="sr-only peer" ${r.status === 'Active' ? 'checked' : ''} onchange="toggleRestaurantStatus(${r.id}, this.checked)">
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </td>
+              <td data-label="Actions">
+                <div class="table-actions">
+                  <button class="btn btn-sm btn-primary" onclick="editRestaurant(${r.id})"><i class="fas fa-edit"></i></button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteRestaurant(${r.id})"><i class="fas fa-trash"></i></button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openAddRestaurant() {
+  const categoryOptions = (categories || []).map(c => 
+    `<option value="${c.name}">${c.name}</option>`
+  ).join('');
+
+  openModal(`
+    <h2>Add Restaurant</h2>
+    <form id="restaurantForm">
+      <div class="form-group"><label>Restaurant Name *</label><input id="restName" required placeholder="e.g. Pizza Hut" /></div>
+      <div class="form-group"><label>Category *</label>
+        <select id="restCategory" required>
+          <option value="">Select Category</option>
+          ${categoryOptions}
+        </select>
+      </div>
+      <div class="form-group"><label>Restaurant Logo</label>
+        <div class="file-input-wrapper">
+          <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload Logo</div>
+          <input id="restLogoFile" type="file" accept="image/*" />
+        </div>
+        <div id="restLogoPreview" class="image-preview-grid"></div>
+      </div>
+      <div class="form-group"><label>Status</label>
+        <select id="restStatus">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Save Restaurant</button>
+    </form>
+  `);
+
+  const fileInput = document.getElementById('restLogoFile');
+  const previewContainer = document.getElementById('restLogoPreview');
+  let logoDataUrl = null;
+
+  fileInput.addEventListener('change', function() {
+    previewContainer.innerHTML = '';
+    const file = this.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        logoDataUrl = e.target.result;
+        const div = document.createElement('div');
+        div.className = 'preview-item';
+        div.innerHTML = `<img src="${e.target.result}" /><button type="button" class="remove-img" onclick="this.parentElement.remove(); logoDataUrl = null;"><i class="fas fa-times"></i></button>`;
+        previewContainer.appendChild(div);
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  document.getElementById('restaurantForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const name = document.getElementById('restName').value.trim();
+    const category = document.getElementById('restCategory').value;
+    const status = document.getElementById('restStatus').value;
+    const logo = logoDataUrl || 'https://placehold.co/100';
+    if (!name || !category) { showToast('Name and category required'); return; }
+    try {
+      await postData('restaurants', { name, category, logo, status });
+      restaurants = await fetchData('restaurants');
+      closeModal();
+      showToast('Restaurant added!');
+      switchCatalogTab('restaurants');
+    } catch (err) { showToast('Error: ' + err.message); }
+  });
+}
+
+function editRestaurant(id) {
+  const r = (restaurants || []).find(x => x.id === id);
+  if (!r) { showToast('Restaurant not found'); return; }
+  const categoryOptions = (categories || []).map(c => 
+    `<option value="${c.name}" ${r.category === c.name ? 'selected' : ''}>${c.name}</option>`
+  ).join('');
+
+  openModal(`
+    <h2>Edit Restaurant</h2>
+    <form id="restaurantForm">
+      <div class="form-group"><label>Restaurant Name *</label><input id="restName" value="${r.name}" required /></div>
+      <div class="form-group"><label>Category *</label>
+        <select id="restCategory" required>
+          <option value="">Select Category</option>
+          ${categoryOptions}
+        </select>
+      </div>
+      <div class="form-group"><label>Current Logo</label>
+        ${r.logo ? `<img src="${r.logo}" class="w-20 h-20 object-cover rounded" />` : '<p class="text-gray-400">No logo</p>'}
+      </div>
+      <div class="form-group"><label>Upload New Logo (optional)</label>
+        <div class="file-input-wrapper">
+          <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload New Logo</div>
+          <input id="restLogoFile" type="file" accept="image/*" />
+        </div>
+        <div id="restLogoPreview" class="image-preview-grid"></div>
+      </div>
+      <div class="form-group"><label>Status</label>
+        <select id="restStatus">
+          <option value="Active" ${r.status === 'Active' ? 'selected' : ''}>Active</option>
+          <option value="Inactive" ${r.status === 'Inactive' ? 'selected' : ''}>Inactive</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Update Restaurant</button>
+    </form>
+  `);
+
+  const fileInput = document.getElementById('restLogoFile');
+  const previewContainer = document.getElementById('restLogoPreview');
+  let logoDataUrl = null;
+
+  fileInput.addEventListener('change', function() {
+    previewContainer.innerHTML = '';
+    const file = this.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        logoDataUrl = e.target.result;
+        const div = document.createElement('div');
+        div.className = 'preview-item';
+        div.innerHTML = `<img src="${e.target.result}" /><button type="button" class="remove-img" onclick="this.parentElement.remove(); logoDataUrl = null;"><i class="fas fa-times"></i></button>`;
+        previewContainer.appendChild(div);
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  document.getElementById('restaurantForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const name = document.getElementById('restName').value.trim();
+    const category = document.getElementById('restCategory').value;
+    const status = document.getElementById('restStatus').value;
+    const logo = logoDataUrl || r.logo || 'https://placehold.co/100';
+    if (!name || !category) { showToast('Name and category required'); return; }
+    try {
+      await putData(`restaurants/${id}`, { name, category, logo, status });
+      restaurants = await fetchData('restaurants');
+      closeModal();
+      showToast('Restaurant updated!');
+      switchCatalogTab('restaurants');
+    } catch (err) { showToast('Error: ' + err.message); }
+  });
+}
+
+function deleteRestaurant(id) {
+  if (!confirm('Delete this restaurant?')) return;
+  deleteData(`restaurants/${id}`).then(() => fetchData('restaurants')).then(data => {
+    restaurants = data;
+    showToast('Restaurant deleted');
+    switchCatalogTab('restaurants');
+  }).catch(err => showToast('Error: ' + err.message));
+}
+
+async function toggleRestaurantStatus(id, isActive) {
+  const status = isActive ? 'Active' : 'Inactive';
+  try {
+    await putData(`reports/restaurant/${id}/toggle`, { status });
+    restaurants = await fetchData('restaurants');
+    showToast(`Restaurant ${isActive ? 'activated' : 'deactivated'}`);
+    renderRestaurantsList(document.getElementById('catalogTabContent'));
+  } catch (err) {
+    showToast('Error: ' + err.message);
+  }
+}
+
+// ============================================================
+// PRODUCTS CRUD
+// ============================================================
+function renderProductsList(el) {
+  el.innerHTML = `
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+      <h3 class="text-lg font-bold">Products</h3>
+      <button onclick="openAddProduct()" class="btn btn-primary btn-block sm:btn-auto" style="min-width: 120px;"><i class="fas fa-plus"></i> Add Product</button>
+    </div>
+    <div class="card p-3 table-wrap">
+      <table>
+        <thead><tr><th>Image</th><th>Name</th><th>Restaurant</th><th>Price</th><th>Category</th><th>Commission</th><th>Variants</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${(products || []).map(p => {
+            const restaurant = restaurants.find(r => r.id === p.restaurant_id);
+            const img = (p.images && p.images.length > 0) ? p.images[0] : 'https://placehold.co/40';
+            const variantCount = (p.variants && p.variants.length > 0) ? p.variants.length : 0;
+            return `<tr>
+              <td><img src="${img}" class="w-10 h-10 object-cover rounded" /></td>
+              <td class="text-truncate" style="max-width:80px;">${p.name}</td>
+              <td>${restaurant ? restaurant.name : 'N/A'}</td>
+              <td>₹${p.price || 0}</td>
+              <td>${p.category || 'N/A'}</td>
+              <td>${p.commission || 0}%</td>
+              <td>${variantCount > 0 ? `<span class="badge badge-info">${variantCount} variants</span>` : 'None'}</td>
+              <td><span class="badge ${p.status === 'Active' ? 'badge-success' : 'badge-danger'}">${p.status || 'Active'}</span></td>
+              <td>
+                <div class="table-actions">
+                  <button class="btn btn-sm btn-primary" onclick="editProduct(${p.id})"><i class="fas fa-edit"></i></button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})"><i class="fas fa-trash"></i></button>
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openAddProduct() {
+  const restaurantOptions = (restaurants || []).map(r => 
+    `<option value="${r.id}">${r.name}</option>`
+  ).join('');
+
+  const categoryOptions = (categories || []).map(c => 
+    `<option value="${c.name}">${c.name}</option>`
+  ).join('');
+
+  openModal(`
+    <h2>Add Product</h2>
+    <form id="productForm">
+      <div class="form-group">
+        <label>Product Name *</label>
+        <input id="prodName" required placeholder="e.g. Pepperoni Pizza" />
+      </div>
+      
+      <div class="form-group">
+        <label>Category *</label>
+        <select id="prodCategory" required>
+          <option value="">Select Category</option>
+          ${categoryOptions}
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Restaurant (optional)</label>
+        <select id="prodRestaurant">
+          <option value="">None</option>
+          ${restaurantOptions}
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Base Price (₹) *</label>
+        <input id="prodPrice" type="number" step="0.01" required placeholder="299" />
+      </div>
+      
+      <div class="form-group">
+        <label>Commission (%)</label>
+        <input id="prodCommission" type="number" step="0.01" value="10" placeholder="10" />
+      </div>
+      
+      <div class="form-group">
+        <label>Status</label>
+        <select id="prodStatus">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Product Images</label>
+        <div class="file-input-wrapper">
+          <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload Images</div>
+          <input id="prodImages" type="file" accept="image/*" multiple />
+        </div>
+        <div id="prodImagePreview" class="image-preview-grid"></div>
+      </div>
+      
+      <button type="submit" class="btn btn-primary btn-block">Save Product</button>
+    </form>
+  `);
+
+  const fileInput = document.getElementById('prodImages');
+  const previewContainer = document.getElementById('prodImagePreview');
+  let imageUrls = [];
+
+  fileInput.addEventListener('change', function() {
+    previewContainer.innerHTML = '';
+    imageUrls = [];
+    const files = this.files;
+    for (let i = 0; i < files.length; i++) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        imageUrls.push(e.target.result);
+        const div = document.createElement('div');
+        div.className = 'preview-item';
+        div.innerHTML = `
+          <img src="${e.target.result}" />
+          <button type="button" class="remove-img" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+          </button>
+        `;
+        previewContainer.appendChild(div);
+      };
+      reader.readAsDataURL(files[i]);
+    }
+  });
+
+  document.getElementById('productForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const name = document.getElementById('prodName').value.trim();
+    const category = document.getElementById('prodCategory').value;
+    const restaurantId = document.getElementById('prodRestaurant').value || null;
+    const price = parseFloat(document.getElementById('prodPrice').value);
+    const commission = parseFloat(document.getElementById('prodCommission').value) || 0;
+    const status = document.getElementById('prodStatus').value;
+    
+    if (!name) { showToast('Product name required'); return; }
+    if (!category) { showToast('Category required'); return; }
+    if (!price || isNaN(price)) { showToast('Valid price required'); return; }
+
+    try {
+      await postData('products', { name, category, restaurantId, price, commission, status, images: imageUrls });
+      products = await fetchData('products');
+      closeModal();
+      showToast('Product added successfully!');
+      switchCatalogTab('products');
+    } catch (err) { 
+      console.error('Error:', err);
+      showToast('Error: ' + err.message); 
+    }
+  });
+}
+
+function editProduct(id) {
+  const p = (products || []).find(x => x.id === id);
+  if (!p) { showToast('Product not found'); return; }
+
+  const restaurantOptions = (restaurants || []).map(r => 
+    `<option value="${r.id}" ${p.restaurant_id === r.id ? 'selected' : ''}>${r.name}</option>`
+  ).join('');
+
+  const categoryOptions = (categories || []).map(c => 
+    `<option value="${c.name}" ${p.category === c.name ? 'selected' : ''}>${c.name}</option>`
+  ).join('');
+
+  let imagePreviewHtml = '';
+  if (p.images && p.images.length > 0) {
+    p.images.forEach((img, index) => {
+      imagePreviewHtml += `
+        <div class="preview-item" id="img-container-${index}">
+          <img src="${img}" />
+          <button type="button" class="remove-img" onclick="removeExistingImage(${index}, '${p.id}')">
             <i class="fas fa-times"></i>
           </button>
         </div>
       `;
-    }
+    });
+  }
 
-    openModal(`
-      <h2>Edit Product</h2>
-      <form id="productForm">
-        <div class="form-group">
-          <label>Product Name *</label>
-          <input id="prodName" value="${p.name}" required />
+  openModal(`
+    <h2>Edit Product</h2>
+    <form id="productForm">
+      <div class="form-group"><label>Product Name *</label><input id="prodName" value="${p.name}" required /></div>
+      <div class="form-group"><label>Category *</label>
+        <select id="prodCategory" required>
+          <option value="">Select Category</option>
+          ${categoryOptions}
+        </select>
+      </div>
+      <div class="form-group"><label>Restaurant (optional)</label>
+        <select id="prodRestaurant">
+          <option value="">None</option>
+          ${restaurantOptions}
+        </select>
+      </div>
+      <div class="form-group"><label>Base Price (₹) *</label><input id="prodPrice" type="number" step="0.01" value="${p.price}" required /></div>
+      <div class="form-group"><label>Commission (%)</label><input id="prodCommission" type="number" step="0.01" value="${p.commission || 0}" /></div>
+      <div class="form-group"><label>Status</label>
+        <select id="prodStatus">
+          <option value="Active" ${p.status === 'Active' ? 'selected' : ''}>Active</option>
+          <option value="Inactive" ${p.status === 'Inactive' ? 'selected' : ''}>Inactive</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Current Images</label>
+        <div id="existingImages" class="image-preview-grid">
+          ${imagePreviewHtml || '<p class="text-gray-400 text-sm">No images</p>'}
         </div>
-        
-        <div class="form-group">
-          <label>Category *</label>
-          <select id="prodCategory" required>
-            <option value="">Select Category</option>
-            ${categoryOptions}
-          </select>
+      </div>
+      <div class="form-group"><label>Add New Images (optional)</label>
+        <div class="file-input-wrapper">
+          <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload Images</div>
+          <input id="prodImages" type="file" accept="image/*" multiple />
         </div>
-        
-        <div class="form-group">
-          <label>Restaurant (optional)</label>
-          <select id="prodRestaurant">
-            <option value="">None</option>
-            ${restaurantOptions}
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label>Base Price (₹) *</label>
-          <input id="prodPrice" type="number" step="0.01" value="${p.price}" required />
-        </div>
-        
-        <div class="form-group">
-          <label>Commission (%)</label>
-          <input id="prodCommission" type="number" step="0.01" value="${p.commission || 0}" />
-        </div>
-        
-        <div class="form-group">
-          <label>Status</label>
-          <select id="prodStatus">
-            <option value="Active" ${p.status === 'Active' ? 'selected' : ''}>Active</option>
-            <option value="Inactive" ${p.status === 'Inactive' ? 'selected' : ''}>Inactive</option>
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label>Current Images</label>
-          <div id="existingImages" class="image-preview-grid">
-            ${imagePreviewHtml || '<p class="text-gray-400 text-sm">No images</p>'}
-          </div>
-        </div>
-        
-        <div class="form-group">
-          <label>Add New Images (optional)</label>
-          <div class="file-input-wrapper">
-            <div class="file-btn"><i class="fas fa-cloud-upload-alt"></i> Upload Images</div>
-            <input id="prodImages" type="file" accept="image/*" multiple />
-          </div>
-          <div id="prodImagePreview" class="image-preview-grid"></div>
-        </div>
-        
-        <div class="form-group">
-          <label>Variants (${variantsArray.length} existing)</label>
-          <div id="variantsContainer">
-            ${variantsHtml}
-          </div>
-          <button type="button" onclick="addVariantRow()" class="btn btn-sm btn-outline">
-            <i class="fas fa-plus"></i> Add Variant
+        <div id="prodImagePreview" class="image-preview-grid"></div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Update Product</button>
+    </form>
+  `);
+
+  const fileInput = document.getElementById('prodImages');
+  const previewContainer = document.getElementById('prodImagePreview');
+  let newImageUrls = [];
+
+  fileInput.addEventListener('change', function() {
+    previewContainer.innerHTML = '';
+    newImageUrls = [];
+    const files = this.files;
+    for (let i = 0; i < files.length; i++) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        newImageUrls.push(e.target.result);
+        const div = document.createElement('div');
+        div.className = 'preview-item';
+        div.innerHTML = `
+          <img src="${e.target.result}" />
+          <button type="button" class="remove-img" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
           </button>
-          <p class="text-xs text-gray-400 mt-1">Add variants with description</p>
-        </div>
-        
-        <button type="submit" class="btn btn-primary btn-block">Update Product</button>
-      </form>
-    `);
-
-    const fileInput = document.getElementById('prodImages');
-    const previewContainer = document.getElementById('prodImagePreview');
-    let newImageUrls = [];
-
-    fileInput.addEventListener('change', function() {
-      previewContainer.innerHTML = '';
-      newImageUrls = [];
-      const files = this.files;
-      for (let i = 0; i < files.length; i++) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          newImageUrls.push(e.target.result);
-          const div = document.createElement('div');
-          div.className = 'preview-item';
-          div.innerHTML = `
-            <img src="${e.target.result}" />
-            <button type="button" class="remove-img" onclick="this.parentElement.remove()">
-              <i class="fas fa-times"></i>
-            </button>
-          `;
-          previewContainer.appendChild(div);
-        };
-        reader.readAsDataURL(files[i]);
-      }
-    });
-
-    document.getElementById('productForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const name = document.getElementById('prodName').value.trim();
-      const category = document.getElementById('prodCategory').value;
-      const restaurantId = document.getElementById('prodRestaurant').value || null;
-      const price = parseFloat(document.getElementById('prodPrice').value);
-      const commission = parseFloat(document.getElementById('prodCommission').value) || 0;
-      const status = document.getElementById('prodStatus').value;
-      
-      const variantRows = document.querySelectorAll('.variant-row');
-      const variants = [];
-      variantRows.forEach(row => {
-        const labelInput = row.querySelector('.variant-label');
-        const priceInput = row.querySelector('.variant-price');
-        const descInput = row.querySelector('.variant-description');
-        
-        const label = labelInput ? labelInput.value.trim() : '';
-        const priceVal = priceInput ? parseFloat(priceInput.value) : NaN;
-        const description = descInput ? descInput.value.trim() : '';
-        
-        if (label && !isNaN(priceVal)) {
-          variants.push({ 
-            label: label, 
-            price: priceVal, 
-            description: description 
-          });
-        }
-      });
-      
-      console.log('📦 Collected variants for update:', JSON.stringify(variants));
-      
-      if (!name) { showToast('Product name required'); return; }
-      if (!category) { showToast('Category required'); return; }
-      if (!price || isNaN(price)) { showToast('Valid price required'); return; }
-
-      let existingImages = p.images || [];
-      let allImages = existingImages;
-      if (newImageUrls.length > 0) {
-        allImages = [...allImages, ...newImageUrls];
-      }
-
-      try {
-        const updateData = { 
-          name, 
-          category, 
-          restaurantId: restaurantId ? parseInt(restaurantId) : null, 
-          price, 
-          commission, 
-          status, 
-          images: allImages,
-          variants: variants
-        };
-        
-        console.log('📤 Sending update data:', JSON.stringify(updateData));
-        
-        const response = await putData(`products/${id}`, updateData);
-        console.log('✅ Product updated:', response);
-        
-        products = await fetchData('products');
-        console.log('🔄 Refreshed products list:', products);
-        
-        const updatedProduct = products.find(p => p.id === id);
-        console.log('📦 Updated product variants:', updatedProduct ? updatedProduct.variants : 'Not found');
-        
-        closeModal();
-        showToast(`✅ Product updated with ${variants.length} variants!`);
-        switchCatalogTab('products');
-      } catch (err) { 
-        console.error('❌ Error:', err);
-        showToast('Error: ' + err.message); 
-      }
-    });
-  }
-
-  function removeExistingImage(index, productId) {
-    if (!confirm('Remove this image?')) return;
-    const p = (products || []).find(x => x.id === parseInt(productId));
-    if (!p) return;
-    if (p.images && p.images.length > index) {
-      p.images.splice(index, 1);
-      const container = document.getElementById(`img-container-${index}`);
-      if (container) container.remove();
-      showToast('Image removed. Save the product to apply changes.');
+        `;
+        previewContainer.appendChild(div);
+      };
+      reader.readAsDataURL(files[i]);
     }
-  }
+  });
 
-  function deleteProduct(id) {
-    if (!confirm('Delete this product?')) return;
-    deleteData(`products/${id}`)
-      .then(() => fetchData('products'))
-      .then(data => {
-        products = data;
-        showToast('Product deleted successfully!');
-        switchCatalogTab('products');
-      })
-      .catch(err => showToast('Error: ' + err.message));
-  }
+  document.getElementById('productForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const name = document.getElementById('prodName').value.trim();
+    const category = document.getElementById('prodCategory').value;
+    const restaurantId = document.getElementById('prodRestaurant').value || null;
+    const price = parseFloat(document.getElementById('prodPrice').value);
+    const commission = parseFloat(document.getElementById('prodCommission').value) || 0;
+    const status = document.getElementById('prodStatus').value;
 
-  // ============================================================
-  // PLACES
-  // ============================================================
-  function renderPlaces(el) {
-    el.innerHTML = `
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-        <h3 class="text-lg font-bold">Delivery Places</h3>
-        <button onclick="openAddPlace()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Place</button>
-      </div>
-      <div class="card p-3 table-wrap">
-        <table>
-          <thead><tr><th>Area</th><th>Sub Area</th><th>Delivery Charge</th><th>Actions</th></tr></thead>
-          <tbody>
-            ${(places || []).map(p => `
-              <tr>
-                <td>${p.area}</td>
-                <td>${p.sub_area}</td>
-                <td>₹${p.charge}</td>
-                <td>
-                  <div class="table-actions">
-                    <button class="btn btn-sm btn-primary" onclick="editPlace(${p.id})"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="deletePlace(${p.id})"><i class="fas fa-trash"></i></button>
-                  </div>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
+    if (!name) { showToast('Product name required'); return; }
+    if (!category) { showToast('Category required'); return; }
+    if (!price || isNaN(price)) { showToast('Valid price required'); return; }
 
-  function openAddPlace() {
-    openModal(`
-      <h2>Add Delivery Place</h2>
-      <form id="placeForm">
-        <div class="form-group"><label>Area *</label><input id="placeArea" required placeholder="e.g. Downtown" /></div>
-        <div class="form-group"><label>Sub Area *</label><input id="placeSubArea" required placeholder="e.g. Main Street" /></div>
-        <div class="form-group"><label>Delivery Charge (₹) *</label><input id="placeCharge" type="number" step="0.01" required placeholder="30" /></div>
-        <button type="submit" class="btn btn-primary btn-block">Save</button>
-      </form>
-    `);
-    document.getElementById('placeForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const area = document.getElementById('placeArea').value.trim();
-      const subArea = document.getElementById('placeSubArea').value.trim();
-      const charge = parseFloat(document.getElementById('placeCharge').value);
-      if (!area || !subArea || isNaN(charge)) { showToast('All fields required'); return; }
-      try {
-        await postData('places', { area, subArea, charge, min_order: 0, time: '20-30 min', status: 'Active' });
-        places = await fetchData('places');
-        closeModal();
-        showToast('Place added!');
-        renderPlaces(document.getElementById('pageContent'));
-      } catch (err) { showToast('Error: ' + err.message); }
-    });
-  }
+    let existingImages = p.images || [];
+    let allImages = existingImages;
+    if (newImageUrls.length > 0) {
+      allImages = [...allImages, ...newImageUrls];
+    }
 
-  function editPlace(id) {
-    const p = (places || []).find(x => x.id === id);
-    if (!p) return;
-    openModal(`
-      <h2>Edit Place</h2>
-      <form id="placeForm">
-        <div class="form-group"><label>Area *</label><input id="placeArea" value="${p.area}" required /></div>
-        <div class="form-group"><label>Sub Area *</label><input id="placeSubArea" value="${p.sub_area}" required /></div>
-        <div class="form-group"><label>Delivery Charge (₹) *</label><input id="placeCharge" type="number" step="0.01" value="${p.charge}" required /></div>
-        <button type="submit" class="btn btn-primary btn-block">Update</button>
-      </form>
-    `);
-    document.getElementById('placeForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const area = document.getElementById('placeArea').value.trim();
-      const subArea = document.getElementById('placeSubArea').value.trim();
-      const charge = parseFloat(document.getElementById('placeCharge').value);
-      if (!area || !subArea || isNaN(charge)) { showToast('All fields required'); return; }
-      try {
-        await putData(`places/${id}`, { area, subArea, charge, min_order: p.min_order, time: p.time, status: p.status });
-        places = await fetchData('places');
-        closeModal();
-        showToast('Place updated!');
-        renderPlaces(document.getElementById('pageContent'));
-      } catch (err) { showToast('Error: ' + err.message); }
-    });
-  }
-
-  function deletePlace(id) {
-    if (!confirm('Delete this place?')) return;
-    deleteData(`places/${id}`).then(() => fetchData('places')).then(data => {
-      places = data;
-      showToast('Place deleted');
-      renderPlaces(document.getElementById('pageContent'));
-    }).catch(err => showToast('Error: ' + err.message));
-  }
-
-  // ============================================================
-  // CUSTOMERS
-  // ============================================================
-  function renderCustomers(el) {
-    el.innerHTML = `
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-        <h3 class="text-lg font-bold">Customers</h3>
-        <span class="text-sm text-gray-500">Total: ${(customers || []).length}</span>
-      </div>
-      <div class="card p-3 table-wrap">
-        <table>
-          <thead><tr><th>Name</th><th>Phone</th><th>Orders</th><th>Blocked</th><th>Toggle</th></tr></thead>
-          <tbody>
-            ${(customers || []).map(c => `
-              <tr>
-                <td>${c.first_name || ''} ${c.last_name || ''}</td>
-                <td>${c.phone}</td>
-                <td>${c.total_orders || 0}</td>
-                <td><span class="badge ${c.blocked ? 'badge-danger' : 'badge-success'}">${c.blocked ? 'Blocked' : 'Active'}</span></td>
-                <td>
-                  <button class="btn btn-sm ${c.blocked ? 'btn-success' : 'btn-danger'}" onclick="toggleBlockCustomer(${c.id}, ${!c.blocked})">
-                    ${c.blocked ? 'Unblock' : 'Block'}
-                  </button>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
-
-  async function toggleBlockCustomer(id, block) {
     try {
-      await putData(`customers/${id}/block`, { blocked: block });
-      customers = await fetchData('customers');
-      showToast(`Customer ${block ? 'blocked' : 'unblocked'}`);
-      renderCustomers(document.getElementById('pageContent'));
-    } catch (err) { showToast('Error: ' + err.message); }
-  }
-
-  // ============================================================
-  // ORDERS
-  // ============================================================
-  function renderOrders(el) {
-    el.innerHTML = `
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-        <h3 class="text-lg font-bold">Orders</h3>
-        <span class="text-sm text-gray-500">Total: ${(orders || []).length}</span>
-      </div>
-      <div class="card p-3 table-wrap">
-        <table>
-          <thead><tr><th>ID</th><th>Customer</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody>
-            ${(orders || []).map(o => `
-              <tr>
-                <td>${o.order_id || '#' + o.id}</td>
-                <td>${o.customer_id ? (customers.find(c => c.id === o.customer_id)?.first_name || 'N/A') : 'N/A'}</td>
-                <td>₹${o.grand_total || 0}</td>
-                <td><span class="badge ${o.status === 'Delivered' ? 'badge-success' : o.status === 'Cancelled' ? 'badge-danger' : 'badge-warning'}">${o.status || 'Pending'}</span></td>
-                <td>
-                  <button class="btn btn-sm btn-primary" onclick="viewOrder(${o.id})"><i class="fas fa-eye"></i></button>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
-
-  function viewOrder(id) {
-    const order = (orders || []).find(o => o.id === id);
-    if (!order) { showToast('Order not found'); return; }
-    const customer = customers.find(c => c.id === order.customer_id);
-    openModal(`
-      <h2>Order ${order.order_id || '#' + order.id}</h2>
-      <div class="space-y-2">
-        <p><strong>Customer:</strong> ${customer ? customer.first_name + ' ' + customer.last_name : 'N/A'}</p>
-        <p><strong>Phone:</strong> ${customer ? customer.phone : 'N/A'}</p>
-        <p><strong>Delivery Address:</strong> ${order.delivery_address || 'N/A'}</p>
-        <p><strong>Total:</strong> ₹${order.grand_total || 0}</p>
-        <p><strong>Status:</strong> ${order.status || 'Pending'}</p>
-        <p><strong>Date:</strong> ${new Date(order.date).toLocaleString()}</p>
-        <div><strong>Items:</strong>
-          <ul class="list-disc pl-5">
-            ${(order.items || []).map(item => `<li>${item.name} × ${item.quantity} = ₹${(item.price || 0) * (item.quantity || 0)}</li>`).join('') || '<li>No items</li>'}
-          </ul>
-        </div>
-        <div class="flex gap-2 flex-wrap">
-          <button class="btn btn-sm btn-success" onclick="updateOrderStatus(${order.id}, 'Delivered')">Deliver</button>
-          <button class="btn btn-sm btn-warning" onclick="updateOrderStatus(${order.id}, 'Processing')">Processing</button>
-          <button class="btn btn-sm btn-danger" onclick="updateOrderStatus(${order.id}, 'Cancelled')">Cancel</button>
-        </div>
-      </div>
-    `);
-  }
-
-  async function updateOrderStatus(id, status) {
-    try {
-      await putData(`orders/${id}/status`, { status });
-      orders = await fetchData('orders');
+      await putData(`products/${id}`, { name, category, restaurantId, price, commission, status, images: allImages });
+      products = await fetchData('products');
       closeModal();
-      showToast(`Order status updated to ${status}`);
-      navigateTo('orders');
+      showToast('Product updated successfully!');
+      switchCatalogTab('products');
+    } catch (err) { 
+      console.error('Error:', err);
+      showToast('Error: ' + err.message); 
+    }
+  });
+}
+
+function removeExistingImage(index, productId) {
+  if (!confirm('Remove this image?')) return;
+  const p = (products || []).find(x => x.id === parseInt(productId));
+  if (!p) return;
+  if (p.images && p.images.length > index) {
+    p.images.splice(index, 1);
+    const container = document.getElementById(`img-container-${index}`);
+    if (container) container.remove();
+    showToast('Image removed. Save the product to apply changes.');
+  }
+}
+
+function deleteProduct(id) {
+  if (!confirm('Delete this product?')) return;
+  deleteData(`products/${id}`)
+    .then(() => fetchData('products'))
+    .then(data => {
+      products = data;
+      showToast('Product deleted successfully!');
+      switchCatalogTab('products');
+    })
+    .catch(err => showToast('Error: ' + err.message));
+}
+
+// ============================================================
+// PLACES
+// ============================================================
+function renderPlaces(el) {
+  el.innerHTML = `
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+      <h3 class="text-lg font-bold">Delivery Places</h3>
+      <button onclick="openAddPlace()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Place</button>
+    </div>
+    <div class="card p-3 table-wrap">
+      <table>
+        <thead><tr><th>Area</th><th>Sub Area</th><th>Delivery Charge</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${(places || []).map(p => `
+            <tr>
+              <td>${p.area}</td>
+              <td>${p.sub_area}</td>
+              <td>₹${p.charge}</td>
+              <td>
+                <div class="table-actions">
+                  <button class="btn btn-sm btn-primary" onclick="editPlace(${p.id})"><i class="fas fa-edit"></i></button>
+                  <button class="btn btn-sm btn-danger" onclick="deletePlace(${p.id})"><i class="fas fa-trash"></i></button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openAddPlace() {
+  openModal(`
+    <h2>Add Delivery Place</h2>
+    <form id="placeForm">
+      <div class="form-group"><label>Area *</label><input id="placeArea" required placeholder="e.g. Downtown" /></div>
+      <div class="form-group"><label>Sub Area *</label><input id="placeSubArea" required placeholder="e.g. Main Street" /></div>
+      <div class="form-group"><label>Delivery Charge (₹) *</label><input id="placeCharge" type="number" step="0.01" required placeholder="30" /></div>
+      <button type="submit" class="btn btn-primary btn-block">Save</button>
+    </form>
+  `);
+  document.getElementById('placeForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const area = document.getElementById('placeArea').value.trim();
+    const subArea = document.getElementById('placeSubArea').value.trim();
+    const charge = parseFloat(document.getElementById('placeCharge').value);
+    if (!area || !subArea || isNaN(charge)) { showToast('All fields required'); return; }
+    try {
+      await postData('places', { area, sub_area: subArea, charge });
+      places = await fetchData('places');
+      closeModal();
+      showToast('Place added!');
+      renderPlaces(document.getElementById('pageContent'));
     } catch (err) { showToast('Error: ' + err.message); }
-  }
+  });
+}
 
-  // ============================================================
-  // EARNINGS
-  // ============================================================
-  function renderEarnings(el) {
-    const delivered = (orders || []).filter(o => o.status === 'Delivered');
-    const totalCommission = delivered.reduce((s, o) => s + (o.commission_amount || 0), 0);
-    const totalDelivery = delivered.reduce((s, o) => s + (o.delivery_charge || 0), 0);
-    const totalRain = delivered.reduce((s, o) => s + (o.rain_fare || 0), 0);
-    const totalProfit = totalCommission + totalDelivery + totalRain;
+function editPlace(id) {
+  const p = (places || []).find(x => x.id === id);
+  if (!p) return;
+  openModal(`
+    <h2>Edit Place</h2>
+    <form id="placeForm">
+      <div class="form-group"><label>Area *</label><input id="placeArea" value="${p.area}" required /></div>
+      <div class="form-group"><label>Sub Area *</label><input id="placeSubArea" value="${p.sub_area}" required /></div>
+      <div class="form-group"><label>Delivery Charge (₹) *</label><input id="placeCharge" type="number" step="0.01" value="${p.charge}" required /></div>
+      <button type="submit" class="btn btn-primary btn-block">Update</button>
+    </form>
+  `);
+  document.getElementById('placeForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const area = document.getElementById('placeArea').value.trim();
+    const subArea = document.getElementById('placeSubArea').value.trim();
+    const charge = parseFloat(document.getElementById('placeCharge').value);
+    if (!area || !subArea || isNaN(charge)) { showToast('All fields required'); return; }
+    try {
+      await putData(`places/${id}`, { area, sub_area: subArea, charge });
+      places = await fetchData('places');
+      closeModal();
+      showToast('Place updated!');
+      renderPlaces(document.getElementById('pageContent'));
+    } catch (err) { showToast('Error: ' + err.message); }
+  });
+}
 
-    el.innerHTML = `
-      <h2 class="text-xl font-bold mb-4">Earnings</h2>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="stat-card"><p class="stat-label">Commission</p><p class="stat-value">₹${totalCommission.toFixed(2)}</p></div>
-        <div class="stat-card"><p class="stat-label">Delivery Charges</p><p class="stat-value">₹${totalDelivery.toFixed(2)}</p></div>
-        <div class="stat-card"><p class="stat-label">Rain Fare</p><p class="stat-value">₹${totalRain.toFixed(2)}</p></div>
-        <div class="stat-card"><p class="stat-label">Total Profit</p><p class="stat-value">₹${totalProfit.toFixed(2)}</p></div>
-      </div>
-    `;
-  }
+function deletePlace(id) {
+  if (!confirm('Delete this place?')) return;
+  deleteData(`places/${id}`).then(() => fetchData('places')).then(data => {
+    places = data;
+    showToast('Place deleted');
+    renderPlaces(document.getElementById('pageContent'));
+  }).catch(err => showToast('Error: ' + err.message));
+}
 
-  // ============================================================
-  // BEST SELLING
-  // ============================================================
-  function renderBestSelling(el) {
-    const delivered = (orders || []).filter(o => o.status === 'Delivered');
-    const productCounts = {};
-    delivered.forEach(o => {
-      (o.items || []).forEach(item => {
-        productCounts[item.name] = (productCounts[item.name] || 0) + (item.quantity || 0);
-      });
+// ============================================================
+// CUSTOMERS
+// ============================================================
+function renderCustomers(el) {
+  el.innerHTML = `
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+      <h3 class="text-lg font-bold">Customers</h3>
+      <span class="text-sm text-gray-500">Total: ${(customers || []).length}</span>
+    </div>
+    <div class="card p-3 table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Phone</th><th>Orders</th></tr></thead>
+        <tbody>
+          ${(customers || []).map(c => `
+            <tr>
+              <td>${c.first_name || ''} ${c.last_name || ''}</td>
+              <td>${c.phone}</td>
+              <td>${c.total_orders || 0}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ============================================================
+// ORDERS
+// ============================================================
+function renderOrders(el) {
+  el.innerHTML = `
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+      <h3 class="text-lg font-bold">Orders</h3>
+      <span class="text-sm text-gray-500">Total: ${(orders || []).length}</span>
+    </div>
+    <div class="card p-3 table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Customer</th><th>Total</th><th>Status</th></tr></thead>
+        <tbody>
+          ${(orders || []).map(o => `
+            <tr>
+              <td>${o.order_id || '#' + o.id}</td>
+              <td>${o.customer_id ? (customers.find(c => c.id === o.customer_id)?.first_name || 'N/A') : 'N/A'}</td>
+              <td>₹${o.grand_total || 0}</td>
+              <td><span class="badge ${o.status === 'Delivered' ? 'badge-success' : o.status === 'Cancelled' ? 'badge-danger' : 'badge-warning'}">${o.status || 'Pending'}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ============================================================
+// EARNINGS
+// ============================================================
+function renderEarnings(el) {
+  const delivered = (orders || []).filter(o => o.status === 'Delivered');
+  const totalCommission = delivered.reduce((s, o) => s + (o.commission_amount || 0), 0);
+  const totalDelivery = delivered.reduce((s, o) => s + (o.delivery_charge || 0), 0);
+  const totalRain = delivered.reduce((s, o) => s + (o.rain_fare || 0), 0);
+  const totalProfit = totalCommission + totalDelivery + totalRain;
+
+  el.innerHTML = `
+    <h2 class="text-xl font-bold mb-4">Earnings</h2>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="stat-card"><p class="stat-label">Commission</p><p class="stat-value">₹${totalCommission.toFixed(2)}</p></div>
+      <div class="stat-card"><p class="stat-label">Delivery Charges</p><p class="stat-value">₹${totalDelivery.toFixed(2)}</p></div>
+      <div class="stat-card"><p class="stat-label">Rain Fare</p><p class="stat-value">₹${totalRain.toFixed(2)}</p></div>
+      <div class="stat-card"><p class="stat-label">Total Profit</p><p class="stat-value">₹${totalProfit.toFixed(2)}</p></div>
+    </div>
+  `;
+}
+
+// ============================================================
+// BEST SELLING
+// ============================================================
+function renderBestSelling(el) {
+  const delivered = (orders || []).filter(o => o.status === 'Delivered');
+  const productCounts = {};
+  delivered.forEach(o => {
+    (o.items || []).forEach(item => {
+      productCounts[item.name] = (productCounts[item.name] || 0) + (item.quantity || 0);
     });
-    const sorted = Object.entries(productCounts).sort((a, b) => b[1] - a[1]);
+  });
+  const sorted = Object.entries(productCounts).sort((a, b) => b[1] - a[1]);
 
-    el.innerHTML = `
-      <h2 class="text-xl font-bold mb-4">Best Selling Products</h2>
-      <div class="card p-3 table-wrap">
-        <table>
-          <thead><tr><th>#</th><th>Product</th><th>Quantity Sold</th></tr></thead>
-          <tbody>
-            ${sorted.length === 0 ? '<tr><td colspan="3" class="text-center text-gray-400">No data</td></tr>' :
+  el.innerHTML = `
+    <h2 class="text-xl font-bold mb-4">Best Selling Products</h2>
+    <div class="card p-3 table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Product</th><th>Quantity Sold</th></tr></thead>
+        <tbody>
+          ${sorted.length === 0 ? '<tr><td colspan="3" class="text-center text-gray-400">No data</td></tr>' :
             sorted.map(([name, qty], i) => `
               <tr>
                 <td>${i+1}</td>
@@ -2167,814 +1700,159 @@
                 <td>${qty}</td>
               </tr>
             `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
+        </tbody>
+      </table>
+    </div>
+  `;
+}
 
-  // ============================================================
-  // OFFERS
-  // ============================================================
-  function renderOffers(el) {
-    el.innerHTML = `
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-        <h3 class="text-lg font-bold">Offers</h3>
-        <button onclick="openAddOffer()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Offer</button>
-      </div>
-      <div class="card p-3 table-wrap">
-        <table>
-          <thead><tr><th>Title</th><th>Discount</th><th>Restaurant/Category</th><th>Description</th><th>Actions</th></tr></thead>
-          <tbody>
-            ${(offers || []).map(o => {
-              const restaurant = restaurants.find(r => r.id === o.restaurant_id);
-              return `<tr>
-                <td>${o.title}</td>
-                <td>${o.discount}</td>
-                <td>${restaurant ? restaurant.name : (o.category || 'All')}</td>
-                <td>${o.description || ''}</td>
-                <td>
-                  <div class="table-actions">
-                    <button class="btn btn-sm btn-primary" onclick="editOffer(${o.id})"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteOffer(${o.id})"><i class="fas fa-trash"></i></button>
-                  </div>
-                </td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
-
-  function openAddOffer() {
-    const restaurantOptions = (restaurants || []).map(r => 
-      `<option value="${r.id}">${r.name}</option>`
-    ).join('');
-
-    const categoryOptions = (categories || []).map(c => 
-      `<option value="${c.name}">${c.name}</option>`
-    ).join('');
-
-    openModal(`
-      <h2>Add Offer</h2>
-      <form id="offerForm">
-        <div class="form-group"><label>Title *</label><input id="offerTitle" required placeholder="Summer Sale" /></div>
-        <div class="form-group"><label>Discount *</label><input id="offerDiscount" required placeholder="20% OFF" /></div>
-        <div class="form-group"><label>Restaurant (optional)</label>
-          <select id="offerRestaurant">
-            <option value="">All Restaurants</option>
-            ${restaurantOptions}
-          </select>
-        </div>
-        <div class="form-group"><label>Category (optional)</label>
-          <select id="offerCategory">
-            <option value="">All Categories</option>
-            ${categoryOptions}
-          </select>
-        </div>
-        <div class="form-group"><label>Description</label>
-          <textarea id="offerDescription" rows="2" placeholder="Brief description of the offer"></textarea>
-        </div>
-        <div class="form-group"><label>Background Color</label>
-          <input id="offerBg" value="linear-gradient(135deg, #667eea 0%, #764ba2 100%)" placeholder="CSS gradient" />
-        </div>
-        <div class="form-group"><label>Icon</label>
-          <input id="offerIcon" value="fa-tags" placeholder="Font Awesome icon class" />
-        </div>
-        <button type="submit" class="btn btn-primary btn-block">Save Offer</button>
-      </form>
-    `);
-    document.getElementById('offerForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const title = document.getElementById('offerTitle').value.trim();
-      const discount = document.getElementById('offerDiscount').value.trim();
-      const restaurantId = document.getElementById('offerRestaurant').value || null;
-      const category = document.getElementById('offerCategory').value || null;
-      const description = document.getElementById('offerDescription').value.trim();
-      const bg = document.getElementById('offerBg').value.trim();
-      const icon = document.getElementById('offerIcon').value.trim();
-      if (!title || !discount) { showToast('Title and discount required'); return; }
-      try {
-        await postData('offers', { 
-          title, discount, restaurant_id: restaurantId, category, description, 
-          bg: bg || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
-          icon: icon || 'fa-tags' 
-        });
-        offers = await fetchData('offers');
-        closeModal();
-        showToast('Offer added!');
-        renderOffers(document.getElementById('pageContent'));
-      } catch (err) { showToast('Error: ' + err.message); }
-    });
-  }
-
-  function editOffer(id) {
-    const o = (offers || []).find(x => x.id === id);
-    if (!o) return;
-    const restaurantOptions = (restaurants || []).map(r => 
-      `<option value="${r.id}" ${o.restaurant_id === r.id ? 'selected' : ''}>${r.name}</option>`
-    ).join('');
-
-    const categoryOptions = (categories || []).map(c => 
-      `<option value="${c.name}" ${o.category === c.name ? 'selected' : ''}>${c.name}</option>`
-    ).join('');
-
-    openModal(`
-      <h2>Edit Offer</h2>
-      <form id="offerForm">
-        <div class="form-group"><label>Title *</label><input id="offerTitle" value="${o.title}" required /></div>
-        <div class="form-group"><label>Discount *</label><input id="offerDiscount" value="${o.discount}" required /></div>
-        <div class="form-group"><label>Restaurant (optional)</label>
-          <select id="offerRestaurant">
-            <option value="">All Restaurants</option>
-            ${restaurantOptions}
-          </select>
-        </div>
-        <div class="form-group"><label>Category (optional)</label>
-          <select id="offerCategory">
-            <option value="">All Categories</option>
-            ${categoryOptions}
-          </select>
-        </div>
-        <div class="form-group"><label>Description</label>
-          <textarea id="offerDescription" rows="2">${o.description || ''}</textarea>
-        </div>
-        <div class="form-group"><label>Background Color</label>
-          <input id="offerBg" value="${o.bg || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}" />
-        </div>
-        <div class="form-group"><label>Icon</label>
-          <input id="offerIcon" value="${o.icon || 'fa-tags'}" />
-        </div>
-        <button type="submit" class="btn btn-primary btn-block">Update</button>
-      </form>
-    `);
-    document.getElementById('offerForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const title = document.getElementById('offerTitle').value.trim();
-      const discount = document.getElementById('offerDiscount').value.trim();
-      const restaurantId = document.getElementById('offerRestaurant').value || null;
-      const category = document.getElementById('offerCategory').value || null;
-      const description = document.getElementById('offerDescription').value.trim();
-      const bg = document.getElementById('offerBg').value.trim();
-      const icon = document.getElementById('offerIcon').value.trim();
-      if (!title || !discount) { showToast('Title and discount required'); return; }
-      try {
-        await putData(`offers/${id}`, { 
-          title, discount, restaurant_id: restaurantId, category, description,
-          bg: bg || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
-          icon: icon || 'fa-tags' 
-        });
-        offers = await fetchData('offers');
-        closeModal();
-        showToast('Offer updated!');
-        renderOffers(document.getElementById('pageContent'));
-      } catch (err) { showToast('Error: ' + err.message); }
-    });
-  }
-
-  function deleteOffer(id) {
-    if (!confirm('Delete this offer?')) return;
-    deleteData(`offers/${id}`).then(() => fetchData('offers')).then(data => {
-      offers = data;
-      showToast('Offer deleted');
-      renderOffers(document.getElementById('pageContent'));
-    }).catch(err => showToast('Error: ' + err.message));
-  }
-
-  // ============================================================
-  // NOTIFICATIONS
-  // ============================================================
-  function renderNotifications(el) {
-    el.innerHTML = `
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-        <h3 class="text-lg font-bold">Notifications</h3>
-        <button onclick="sendTestNotification()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-bell"></i> Send Test</button>
-      </div>
-      <div class="card p-4">
-        <p class="text-gray-500 text-sm">Notifications will appear here.</p>
-        <div class="mt-2 space-y-2">
-          ${(notifications || []).map(n => `
-            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg flex justify-between">
-              <span>${n.message}</span>
-              <span class="text-xs text-gray-400">${new Date(n.timestamp).toLocaleString()}</span>
-            </div>
+// ============================================================
+// OFFERS
+// ============================================================
+function renderOffers(el) {
+  el.innerHTML = `
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+      <h3 class="text-lg font-bold">Offers</h3>
+      <button onclick="openAddOffer()" class="btn btn-primary btn-block sm:btn-auto"><i class="fas fa-plus"></i> Add Offer</button>
+    </div>
+    <div class="card p-3 table-wrap">
+      <table>
+        <thead><tr><th>Title</th><th>Discount</th><th>Status</th></tr></thead>
+        <tbody>
+          ${(offers || []).map(o => `
+            <tr>
+              <td>${o.title}</td>
+              <td>${o.discount}</td>
+              <td><span class="badge badge-success">Active</span></td>
+            </tr>
           `).join('')}
-        </div>
-      </div>
-    `;
-  }
+        </tbody>
+      </table>
+    </div>
+  `;
+}
 
-  function sendTestNotification() {
-    showToast('Test notification sent!');
-    notifications.push({ message: 'Test notification at ' + new Date().toLocaleString(), timestamp: new Date().toISOString() });
-    renderNotifications(document.getElementById('pageContent'));
-  }
-
-  // ============================================================
-  // WHATSAPP
-  // ============================================================
-  function renderWhatsApp(el) {
-    el.innerHTML = `
-      <h2 class="text-xl font-bold mb-4">WhatsApp Integration</h2>
-      <div class="card p-6 max-w-xl">
-        <p class="mb-4">Send WhatsApp messages to customers</p>
-        <div class="flex flex-col gap-3">
-          <input type="tel" id="whatsappPhone" placeholder="Phone number with country code" class="border rounded-lg px-4 py-2" />
-          <textarea id="whatsappMessage" rows="3" placeholder="Message" class="border rounded-lg px-4 py-2"></textarea>
-          <button onclick="sendWhatsAppMessage()" class="btn btn-success"><i class="fab fa-whatsapp"></i> Send via WhatsApp</button>
-        </div>
-        <div class="mt-4">
-          <button onclick="viewWhatsAppLogs()" class="btn btn-outline"><i class="fas fa-history"></i> View Logs</button>
-        </div>
-      </div>
-    `;
-  }
-
-  async function sendWhatsAppMessage() {
-    const phone = document.getElementById('whatsappPhone').value.trim();
-    const message = document.getElementById('whatsappMessage').value.trim();
-    if (!phone || !message) { showToast('Please enter both phone and message'); return; }
+function openAddOffer() {
+  openModal(`
+    <h2>Add Offer</h2>
+    <form id="offerForm">
+      <div class="form-group"><label>Title *</label><input id="offerTitle" required placeholder="Summer Sale" /></div>
+      <div class="form-group"><label>Discount *</label><input id="offerDiscount" required placeholder="20% OFF" /></div>
+      <button type="submit" class="btn btn-primary btn-block">Save Offer</button>
+    </form>
+  `);
+  document.getElementById('offerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const title = document.getElementById('offerTitle').value.trim();
+    const discount = document.getElementById('offerDiscount').value.trim();
+    if (!title || !discount) { showToast('Title and discount required'); return; }
     try {
-      const res = await fetch(`${API_BASE}/whatsapp/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, message })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to send');
-      showToast('WhatsApp message sent!');
+      await postData('offers', { title, discount });
+      offers = await fetchData('offers');
+      closeModal();
+      showToast('Offer added!');
+      renderOffers(document.getElementById('pageContent'));
     } catch (err) { showToast('Error: ' + err.message); }
-  }
-
-  function viewWhatsAppLogs() {
-    fetch(`${API_BASE}/whatsapp/logs`)
-      .then(res => res.json())
-      .then(logs => {
-        let html = `
-          <h2 class="text-xl font-bold mb-4">📋 WhatsApp Logs</h2>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Order ID</th><th>Phone</th><th>Status</th><th>Sent At</th></tr></thead>
-              <tbody>
-                ${logs.length === 0 ? '<tr><td colspan="4" class="text-center text-gray-400">No logs found</td></tr>' :
-                logs.map(log => `
-                  <tr>
-                    <td>${log.order_id}</td>
-                    <td>${log.recipient_phone}</td>
-                    <td><span class="badge ${log.status === 'sent' ? 'badge-success' : 'badge-danger'}">${log.status}</span></td>
-                    <td>${new Date(log.sent_at).toLocaleString()}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        `;
-        openModal(html);
-      })
-      .catch(err => showToast('Error loading logs: ' + err.message));
-  }
-
-  // ============================================================
-  // SETTINGS
-  // ============================================================
-  function renderSettings(el) {
-    const adminPhones = settings.admin_phones 
-      ? JSON.parse(settings.admin_phones) 
-      : ['+919019825189', '+91827079552', '+919999999999'];
-    
-    const unavailableDays = settings.unavailable_days 
-      ? JSON.parse(settings.unavailable_days) 
-      : [];
-    
-    const serviceUnavailable = settings.service_unavailable === 'true';
-    const rainFareEnabled = settings.rain_fare_enabled !== 'false';
-    
-    el.innerHTML = `
-      <h2 class="text-xl font-bold mb-4">⚙️ Settings</h2>
-      <div class="space-y-6">
-        <div class="card p-6">
-          <h3 class="font-semibold text-lg mb-3">🔌 Service Status</h3>
-          <div class="flex items-center gap-4">
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" id="serviceToggle" class="sr-only peer" ${serviceUnavailable ? 'checked' : ''} onchange="toggleServiceStatus(this.checked)">
-              <div class="w-14 h-7 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-600"></div>
-            </label>
-            <span id="serviceStatusLabel" class="font-medium text-lg ${serviceUnavailable ? 'text-red-600' : 'text-green-600'}">
-              ${serviceUnavailable ? '🔴 Service Unavailable' : '🟢 Service Active'}
-            </span>
-          </div>
-        </div>
-
-        <div class="card p-6">
-          <h3 class="font-semibold text-lg mb-3">🌧️ Rain Fare</h3>
-          <div class="flex items-center gap-4">
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" id="rainFareToggle" class="sr-only peer" ${rainFareEnabled ? 'checked' : ''} onchange="toggleRainFare(this.checked)">
-              <div class="w-14 h-7 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary"></div>
-            </label>
-            <span id="rainFareStatus" class="font-medium text-lg ${rainFareEnabled ? 'text-green-600' : 'text-gray-500'}">
-              ${rainFareEnabled ? '✅ Rain Fare Enabled' : '❌ Rain Fare Disabled'}
-            </span>
-          </div>
-          <div class="mt-3 flex gap-2">
-            <input type="number" id="rainFare" value="${settings.rain_fare || 20}" class="flex-1 border rounded-lg px-4 py-2" step="0.01" />
-            <button onclick="updateRainFare()" class="btn btn-primary">Update Amount</button>
-          </div>
-          <p class="text-sm text-gray-500 mt-2">Rain fare will ${rainFareEnabled ? 'be applied' : 'not be applied'} to orders</p>
-        </div>
-
-        <div class="card p-6">
-          <h3 class="font-semibold text-lg mb-3">📱 Admin Phone Numbers</h3>
-          <p class="text-sm text-gray-500 mb-3">These numbers can receive admin OTPs</p>
-          <div id="adminPhonesList" class="space-y-2 mb-3">
-            ${adminPhones.map((phone, index) => `
-              <div class="flex items-center gap-2">
-                <input type="tel" value="${phone}" class="flex-1 px-3 py-2 rounded-lg border border-gray-300 bg-gray-50 text-sm" onchange="updateAdminPhone(${index}, this.value)" />
-                <button onclick="removeAdminPhone(${index})" class="text-red-500 hover:text-red-700 px-2 py-2"><i class="fas fa-trash"></i></button>
-              </div>
-            `).join('')}
-          </div>
-          <button onclick="addAdminPhone()" class="btn btn-sm btn-outline mb-4"><i class="fas fa-plus"></i> Add Phone Number</button>
-          <button onclick="saveAdminPhones()" class="btn btn-primary"><i class="fas fa-save"></i> Save Phone Numbers</button>
-          <p id="adminPhoneStatus" class="text-sm mt-2 text-gray-500"></p>
-        </div>
-
-        <div class="card p-6">
-          <h3 class="font-semibold text-lg mb-3">🔑 Active Admin Phone (Login)</h3>
-          <div class="flex gap-2">
-            <select id="adminPhoneSelect" class="flex-1 border rounded-lg px-4 py-2 bg-white dark:bg-gray-700">
-              ${adminPhones.map(p => `<option value="${p}" ${settings.active_admin_phone === p ? 'selected' : ''}>${p}</option>`).join('')}
-            </select>
-            <button onclick="updateActiveAdminPhone()" class="btn btn-primary">Update</button>
-          </div>
-          <p id="activePhoneStatus" class="text-sm mt-2 text-gray-500"></p>
-        </div>
-
-        <div class="card p-6">
-          <h3 class="font-semibold text-lg mb-3">💰 Commission Rate</h3>
-          <div class="flex gap-2">
-            <input type="number" id="commissionRate" value="${settings.default_commission || 10}" class="flex-1 border rounded-lg px-4 py-2" step="0.01" />
-            <button onclick="updateSetting('default_commission', document.getElementById('commissionRate').value)" class="btn btn-primary">Save</button>
-          </div>
-          <p class="text-sm text-gray-500 mt-1">Accepts decimal values (e.g., 10.5)</p>
-        </div>
-
-        <div class="card p-6">
-          <h3 class="font-semibold text-lg mb-3">🕐 Delivery Hours</h3>
-          <div class="flex gap-2">
-            <input type="text" id="deliveryHours" value="${settings.delivery_hours || '9:00 AM - 10:00 PM'}" class="flex-1 border rounded-lg px-4 py-2" />
-            <button onclick="updateSetting('delivery_hours', document.getElementById('deliveryHours').value)" class="btn btn-primary">Save</button>
-          </div>
-        </div>
-
-        <div class="card p-6">
-          <h3 class="font-semibold text-lg mb-3">📅 Unavailable Days</h3>
-          <p class="text-sm text-gray-500 mb-3">Days when delivery is not available</p>
-          <div class="flex gap-2 flex-wrap">
-            ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
-              const isChecked = unavailableDays.includes(day);
-              return `
-                <label class="inline-flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border ${isChecked ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-primary'}">
-                  <input type="checkbox" class="unavailable-day" value="${day}" ${isChecked ? 'checked' : ''} onchange="updateUnavailableDays()" />
-                  <span class="text-sm">${day}</span>
-                </label>
-              `;
-            }).join('')}
-          </div>
-          <button onclick="saveUnavailableDays()" class="btn btn-primary mt-4">Save Unavailable Days</button>
-        </div>
-      </div>
-    `;
-  }
-
-  // ============================================================
-  // SETTINGS HELPER FUNCTIONS
-  // ============================================================
-  function toggleServiceStatus(isChecked) {
-    const status = isChecked ? 'true' : 'false';
-    fetch(`${API_BASE}/settings`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'service_unavailable', value: status })
-    })
-    .then(res => res.json())
-    .then(() => {
-      settings.service_unavailable = status;
-      const label = document.getElementById('serviceStatusLabel');
-      if (label) {
-        label.textContent = isChecked ? '🔴 Service Unavailable' : '🟢 Service Active';
-        label.className = `font-medium text-lg ${isChecked ? 'text-red-600' : 'text-green-600'}`;
-      }
-      showToast(isChecked ? 'Service marked as unavailable' : 'Service is now active');
-    })
-    .catch(err => showToast('Error: ' + err.message));
-  }
-
-  function toggleRainFare(isChecked) {
-    const status = isChecked ? 'true' : 'false';
-    fetch(`${API_BASE}/settings`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'rain_fare_enabled', value: status })
-    })
-    .then(res => res.json())
-    .then(() => {
-      settings.rain_fare_enabled = status;
-      const label = document.getElementById('rainFareStatus');
-      if (label) {
-        label.textContent = isChecked ? '✅ Rain Fare Enabled' : '❌ Rain Fare Disabled';
-        label.className = `font-medium text-lg ${isChecked ? 'text-green-600' : 'text-gray-500'}`;
-      }
-      showToast(isChecked ? 'Rain fare enabled' : 'Rain fare disabled');
-    })
-    .catch(err => showToast('Error: ' + err.message));
-  }
-
-  function updateRainFare() {
-    const value = document.getElementById('rainFare').value;
-    if (!value || isNaN(value)) {
-      showToast('Please enter a valid amount');
-      return;
-    }
-    fetch(`${API_BASE}/settings`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'rain_fare', value: value })
-    })
-    .then(res => res.json())
-    .then(() => {
-      settings.rain_fare = value;
-      showToast('Rain fare updated to ₹' + value);
-    })
-    .catch(err => showToast('Error: ' + err.message));
-  }
-
-  function addAdminPhone() {
-    const container = document.getElementById('adminPhonesList');
-    const index = adminPhonesList.length;
-    const div = document.createElement('div');
-    div.className = 'flex items-center gap-2';
-    div.innerHTML = `
-      <input type="tel" placeholder="+91XXXXXXXXXX" class="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm" onchange="updateAdminPhone(${index}, this.value)" />
-      <button onclick="removeAdminPhone(${index})" class="text-red-500 hover:text-red-700 px-2 py-2"><i class="fas fa-trash"></i></button>
-    `;
-    container.appendChild(div);
-    adminPhonesList.push('');
-  }
-
-  function updateAdminPhone(index, value) {
-    adminPhonesList[index] = value.trim();
-  }
-
-  function removeAdminPhone(index) {
-    if (!confirm('Remove this phone number?')) return;
-    adminPhonesList.splice(index, 1);
-    renderSettings(document.getElementById('pageContent'));
-  }
-
-  function saveAdminPhones() {
-    const validPhones = adminPhonesList.filter(p => p && p.length >= 10);
-    if (validPhones.length === 0) {
-      showToast('At least one valid phone number is required');
-      return;
-    }
-    fetch(`${API_BASE}/settings`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'admin_phones', value: JSON.stringify(validPhones) })
-    })
-    .then(res => res.json())
-    .then(() => {
-      settings.admin_phones = JSON.stringify(validPhones);
-      document.getElementById('adminPhoneStatus').textContent = '✅ Phone numbers saved!';
-      setTimeout(() => document.getElementById('adminPhoneStatus').textContent = '', 3000);
-      showToast('Admin phones updated');
-      const select = document.getElementById('adminPhoneSelect');
-      if (select) {
-        select.innerHTML = validPhones.map(p => `<option value="${p}">${p}</option>`).join('');
-      }
-    })
-    .catch(err => showToast('Error: ' + err.message));
-  }
-
-  function updateActiveAdminPhone() {
-    const phone = document.getElementById('adminPhoneSelect').value;
-    if (!phone) { showToast('Please select a phone number'); return; }
-    fetch(`${API_BASE}/settings`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'active_admin_phone', value: phone })
-    })
-    .then(res => res.json())
-    .then(() => {
-      settings.active_admin_phone = phone;
-      document.getElementById('activePhoneStatus').textContent = '✅ Active admin phone updated!';
-      setTimeout(() => document.getElementById('activePhoneStatus').textContent = '', 3000);
-      showToast('Active admin phone updated to ' + phone);
-    })
-    .catch(err => showToast('Error: ' + err.message));
-  }
-
-  function updateSetting(key, value) {
-    fetch(`${API_BASE}/settings`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, value })
-    })
-    .then(res => res.json())
-    .then(() => {
-      showToast('Setting updated successfully');
-      renderSettings(document.getElementById('pageContent'));
-    })
-    .catch(err => showToast('Error: ' + err.message));
-  }
-
-  function updateUnavailableDays() {}
-
-  function saveUnavailableDays() {
-    const checkboxes = document.querySelectorAll('.unavailable-day:checked');
-    const days = Array.from(checkboxes).map(cb => cb.value);
-    fetch(`${API_BASE}/settings`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'unavailable_days', value: JSON.stringify(days) })
-    })
-    .then(res => res.json())
-    .then(() => {
-      settings.unavailable_days = JSON.stringify(days);
-      showToast('Unavailable days saved');
-    })
-    .catch(err => showToast('Error: ' + err.message));
-  }
-
-  // ============================================================
-  // REPORTS
-  // ============================================================
-  function renderReports(el) {
-    el.innerHTML = `
-      <h2 class="text-xl font-bold mb-4">Reports</h2>
-      <div class="flex flex-wrap gap-2 mb-4">
-        <button class="tab-btn active" onclick="showCommissionReport('daily')">Daily Commission</button>
-        <button class="tab-btn" onclick="showCommissionReport('weekly')">Weekly Commission</button>
-        <button class="tab-btn" onclick="showCommissionReport('monthly')">Monthly Commission</button>
-        <button class="tab-btn" onclick="showRestaurantReport()">Restaurant Report</button>
-        <button class="tab-btn" onclick="showCategoryCommission()">Category Commission</button>
-      </div>
-      <div id="reportContent"></div>
-    `;
-    showCommissionReport('daily');
-  }
-
-  async function showCommissionReport(period) {
-    const container = document.getElementById('reportContent');
-    container.innerHTML = `<div class="flex justify-center py-8"><div class="spinner"></div></div>`;
-    try {
-      const data = await fetchData(`reports/commission?period=${period}`);
-      let html = `
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div class="stat-card"><p class="stat-label">Total Commission</p><p class="stat-value">₹${data.totalCommission.toFixed(2)}</p></div>
-          <div class="stat-card"><p class="stat-label">Total Sales</p><p class="stat-value">₹${data.totalSales.toFixed(2)}</p></div>
-          <div class="stat-card"><p class="stat-label">Total Orders</p><p class="stat-value">${data.totalOrders}</p></div>
-        </div>
-        <div class="card p-4 mb-4">
-          <h3 class="font-semibold mb-2">Commission Trend (${period})</h3>
-          <div class="chart-container"><canvas id="commissionChart"></canvas></div>
-        </div>
-        <div class="card p-4 table-wrap">
-          <table>
-            <thead><tr><th>Date</th><th>Orders</th><th>Sales</th><th>Commission</th></tr></thead>
-            <tbody>
-              ${data.labels.map((label, i) => `
-                <tr>
-                  <td>${label}</td>
-                  <td>${data.orderCounts[i]}</td>
-                  <td>₹${data.salesData[i].toFixed(2)}</td>
-                  <td>₹${data.commissionData[i].toFixed(2)}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
-      container.innerHTML = html;
-      new Chart(document.getElementById('commissionChart'), {
-        type: 'bar',
-        data: {
-          labels: data.labels,
-          datasets: [
-            { label: 'Commission (₹)', data: data.commissionData, backgroundColor: '#007BFF', borderRadius: 4 },
-            { label: 'Sales (₹)', data: data.salesData, backgroundColor: '#22c55e', borderRadius: 4 }
-          ]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
-      });
-    } catch (err) {
-      container.innerHTML = `<p class="text-red-500">Error loading report: ${err.message}</p>`;
-    }
-  }
-
-  async function showRestaurantReport() {
-    const container = document.getElementById('reportContent');
-    const foodRestaurants = (restaurants || []).filter(r => r.category === 'Food');
-    if (foodRestaurants.length === 0) {
-      container.innerHTML = `<p class="text-gray-500">No restaurants in Food category.</p>`;
-      return;
-    }
-    let options = foodRestaurants.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
-    container.innerHTML = `
-      <div class="card p-4 mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Select Restaurant</label>
-        <select id="restaurantSelect" class="w-full border rounded-lg px-3 py-2 text-sm" onchange="loadRestaurantReport()">
-          <option value="">-- Select --</option>
-          ${options}
-        </select>
-      </div>
-      <div id="restaurantReportDetails"></div>
-    `;
-    if (foodRestaurants.length > 0) {
-      document.getElementById('restaurantSelect').value = foodRestaurants[0].id;
-      loadRestaurantReport();
-    }
-  }
-
-  async function loadRestaurantReport() {
-    const select = document.getElementById('restaurantSelect');
-    const id = select.value;
-    if (!id) { document.getElementById('restaurantReportDetails').innerHTML = ''; return; }
-    const container = document.getElementById('restaurantReportDetails');
-    container.innerHTML = `<div class="flex justify-center py-8"><div class="spinner"></div></div>`;
-    try {
-      const data = await fetchData(`reports/restaurant/${id}`);
-      let html = `
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-          <div class="stat-card"><p class="stat-label">Total Orders</p><p class="stat-value">${data.totalOrders}</p></div>
-          <div class="stat-card"><p class="stat-label">Total Revenue</p><p class="stat-value">₹${data.totalRevenue.toFixed(2)}</p></div>
-          <div class="stat-card"><p class="stat-label">Commission</p><p class="stat-value">₹${data.totalCommission.toFixed(2)}</p></div>
-          <div class="stat-card"><p class="stat-label">Restaurant Earnings</p><p class="stat-value">₹${data.restaurantRevenue.toFixed(2)}</p></div>
-        </div>
-        <div class="card p-3 table-wrap">
-          <table>
-            <thead><tr><th>Order ID</th><th>Date</th><th>Grand Total</th><th>Commission</th><th>Restaurant Revenue</th></tr></thead>
-            <tbody>
-              ${data.orders.map(o => `
-                <tr>
-                  <td>${o.orderId}</td>
-                  <td>${new Date(o.date).toLocaleDateString()}</td>
-                  <td>₹${o.grandTotal}</td>
-                  <td>₹${o.commission}</td>
-                  <td>₹${o.restaurantRevenue}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
-      container.innerHTML = html;
-    } catch (err) {
-      container.innerHTML = `<p class="text-red-500">Error loading restaurant report: ${err.message}</p>`;
-    }
-  }
-
-  async function showCategoryCommission() {
-    const container = document.getElementById('reportContent');
-    container.innerHTML = `<div class="flex justify-center py-8"><div class="spinner"></div></div>`;
-
-    try {
-      const data = await fetchData('reports/category-commission');
-      
-      let html = `
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div class="stat-card">
-            <p class="stat-label">Total Orders</p>
-            <p class="stat-value">${data.totalOrders}</p>
-          </div>
-          <div class="stat-card">
-            <p class="stat-label">Total Revenue</p>
-            <p class="stat-value">₹${data.totalRevenue.toFixed(2)}</p>
-          </div>
-          <div class="stat-card">
-            <p class="stat-label">Total Commission</p>
-            <p class="stat-value">₹${data.totalCommission.toFixed(2)}</p>
-          </div>
-        </div>
-        
-        <div class="card p-4 mb-4">
-          <h3 class="font-semibold mb-2">Category-wise Commission Breakdown</h3>
-          <div class="chart-container"><canvas id="categoryCommissionChart"></canvas></div>
-        </div>
-        
-        <div class="card p-4 table-wrap">
-          <table>
-            <thead><tr><th>Category</th><th>Commission (₹)</th><th>Percentage</th></tr></thead>
-            <tbody>
-              ${data.labels.map((cat, i) => `
-                <tr>
-                  <td>${cat}</td>
-                  <td>₹${data.data[i].toFixed(2)}</td>
-                  <td>${data.totalCommission > 0 ? ((data.data[i] / data.totalCommission) * 100).toFixed(1) : 0}%</td>
-                </tr>
-              `).join('')}
-              <tr class="font-bold">
-                <td>Total</td>
-                <td>₹${data.totalCommission.toFixed(2)}</td>
-                <td>100%</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      `;
-      container.innerHTML = html;
-
-      new Chart(document.getElementById('categoryCommissionChart'), {
-        type: 'doughnut',
-        data: {
-          labels: data.labels,
-          datasets: [{
-            data: data.data,
-            backgroundColor: ['#007BFF', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6']
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8 } }
-          }
-        }
-      });
-    } catch (err) {
-      container.innerHTML = `<p class="text-red-500">Error loading category commission: ${err.message}</p>`;
-    }
-  }
-
-  // ============================================================
-  // EXPOSE ALL FUNCTIONS TO GLOBAL SCOPE
-  // ============================================================
-  window.navigateTo = navigateTo;
-  window.switchCatalogTab = switchCatalogTab;
-  window.openAddCategory = openAddCategory;
-  window.editCategory = editCategory;
-  window.deleteCategory = deleteCategory;
-  window.openAddRestaurant = openAddRestaurant;
-  window.editRestaurant = editRestaurant;
-  window.deleteRestaurant = deleteRestaurant;
-  window.openAddProduct = openAddProduct;
-  window.editProduct = editProduct;
-  window.deleteProduct = deleteProduct;
-  window.addVariantRow = addVariantRow;
-  window.removeExistingImage = removeExistingImage;
-  window.openAddPlace = openAddPlace;
-  window.editPlace = editPlace;
-  window.deletePlace = deletePlace;
-  window.toggleBlockCustomer = toggleBlockCustomer;
-  window.viewOrder = viewOrder;
-  window.updateOrderStatus = updateOrderStatus;
-  window.openAddOffer = openAddOffer;
-  window.editOffer = editOffer;
-  window.deleteOffer = deleteOffer;
-  window.sendTestNotification = sendTestNotification;
-  window.sendWhatsAppMessage = sendWhatsAppMessage;
-  window.viewWhatsAppLogs = viewWhatsAppLogs;
-  window.toggleSidebar = toggleSidebar;
-  window.closeSidebar = closeSidebar;
-  window.closeModal = closeModal;
-  window.showToast = showToast;
-  window.sendAdminOtp = sendAdminOtp;
-  window.verifyAdminOtp = verifyAdminOtp;
-  window.updateSetting = updateSetting;
-  window.toggleRestaurantStatus = toggleRestaurantStatus;
-  window.showCommissionReport = showCommissionReport;
-  window.showRestaurantReport = showRestaurantReport;
-  window.loadRestaurantReport = loadRestaurantReport;
-  window.logoutAdmin = logoutAdmin;
-  window.toggleServiceStatus = toggleServiceStatus;
-  window.toggleRainFare = toggleRainFare;
-  window.updateRainFare = updateRainFare;
-  window.addAdminPhone = addAdminPhone;
-  window.updateAdminPhone = updateAdminPhone;
-  window.removeAdminPhone = removeAdminPhone;
-  window.saveAdminPhones = saveAdminPhones;
-  window.updateActiveAdminPhone = updateActiveAdminPhone;
-  window.updateUnavailableDays = updateUnavailableDays;
-  window.saveUnavailableDays = saveUnavailableDays;
-  window.showCategoryCommission = showCategoryCommission;
-
-  // ============================================================
-  // INIT
-  // ============================================================
-  document.addEventListener('DOMContentLoaded', function() {
-    const savedPhone = localStorage.getItem('adminPhone');
-    if (savedPhone) {
-      document.getElementById('adminPhone').value = savedPhone;
-    }
-    if (localStorage.getItem('adminLoggedIn') === 'true') {
-      document.getElementById('adminLoginOverlay').classList.add('hidden');
-      loadAllData().then(() => navigateTo('dashboard'));
-    } else {
-      document.getElementById('adminLoginOverlay').classList.remove('hidden');
-    }
   });
+}
+
+// ============================================================
+// REPORTS
+// ============================================================
+function renderReports(el) {
+  el.innerHTML = `
+    <h2 class="text-xl font-bold mb-4">Reports</h2>
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button class="tab-btn active" onclick="showToast('Loading report...')">Daily Commission</button>
+      <button class="tab-btn" onclick="showToast('Loading report...')">Weekly Commission</button>
+      <button class="tab-btn" onclick="showToast('Loading report...')">Monthly Commission</button>
+    </div>
+    <div class="card p-4">
+      <p class="text-gray-500 text-center py-8">Select a report above</p>
+    </div>
+  `;
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function renderSettings(el) {
+  el.innerHTML = `
+    <h2 class="text-xl font-bold mb-4">⚙️ Settings</h2>
+    <div class="space-y-6">
+      <div class="card p-6">
+        <h3 class="font-semibold text-lg mb-3">🔌 Service Status</h3>
+        <div class="flex items-center gap-4">
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" class="sr-only peer" onchange="showToast('Service status toggled')">
+            <div class="w-14 h-7 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-600"></div>
+          </label>
+          <span class="font-medium text-lg text-green-600">🟢 Service Active</span>
+        </div>
+      </div>
+      <div class="card p-6">
+        <h3 class="font-semibold text-lg mb-3">📱 Admin Phone Numbers</h3>
+        <p class="text-sm text-gray-500 mb-3">These numbers can receive admin OTPs</p>
+        <div class="space-y-2">
+          <div class="flex items-center gap-2"><input type="tel" value="+919019825189" class="flex-1 px-3 py-2 rounded-lg border border-gray-300 bg-gray-50 text-sm" /></div>
+          <div class="flex items-center gap-2"><input type="tel" value="+91827079552" class="flex-1 px-3 py-2 rounded-lg border border-gray-300 bg-gray-50 text-sm" /></div>
+        </div>
+        <button onclick="showToast('Add admin phone')" class="btn btn-sm btn-outline mt-3"><i class="fas fa-plus"></i> Add Phone Number</button>
+      </div>
+      <div class="card p-6">
+        <h3 class="font-semibold text-lg mb-3">💰 Commission Rate</h3>
+        <div class="flex gap-2">
+          <input type="number" value="10" class="flex-1 border rounded-lg px-4 py-2" step="0.01" />
+          <button onclick="showToast('Commission saved')" class="btn btn-primary">Save</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// EXPOSE FUNCTIONS TO GLOBAL SCOPE
+// ============================================================
+window.navigateTo = navigateTo;
+window.switchCatalogTab = switchCatalogTab;
+window.openAddCategory = openAddCategory;
+window.editCategory = editCategory;
+window.deleteCategory = deleteCategory;
+window.openAddRestaurant = openAddRestaurant;
+window.editRestaurant = editRestaurant;
+window.deleteRestaurant = deleteRestaurant;
+window.openAddProduct = openAddProduct;
+window.editProduct = editProduct;
+window.deleteProduct = deleteProduct;
+window.openAddPlace = openAddPlace;
+window.editPlace = editPlace;
+window.deletePlace = deletePlace;
+window.openAddOffer = openAddOffer;
+window.toggleSidebar = toggleSidebar;
+window.closeSidebar = closeSidebar;
+window.closeModal = closeModal;
+window.showToast = showToast;
+window.sendAdminOtp = sendAdminOtp;
+window.verifyAdminOtp = verifyAdminOtp;
+window.logoutAdmin = logoutAdmin;
+window.toggleRestaurantStatus = toggleRestaurantStatus;
+window.removeExistingImage = removeExistingImage;
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+  const savedPhone = localStorage.getItem('adminPhone');
+  if (savedPhone) {
+    document.getElementById('adminPhone').value = savedPhone;
+  }
+  if (localStorage.getItem('adminLoggedIn') === 'true') {
+    document.getElementById('adminLoginOverlay').classList.add('hidden');
+    loadAllData().then(() => navigateTo('dashboard'));
+  } else {
+    document.getElementById('adminLoginOverlay').classList.remove('hidden');
+  }
+});
 </script>
 </body>
 </html>

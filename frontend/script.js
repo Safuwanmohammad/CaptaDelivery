@@ -499,15 +499,15 @@ async function loadAllData() {
     ]);
     
     // Parse results with fallbacks
-    categories = results[0].status === 'fulfilled' ? (results[0].value.data || results[0].value || []) : [];
-    restaurants = results[1].status === 'fulfilled' ? (results[1].value.data || results[1].value || []) : [];
-    products = results[2].status === 'fulfilled' ? (results[2].value.data || results[2].value || []) : [];
-    offers = results[3].status === 'fulfilled' ? (results[3].value.data || results[3].value || []) : [];
-    orders = results[4].status === 'fulfilled' ? (results[4].value.data || results[4].value || []) : [];
-    users = results[5].status === 'fulfilled' ? (results[5].value.data || results[5].value || []) : [];
+    categories = results[0].status === 'fulfilled' ? (results[0].value || []) : [];
+    restaurants = results[1].status === 'fulfilled' ? (results[1].value || []) : [];
+    products = results[2].status === 'fulfilled' ? (results[2].value || []) : [];
+    offers = results[3].status === 'fulfilled' ? (results[3].value || []) : [];
+    orders = results[4].status === 'fulfilled' ? (results[4].value || []) : [];
+    users = results[5].status === 'fulfilled' ? (results[5].value || []) : [];
     
     // Parse settings with fallbacks
-    const settingsRes = results[7].status === 'fulfilled' ? (results[7].value.data || results[7].value || {}) : {};
+    const settingsRes = results[7].status === 'fulfilled' ? (results[7].value || {}) : {};
     settings.rain_fare = parseFloat(settingsRes.rain_fare) || 20;
     settings.rain_fare_enabled = settingsRes.rain_fare_enabled !== 'false';
     settings.delivery_hours = settingsRes.delivery_hours || '9:00 AM - 10:00 PM';
@@ -515,7 +515,7 @@ async function loadAllData() {
     settings.service_unavailable = settingsRes.service_unavailable === 'true';
     
     // Parse places
-    const placesRes = results[4].status === 'fulfilled' ? (results[4].value.data || results[4].value || []) : [];
+    const placesRes = results[4].status === 'fulfilled' ? (results[4].value || []) : [];
     const areas = {};
     placesRes.forEach(p => {
       if (!areas[p.area]) areas[p.area] = { subAreas: {} };

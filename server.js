@@ -3,20 +3,7 @@ const cors = require('cors');
 const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
-const sequelize = require('./config/database');
-
-// ============================================
-// ⭐ IMPORT ALL MODELS - SEQUELIZE ONLY
-// ============================================
-// These models must use Sequelize, NOT Mongoose
-const Category = require('./models/Category');
-const Product = require('./models/Product');
-const Restaurant = require('./models/Restaurant');
-const Order = require('./models/Order');
-const User = require('./models/user');
-const Offer = require('./models/Offer');
-const Place = require('./models/Place');
-const Setting = require('./models/Setting');
+const pool = require('./db');
 
 // ============================================
 // Initialize App
@@ -37,13 +24,7 @@ app.use(cors({
 
 app.use(compression({
     level: 6,
-    threshold: 1024,
-    filter: (req, res) => {
-        if (req.headers['x-no-compression']) {
-            return false;
-        }
-        return compression.filter(req, res);
-    }
+    threshold: 1024
 }));
 
 app.use(express.json({ 
@@ -95,22 +76,7 @@ app.use(express.static(staticPath, {
 }));
 
 // ============================================
-// Request Logging
-// ============================================
-app.use((req, res, next) => {
-    const timestamp = new Date().toISOString();
-    const method = req.method;
-    const url = req.url;
-    
-    if (url.startsWith('/api') || url === '/' || url === '/admin.html') {
-        console.log(`📡 ${timestamp} ${method} ${url}`);
-    }
-    
-    next();
-});
-
-// ============================================
-// Routes - ALL MONGODB ROUTES REMOVED
+// Routes
 // ============================================
 const categoryRoutes = require('./routes/categories');
 const productRoutes = require('./routes/products');
@@ -150,18 +116,13 @@ app.get('/', (req, res) => {
                     .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
                     h1 { color: #e74c3c; }
                     .status { color: #27ae60; font-weight: bold; }
-                    .endpoint { background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; font-family: monospace; }
                 </style>
             </head>
             <body>
                 <div class="container">
                     <h1>🚀 CapTA Delivery API</h1>
                     <p class="status">✅ API is running</p>
-                    <div class="endpoint">GET /health - Health Check</div>
-                    <div class="endpoint">GET /api/categories - Categories</div>
-                    <div class="endpoint">GET /api/products - Products</div>
                     <p><a href="/admin.html">📊 Admin Panel</a></p>
-                    <p><small>Version 1.0.1</small></p>
                 </div>
             </body>
             </html>
@@ -184,27 +145,14 @@ app.get('/admin.html', (req, res) => {
 // ============================================
 // Health Check
 // ============================================
-app.get('/health', async (req, res) => {
-    try {
-        await sequelize.authenticate();
-        res.json({
-            status: 'OK',
-            timestamp: new Date().toISOString(),
-            uptime: process.uptime(),
-            memory: process.memoryUsage(),
-            database: 'connected',
-            version: '1.0.1',
-            environment: process.env.NODE_ENV || 'development',
-            models: Object.keys(sequelize.models)
-        });
-    } catch (error) {
-        res.status(503).json({
-            status: 'DEGRADED',
-            timestamp: new Date().toISOString(),
-            database: 'disconnected',
-            error: error.message
-        });
-    }
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'OK',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        environment: process.env.NODE_ENV || 'development'
+    });
 });
 
 // ============================================
@@ -219,113 +167,20 @@ app.use((req, res) => {
 
 app.use((err, req, res, next) => {
     console.error('❌ Error:', err.message);
-    console.error(err.stack);
-    
     res.status(err.status || 500).json({
         success: false,
-        message: err.message || 'Internal Server Error',
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+        message: err.message || 'Internal Server Error'
     });
-});
-
-// ============================================
-// ⭐ START SERVER WITH AUTO-SYNC
-// ============================================
-async function startServer() {
-    try {
-        // Test database connection
-        await sequelize.authenticate();
-        console.log('✅ Connected to PostgreSQL (NeonDB) at', new Date().toISOString());
-        
-        // ⭐ IMPORTANT: Sync all models - adds missing columns automatically
-        // alter: true adds columns without dropping data
-        // force: true would drop and recreate (use with caution)
-        await sequelize.sync({ 
-            alter: process.env.NODE_ENV !== 'production',
-            logging: process.env.NODE_ENV === 'development' ? console.log : false
-        });
-        console.log('✅ Database synchronized - all tables/columns updated');
-        
-        // Log available models
-        const models = Object.keys(sequelize.models);
-        console.log(`📊 Models: ${models.join(', ')}`);
-        
-        // Start server
-        const server = app.listen(PORT, '0.0.0.0', () => {
-            console.log(`🚀 Server running on port ${PORT}`);
-            console.log(`📁 Static files: ${staticPath}`);
-            console.log(`🔗 http://localhost:${PORT}`);
-            console.log(`📊 Admin: http://localhost:${PORT}/admin.html`);
-            console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-            console.log(`💾 Database: PostgreSQL via NeonDB`);
-        });
-        
-        server.timeout = 60000;
-        server.keepAliveTimeout = 65000;
-        
-        return server;
-        
-    } catch (error) {
-        console.error('❌ Failed to start server:', error);
-        console.error('Error details:', error.message);
-        if (error.original) {
-            console.error('Original error:', error.original.message);
-        }
-        process.exit(1);
-    }
-}
-
-// ============================================
-// Graceful Shutdown
-// ============================================
-let serverInstance = null;
-
-async function gracefulShutdown(signal) {
-    console.log(`🛑 ${signal} received, shutting down gracefully...`);
-    
-    if (serverInstance) {
-        await new Promise((resolve) => {
-            serverInstance.close(() => {
-                console.log('🔌 Server closed');
-                resolve();
-            });
-        });
-    }
-    
-    try {
-        await sequelize.close();
-        console.log('💾 Database connection closed');
-    } catch (error) {
-        console.error('Error closing database:', error);
-    }
-    
-    console.log('👋 Goodbye!');
-    process.exit(0);
-}
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-process.on('uncaughtException', (error) => {
-    console.error('❌ Uncaught Exception:', error);
-    gracefulShutdown('uncaughtException');
-});
-
-process.on('unhandledRejection', (error) => {
-    console.error('❌ Unhandled Rejection:', error);
-    gracefulShutdown('unhandledRejection');
 });
 
 // ============================================
 // Start Server
 // ============================================
-if (require.main === module) {
-    startServer().then(server => {
-        serverInstance = server;
-    }).catch(error => {
-        console.error('Fatal error:', error);
-        process.exit(1);
-    });
-}
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📁 Static files: ${staticPath}`);
+    console.log(`🔗 http://localhost:${PORT}`);
+    console.log(`📊 Admin: http://localhost:${PORT}/admin.html`);
+});
 
-module.exports = { app, startServer };
+module.exports = app;
