@@ -9,10 +9,10 @@ const {
   deleteProduct 
 } = require('../controllers/productController');
 
-// IMPORTANT: Order matters! Specific routes before generic ones
-router.get('/', getAllProducts);
-router.get('/category/:category', getProductsByCategory);
-router.get('/:id', getProductById);  // This should be after specific routes
+// ⭐ IMPORTANT: Specific routes FIRST, generic routes LAST
+router.get('/', getAllProducts);  // GET all products
+router.get('/category/:category', getProductsByCategory);  // GET by category
+router.get('/:id', getProductById);  // GET by ID - must be LAST
 router.post('/', createProduct);
 router.put('/:id', updateProduct);
 router.delete('/:id', deleteProduct);
