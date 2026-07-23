@@ -33,11 +33,41 @@ const Product = sequelize.define('Product', {
     },
     images: {
         type: DataTypes.JSONB,
-        defaultValue: []
+        defaultValue: [],
+        get() {
+            const value = this.getDataValue('images');
+            if (!value) return [];
+            if (typeof value === 'string') {
+                try { return JSON.parse(value); } catch (e) { return []; }
+            }
+            return value;
+        },
+        set(value) {
+            if (typeof value === 'string') {
+                try { this.setDataValue('images', JSON.parse(value)); } catch (e) { this.setDataValue('images', []); }
+            } else {
+                this.setDataValue('images', value || []);
+            }
+        }
     },
     variants: {
         type: DataTypes.JSONB,
-        defaultValue: []
+        defaultValue: [],
+        get() {
+            const value = this.getDataValue('variants');
+            if (!value) return [];
+            if (typeof value === 'string') {
+                try { return JSON.parse(value); } catch (e) { return []; }
+            }
+            return value;
+        },
+        set(value) {
+            if (typeof value === 'string') {
+                try { this.setDataValue('variants', JSON.parse(value)); } catch (e) { this.setDataValue('variants', []); }
+            } else {
+                this.setDataValue('variants', value || []);
+            }
+        }
     },
     createdAt: {
         type: DataTypes.DATE,
