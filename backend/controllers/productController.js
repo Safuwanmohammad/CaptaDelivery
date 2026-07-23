@@ -1,6 +1,5 @@
 const pool = require('../db');
 
-// Get all products
 exports.getAllProducts = async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM products');
@@ -11,11 +10,9 @@ exports.getAllProducts = async (req, res) => {
   }
 };
 
-// Get products by category
 exports.getProductsByCategory = async (req, res) => {
   try {
-    const { category } = req.params;
-    const result = await pool.query('SELECT * FROM products WHERE category = $1', [category]);
+    const result = await pool.query('SELECT * FROM products WHERE category = $1', [req.params.category]);
     res.json(result.rows);
   } catch (err) {
     console.error('Error in getProductsByCategory:', err);
@@ -23,20 +20,9 @@ exports.getProductsByCategory = async (req, res) => {
   }
 };
 
-// Get product by ID - with validation
 exports.getProductById = async (req, res) => {
   try {
-    const { id } = req.params;
-    
-    // ⭐ Validate that ID is a number
-    const productId = parseInt(id);
-    if (isNaN(productId)) {
-      return res.status(400).json({ 
-        error: 'Invalid product ID format. ID must be a number.' 
-      });
-    }
-    
-    const result = await pool.query('SELECT * FROM products WHERE id = $1', [productId]);
+    const result = await pool.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Product not found' });
     }
@@ -47,12 +33,12 @@ exports.getProductById = async (req, res) => {
   }
 };
 
-// Create product
 exports.createProduct = async (req, res) => {
+  const { name, category, restaurantId, price, commission, status, images, variants } = req.body;
   try {
-    const { name, category, restaurantId, price, commission, status, images, variants } = req.body;
-    
+    // Handle images - convert to PostgreSQL array format if it's a JSON array
     let imagesArray = images || [];
+    // If images is a string, try to parse it
     if (typeof imagesArray === 'string') {
       try {
         imagesArray = JSON.parse(imagesArray);
@@ -60,14 +46,18 @@ exports.createProduct = async (req, res) => {
         imagesArray = [imagesArray];
       }
     }
+    // Ensure it's an array
     if (!Array.isArray(imagesArray)) {
       imagesArray = [imagesArray];
     }
     
+    // Convert to PostgreSQL array format
+    // PostgreSQL text[] format: {"url1","url2"}
     const imagesText = imagesArray.length > 0 
       ? `{${imagesArray.map(img => `"${img.replace(/"/g, '\\"')}"`).join(',')}}`
       : '{}';
     
+    // Handle variants - store as JSONB
     const variantsArray = Array.isArray(variants) ? variants : [];
     
     const result = await pool.query(
@@ -91,17 +81,11 @@ exports.createProduct = async (req, res) => {
   }
 };
 
-// Update product
 exports.updateProduct = async (req, res) => {
+  const { id } = req.params;
+  const { name, category, restaurantId, price, commission, status, images, variants } = req.body;
   try {
-    const { id } = req.params;
-    const productId = parseInt(id);
-    if (isNaN(productId)) {
-      return res.status(400).json({ error: 'Invalid product ID format' });
-    }
-    
-    const { name, category, restaurantId, price, commission, status, images, variants } = req.body;
-    
+    // Handle images - convert to PostgreSQL array format
     let imagesArray = images || [];
     if (typeof imagesArray === 'string') {
       try {
@@ -114,10 +98,12 @@ exports.updateProduct = async (req, res) => {
       imagesArray = [imagesArray];
     }
     
+    // Convert to PostgreSQL array format: {"url1","url2"}
     const imagesText = imagesArray.length > 0 
       ? `{${imagesArray.map(img => `"${img.replace(/"/g, '\\"')}"`).join(',')}}`
       : '{}';
     
+    // Handle variants - store as JSONB string
     const variantsArray = Array.isArray(variants) ? variants : [];
     
     const result = await pool.query(
@@ -141,7 +127,7 @@ exports.updateProduct = async (req, res) => {
         status, 
         imagesText, 
         JSON.stringify(variantsArray), 
-        productId
+        id
       ]
     );
     if (result.rows.length === 0) {
@@ -154,16 +140,10 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
-// Delete product
 exports.deleteProduct = async (req, res) => {
+  const { id } = req.params;
   try {
-    const { id } = req.params;
-    const productId = parseInt(id);
-    if (isNaN(productId)) {
-      return res.status(400).json({ error: 'Invalid product ID format' });
-    }
-    
-    const result = await pool.query('DELETE FROM products WHERE id = $1 RETURNING *', [productId]);
+    const result = await pool.query('DELETE FROM products WHERE id = $1 RETURNING *', [id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Product not found' });
     }

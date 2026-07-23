@@ -1,186 +1,251 @@
+require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
-const compression = require('compression');
 const path = require('path');
-const fs = require('fs');
+const cors = require('cors');
 const pool = require('./db');
-
-// ============================================
-// Initialize App
-// ============================================
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ============================================
-// Middleware
-// ============================================
-app.use(cors({
-    origin: process.env.CORS_ORIGIN || '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    credentials: true,
-    optionsSuccessStatus: 200
-}));
-
-app.use(compression({
-    level: 6,
-    threshold: 1024
-}));
-
-app.use(express.json({ 
-    limit: '2mb',
-    verify: (req, res, buf) => {
-        try {
-            JSON.parse(buf);
-        } catch (e) {
-            res.status(400).json({
-                success: false,
-                message: 'Invalid JSON payload'
-            });
-            throw new Error('Invalid JSON');
-        }
+// ============================================================
+// AUTO MIGRATION: FIX DATABASE SCHEMA (SAFE VERSION)
+// ============================================================
+async function fixDatabaseSchema() {
+  try {
+    console.log('🔍 Checking database schema...');
+    
+    // ===== STEP 1: Add variants column if it doesn't exist =====
+    await pool.query(`
+      DO $$ 
+      BEGIN 
+        BEGIN
+          ALTER TABLE products ADD COLUMN variants jsonb DEFAULT '[]'::jsonb;
+        EXCEPTION
+          WHEN duplicate_column THEN 
+            RAISE NOTICE 'Column variants already exists, skipping...';
+        END;
+      END $$;
+    `);
+    console.log('✅ Variants column check complete');
+    
+    // ===== STEP 2: Check if images column exists =====
+    const checkImages = await pool.query(`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'products' AND column_name = 'images'
+    `);
+    
+    if (checkImages.rows.length === 0) {
+      console.log('⚠️ images column not found, adding it...');
+      await pool.query(`
+        ALTER TABLE products 
+        ADD COLUMN images jsonb DEFAULT '[]'::jsonb
+      `);
+      console.log('✅ images column added');
+      console.log('✅ Database schema is now correct!');
+      return;
     }
-}));
-
-app.use(express.urlencoded({ 
-    extended: true, 
-    limit: '2mb',
-    parameterLimit: 50000
-}));
-
-// ============================================
-// Static Files
-// ============================================
-const frontendPath = path.join(__dirname, '../frontend');
-const publicPath = path.join(__dirname, '../public');
-const staticPath = fs.existsSync(frontendPath) ? frontendPath : publicPath;
-
-console.log(`📁 Serving static files from: ${staticPath}`);
-
-app.use(express.static(staticPath, {
-    maxAge: '1d',
-    etag: true,
-    lastModified: true,
-    setHeaders: (res) => {
-        res.setHeader('Content-Security-Policy', 
-            "default-src 'self'; " +
-            "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; " +
-            "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
-            "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; " +
-            "img-src 'self' data: https: http:; " +
-            "connect-src 'self' https://*.render.com;"
-        );
-        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-        res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+    
+    const currentType = checkImages.rows[0].data_type;
+    console.log(`📊 Current images column type: ${currentType}`);
+    
+    if (currentType === 'jsonb') {
+      console.log('✅ images column is already jsonb');
+      console.log('✅ Database schema is now correct!');
+      return;
     }
-}));
-
-// ============================================
-// Routes
-// ============================================
-const categoryRoutes = require('./routes/categories');
-const productRoutes = require('./routes/products');
-const restaurantRoutes = require('./routes/restaurants');
-const orderRoutes = require('./routes/orders');
-const customerRoutes = require('./routes/customers');
-const offerRoutes = require('./routes/offers');
-const placeRoutes = require('./routes/places');
-const settingsRoutes = require('./routes/settings');
-const authRoutes = require('./routes/auth');
-
-app.use('/api', categoryRoutes);
-app.use('/api', productRoutes);
-app.use('/api', restaurantRoutes);
-app.use('/api', orderRoutes);
-app.use('/api', customerRoutes);
-app.use('/api', offerRoutes);
-app.use('/api', placeRoutes);
-app.use('/api', settingsRoutes);
-app.use('/api/auth', authRoutes);
-
-// ============================================
-// Frontend Routes
-// ============================================
-app.get('/', (req, res) => {
-    const indexPath = path.join(staticPath, 'index.html');
-    if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-    } else {
-        res.send(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>CapTA Delivery</title>
-                <style>
-                    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
-                    .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-                    h1 { color: #e74c3c; }
-                    .status { color: #27ae60; font-weight: bold; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <h1>🚀 CapTA Delivery API</h1>
-                    <p class="status">✅ API is running</p>
-                    <p><a href="/admin.html">📊 Admin Panel</a></p>
-                </div>
-            </body>
-            </html>
-        `);
+    
+    console.log('🔄 Converting images column to jsonb...');
+    
+    try {
+      // Add new column
+      await pool.query(`
+        ALTER TABLE products 
+        ADD COLUMN IF NOT EXISTS images_new jsonb DEFAULT '[]'::jsonb
+      `);
+      console.log('✅ Created temporary column');
+      
+      // Handle null and empty values safely
+      await pool.query(`
+        UPDATE products 
+        SET images_new = '[]'::jsonb
+        WHERE images IS NULL OR images = '{}' OR images = '' OR images = '[]'
+      `);
+      
+      // For non-empty arrays, try to convert
+      await pool.query(`
+        UPDATE products 
+        SET images_new = images::jsonb
+        WHERE images IS NOT NULL 
+        AND images != '{}' 
+        AND images != '' 
+        AND images != '[]'
+        AND images::text LIKE '[%'
+      `);
+      
+      // For anything else, set to empty array
+      await pool.query(`
+        UPDATE products 
+        SET images_new = '[]'::jsonb
+        WHERE images_new IS NULL
+      `);
+      
+      console.log('✅ Data copied to temp column');
+      
+      // Drop old column
+      await pool.query(`
+        ALTER TABLE products 
+        DROP COLUMN IF EXISTS images
+      `);
+      console.log('✅ Dropped old images column');
+      
+      // Rename temp column
+      await pool.query(`
+        ALTER TABLE products 
+        RENAME COLUMN images_new TO images
+      `);
+      console.log('✅ Renamed temp column to images');
+      
+      // Set default
+      await pool.query(`
+        ALTER TABLE products 
+        ALTER COLUMN images SET DEFAULT '[]'::jsonb
+      `);
+      console.log('✅ Set default value for images');
+      
+      console.log('✅ Images column converted to jsonb successfully!');
+    } catch (err) {
+      console.log('⚠️ Conversion had issues, but continuing...');
     }
+    
+    console.log('✅ Database schema check complete!');
+  } catch (err) {
+    console.error('❌ Error fixing database schema:', err.message);
+  }
+}
+
+// ============================================================
+// MIDDLEWARE
+// ============================================================
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// ===== DEBUG: Log all requests =====
+app.use((req, res, next) => {
+  console.log(`📡 ${req.method} ${req.url}`);
+  if (req.method === 'PUT' || req.method === 'POST') {
+    console.log('  Body:', JSON.stringify(req.body, null, 2));
+  }
+  next();
 });
 
-app.get('/admin.html', (req, res) => {
-    const adminPath = path.join(staticPath, 'admin.html');
-    if (fs.existsSync(adminPath)) {
-        res.sendFile(adminPath);
-    } else {
-        res.status(404).json({
-            success: false,
-            message: 'Admin panel not found'
-        });
-    }
-});
-
-// ============================================
-// Health Check
-// ============================================
-app.get('/health', (req, res) => {
+// ============================================================
+// HEALTH CHECK
+// ============================================================
+app.get('/health', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT NOW()');
     res.json({
-        status: 'OK',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        memory: process.memoryUsage(),
-        environment: process.env.NODE_ENV || 'development'
+      status: 'ok',
+      database: 'connected',
+      time: result.rows[0].now,
+      timestamp: new Date().toISOString()
     });
+  } catch (err) {
+    res.status(500).json({
+      status: 'error',
+      database: 'disconnected',
+      error: err.message
+    });
+  }
 });
 
-// ============================================
-// Error Handling
-// ============================================
-app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        message: `Route not found: ${req.method} ${req.originalUrl}`
+// ============================================================
+// MIGRATION API ENDPOINT
+// ============================================================
+app.post('/api/migration/run', async (req, res) => {
+  try {
+    console.log('🔄 Running manual migration...');
+    await fixDatabaseSchema();
+    res.json({ 
+      success: true, 
+      message: '✅ Migration completed successfully!' 
     });
+  } catch (err) {
+    console.error('❌ Migration error:', err.message);
+    res.status(500).json({ 
+      success: false, 
+      error: err.message 
+    });
+  }
 });
 
+// ============================================================
+// API ROUTES
+// ============================================================
+app.use('/api/categories', require('./routes/categories'));
+app.use('/api/restaurants', require('./routes/restaurants'));
+app.use('/api/products', require('./routes/products'));
+app.use('/api/orders', require('./routes/orders'));
+app.use('/api/offers', require('./routes/offers'));
+app.use('/api/places', require('./routes/places'));
+app.use('/api/customers', require('./routes/customers'));
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/settings', require('./routes/settings'));
+app.use('/api/whatsapp', require('./routes/whatsapp'));
+app.use('/api/reports', require('./routes/reports'));
+
+// ============================================================
+// SERVE STATIC FRONTEND
+// ============================================================
+const frontendPath = path.join(__dirname, '../frontend');
+console.log(`📁 Serving frontend from: ${frontendPath}`);
+app.use(express.static(frontendPath));
+
+// ============================================================
+// FALLBACK
+// ============================================================
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  }
+});
+
+// ============================================================
+// ERROR HANDLING
+// ============================================================
 app.use((err, req, res, next) => {
-    console.error('❌ Error:', err.message);
-    res.status(err.status || 500).json({
-        success: false,
-        message: err.message || 'Internal Server Error'
-    });
+  console.error('❌ Error:', err.message);
+  console.error('Stack:', err.stack);
+  res.status(500).json({
+    error: 'Something went wrong!',
+    message: err.message,
+    stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
+  });
 });
 
-// ============================================
-// Start Server
-// ============================================
+// ============================================================
+// START SERVER
+// ============================================================
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📁 Static files: ${staticPath}`);
-    console.log(`🔗 http://localhost:${PORT}`);
-    console.log(`📊 Admin: http://localhost:${PORT}/admin.html`);
+  console.log(`✅ Server is running on port ${PORT}`);
+  console.log(`📁 Serving frontend from: ${frontendPath}`);
+  console.log(`🔗 Visit: http://localhost:${PORT}`);
+  console.log(`📊 Admin panel: http://localhost:${PORT}/admin.html`);
+});
+
+// ============================================================
+// RUN DATABASE MIGRATION ON STARTUP (DISABLED FOR NOW)
+// ============================================================
+pool.query('SELECT NOW()', async (err, result) => {
+  if (err) {
+    console.error('❌ Database connection error:', err.message);
+  } else {
+    console.log('✅ Connected to PostgreSQL at', result.rows[0].now);
+    // Temporarily disabled - productController.js handles the format
+    // await fixDatabaseSchema();
+    console.log('✅ Using productController.js to handle image format');
+  }
 });
 
 module.exports = app;

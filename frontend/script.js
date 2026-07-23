@@ -1,9 +1,4 @@
 // ============================================================
-// CAPTADELIVERY - MAIN APPLICATION SCRIPT
-// FULLY UPDATED FOR POSTGRESQL BACKEND
-// ============================================================
-
-// ============================================================
 // API BASE – dynamically uses the current domain
 // ============================================================
 const API_BASE = window.location.origin + '/api';
@@ -28,9 +23,6 @@ window.fetch = function(...args) {
             console.log('  Product:', data);
             console.log('  Variants:', data.variants);
           }
-        }
-        if (args[0].includes('/api/categories')) {
-          console.log('📂 Categories API Response:', data);
         }
       }).catch(() => {});
       return response;
@@ -98,396 +90,39 @@ const navLogo = document.getElementById('navLogo');
 const cartBadge = document.getElementById('cartBadge');
 
 // ============================================================
-// API HELPERS - FIXED FOR POSTGRESQL
+// API HELPERS
 // ============================================================
 async function fetchData(endpoint) {
-  try {
-    const res = await fetch(`${API_BASE}/${endpoint}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (error) {
-    console.error(`❌ Error fetching ${endpoint}:`, error);
-    return [];
-  }
+  const res = await fetch(`${API_BASE}/${endpoint}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return await res.json();
 }
-
 async function postData(endpoint, data) {
-  try {
-    const res = await fetch(`${API_BASE}/${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP ${res.status}`);
-    }
-    return await res.json();
-  } catch (error) {
-    console.error(`❌ Error posting to ${endpoint}:`, error);
-    throw error;
-  }
+  const res = await fetch(`${API_BASE}/${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return await res.json();
 }
-
 async function putData(endpoint, data) {
-  try {
-    const res = await fetch(`${API_BASE}/${endpoint}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP ${res.status}`);
-    }
-    return await res.json();
-  } catch (error) {
-    console.error(`❌ Error putting to ${endpoint}:`, error);
-    throw error;
-  }
-}
-
-async function deleteData(endpoint) {
-  try {
-    const res = await fetch(`${API_BASE}/${endpoint}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP ${res.status}`);
-    }
-    return await res.json();
-  } catch (error) {
-    console.error(`❌ Error deleting ${endpoint}:`, error);
-    throw error;
-  }
-}
-
-// ============================================================
-// IMAGE HANDLING FUNCTIONS (FIXED)
-// ============================================================
-
-/**
- * Compress base64 image before upload
- * @param {string} base64String - The base64 image data
- * @param {number} maxSize - Maximum size in KB (default: 200)
- * @param {number} maxDimension - Maximum width/height in pixels (default: 800)
- * @returns {Promise<string>} Compressed base64 string
- */
-async function compressImage(base64String, maxSize = 200, maxDimension = 800) {
-  return new Promise((resolve, reject) => {
-    try {
-      // Check if it's a valid base64 image
-      if (!base64String || typeof base64String !== 'string') {
-        reject(new Error('Invalid image data'));
-        return;
-      }
-      
-      // If it's a URL, return as is
-      if (base64String.startsWith('http://') || base64String.startsWith('https://')) {
-        resolve(base64String);
-        return;
-      }
-      
-      // Check if it's base64
-      if (!base64String.startsWith('data:image/')) {
-        reject(new Error('Invalid image format. Must be base64 or URL.'));
-        return;
-      }
-      
-      const img = new Image();
-      
-      img.onload = function() {
-        try {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          
-          // Calculate new dimensions
-          let width = img.width;
-          let height = img.height;
-          
-          if (width > maxDimension || height > maxDimension) {
-            const ratio = Math.min(maxDimension / width, maxDimension / height);
-            width = Math.round(width * ratio);
-            height = Math.round(height * ratio);
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          
-          // Draw image
-          ctx.drawImage(img, 0, 0, width, height);
-          
-          // Try to compress to meet size limit
-          let quality = 0.8;
-          let compressed = canvas.toDataURL('image/jpeg', quality);
-          
-          // Check size
-          const getSizeInKB = (data) => {
-            const base64 = data.split(',')[1] || data;
-            return Math.ceil((base64.length * 3) / 4 / 1024);
-          };
-          
-          let sizeKB = getSizeInKB(compressed);
-          
-          // Reduce quality until size is acceptable or quality is too low
-          while (sizeKB > maxSize && quality > 0.2) {
-            quality -= 0.1;
-            compressed = canvas.toDataURL('image/jpeg', quality);
-            sizeKB = getSizeInKB(compressed);
-          }
-          
-          if (sizeKB > maxSize) {
-            reject(new Error(`Image too large even after compression (${sizeKB}KB). Please use a smaller image.`));
-            return;
-          }
-          
-          resolve(compressed);
-          
-        } catch (error) {
-          reject(new Error('Failed to compress image: ' + error.message));
-        }
-      };
-      
-      img.onerror = function() {
-        reject(new Error('Failed to load image for compression'));
-      };
-      
-      img.src = base64String;
-      
-    } catch (error) {
-      reject(new Error('Image compression failed: ' + error.message));
-    }
+  const res = await fetch(`${API_BASE}/${endpoint}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
   });
-}
-
-/**
- * Read file as base64
- * @param {File} file - The file to read
- * @returns {Promise<string>} Base64 string
- */
-function readFileAsBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target.result);
-    reader.onerror = (e) => reject(new Error('Failed to read file'));
-    reader.readAsDataURL(file);
-  });
-}
-
-/**
- * Validate image file
- * @param {File} file - The file to validate
- * @param {number} maxSizeMB - Maximum size in MB (default: 2)
- * @returns {Object} Validation result
- */
-function validateImageFile(file, maxSizeMB = 2) {
-  const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-  const maxSize = maxSizeMB * 1024 * 1024;
-  
-  if (!file) {
-    return { valid: false, message: 'No file selected' };
-  }
-  
-  if (!validTypes.includes(file.type)) {
-    return { 
-      valid: false, 
-      message: 'Invalid file type. Please select JPG, PNG, GIF, WebP, or SVG.' 
-    };
-  }
-  
-  if (file.size > maxSize) {
-    return { 
-      valid: false, 
-      message: `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is ${maxSizeMB}MB.` 
-    };
-  }
-  
-  return { valid: true };
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return await res.json();
 }
 
 // ============================================================
-// TOAST NOTIFICATION SYSTEM
-// ============================================================
-function createToastContainer() {
-  const container = document.createElement('div');
-  container.className = 'toast-container';
-  container.style.cssText = `
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 10000;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-width: 400px;
-    width: 100%;
-  `;
-  document.body.appendChild(container);
-  return container;
-}
-
-function showToast(message, type = 'info', duration = 3000) {
-  const container = document.querySelector('.toast-container') || createToastContainer();
-  
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.style.cssText = `
-    padding: 12px 20px;
-    border-radius: 8px;
-    color: white;
-    font-weight: 500;
-    font-size: 14px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    animation: slideIn 0.3s ease-out;
-    transform-origin: top right;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  `;
-  
-  const icons = {
-    success: '✅',
-    error: '❌',
-    warning: '⚠️',
-    info: 'ℹ️'
-  };
-  
-  toast.innerHTML = `
-    <span>${icons[type] || 'ℹ️'}</span>
-    <span style="flex: 1;">${message}</span>
-    <span style="cursor: pointer; opacity: 0.7;">✕</span>
-  `;
-  
-  const colors = {
-    success: '#4CAF50',
-    error: '#f44336',
-    warning: '#FF9800',
-    info: '#2196F3'
-  };
-  toast.style.backgroundColor = colors[type] || colors.info;
-  
-  toast.querySelector('span:last-child').addEventListener('click', () => {
-    dismissToast(toast);
-  });
-  
-  container.appendChild(toast);
-  
-  setTimeout(() => {
-    dismissToast(toast);
-  }, duration);
-  
-  return toast;
-}
-
-function dismissToast(toast) {
-  toast.style.animation = 'slideOut 0.3s ease-in';
-  setTimeout(() => {
-    if (toast.parentNode) {
-      toast.remove();
-    }
-  }, 300);
-}
-
-// Add toast animations
-const toastStyles = document.createElement('style');
-toastStyles.textContent = `
-  @keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-  }
-  @keyframes slideOut {
-    from { transform: translateX(0); opacity: 1; }
-    to { transform: translateX(100%); opacity: 0; }
-  }
-`;
-document.head.appendChild(toastStyles);
-
-// ============================================================
-// LOADING INDICATOR
-// ============================================================
-function showLoading(message = 'Processing...') {
-  let loader = document.getElementById('loadingIndicator');
-  
-  if (!loader) {
-    loader = document.createElement('div');
-    loader.id = 'loadingIndicator';
-    loader.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-      backdrop-filter: blur(4px);
-    `;
-    
-    loader.innerHTML = `
-      <div style="
-        background: white;
-        padding: 30px 40px;
-        border-radius: 12px;
-        text-align: center;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-        min-width: 200px;
-      ">
-        <div style="
-          width: 48px;
-          height: 48px;
-          border: 4px solid #f3f3f3;
-          border-top: 4px solid #3498db;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-          margin: 0 auto 15px;
-        "></div>
-        <div class="loading-message" style="
-          color: #333;
-          font-size: 16px;
-          font-weight: 500;
-        ">${message}</div>
-      </div>
-    `;
-    
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    `;
-    document.head.appendChild(style);
-    
-    document.body.appendChild(loader);
-  } else {
-    const msgEl = loader.querySelector('.loading-message');
-    if (msgEl) msgEl.textContent = message;
-  }
-  
-  loader.style.display = 'flex';
-}
-
-function hideLoading() {
-  const loader = document.getElementById('loadingIndicator');
-  if (loader) {
-    loader.style.display = 'none';
-  }
-}
-
-// ============================================================
-// LOAD ALL DATA (FIXED FOR POSTGRESQL)
+// LOAD ALL DATA
 // ============================================================
 async function loadAllData() {
   try {
     state.loading = true;
-    
-    // Fetch all data with error handling
-    const results = await Promise.allSettled([
+    const [catsRes, restsRes, prodsRes, offsRes, placesRes, ordersRes, usersRes, settingsRes] = await Promise.all([
       fetchData('categories'),
       fetchData('restaurants'),
       fetchData('products'),
@@ -497,25 +132,20 @@ async function loadAllData() {
       fetchData('customers'),
       fetchData('settings')
     ]);
-    
-    // Parse results with fallbacks
-    categories = results[0].status === 'fulfilled' ? (results[0].value || []) : [];
-    restaurants = results[1].status === 'fulfilled' ? (results[1].value || []) : [];
-    products = results[2].status === 'fulfilled' ? (results[2].value || []) : [];
-    offers = results[3].status === 'fulfilled' ? (results[3].value || []) : [];
-    orders = results[4].status === 'fulfilled' ? (results[4].value || []) : [];
-    users = results[5].status === 'fulfilled' ? (results[5].value || []) : [];
-    
-    // Parse settings with fallbacks
-    const settingsRes = results[7].status === 'fulfilled' ? (results[7].value || {}) : {};
+    categories = catsRes || [];
+    restaurants = restsRes || [];
+    products = prodsRes || [];
+    offers = offsRes || [];
+    orders = ordersRes || [];
+    users = usersRes || [];
+
+    // Parse settings
     settings.rain_fare = parseFloat(settingsRes.rain_fare) || 20;
     settings.rain_fare_enabled = settingsRes.rain_fare_enabled !== 'false';
     settings.delivery_hours = settingsRes.delivery_hours || '9:00 AM - 10:00 PM';
     settings.unavailable_days = settingsRes.unavailable_days ? JSON.parse(settingsRes.unavailable_days) : [];
     settings.service_unavailable = settingsRes.service_unavailable === 'true';
-    
-    // Parse places
-    const placesRes = results[4].status === 'fulfilled' ? (results[4].value || []) : [];
+
     const areas = {};
     placesRes.forEach(p => {
       if (!areas[p.area]) areas[p.area] = { subAreas: {} };
@@ -523,16 +153,14 @@ async function loadAllData() {
     });
     deliveryAreas = areas;
 
-    // Process orders for next order number
     if (orders.length > 0) {
-      const nums = orders.map(o => parseInt(o.order_id?.replace('ORD-', '') || '0'));
-      const max = Math.max(...nums, 0);
+      const nums = orders.map(o => parseInt(o.order_id.replace('ORD-', '')));
+      const max = Math.max(...nums);
       nextOrderNumber = max + 1;
     }
 
-    // Update user if logged in
     if (user) {
-      const freshUser = users.find(u => String(u.id) === String(user.id));
+      const freshUser = users.find(u => u.id === user.id);
       if (freshUser) user = freshUser;
       localStorage.setItem('swingy_user', JSON.stringify(user));
     }
@@ -544,13 +172,28 @@ async function loadAllData() {
   } catch (err) {
     console.error('Failed to load data:', err);
     state.loading = false;
-    showToast('Error connecting to server. Check your backend.', 'error');
+    showToast('Error connecting to server. Check your backend.');
     renderContent();
   }
 }
 
 // ============================================================
-// CART FUNCTIONS
+// TOAST
+// ============================================================
+let toastTimeout;
+
+function showToast(message) {
+  state.toastMsg = message;
+  renderContent();
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => {
+    state.toastMsg = null;
+    renderContent();
+  }, 2500);
+}
+
+// ============================================================
+// CART
 // ============================================================
 function saveCart() {
   localStorage.setItem('swingy_cart', JSON.stringify(cart));
@@ -569,44 +212,15 @@ function updateBadges() {
 }
 
 function addToCart(product, qty, selectedVariant) {
-  // Check if product has variants and handle accordingly
-  let variantsArray = [];
-  let hasVariants = false;
-  
-  try {
-    if (Array.isArray(product.variants) && product.variants.length > 0) {
-      hasVariants = true;
-      variantsArray = product.variants;
-    } else if (typeof product.variants === 'string') {
-      const parsed = JSON.parse(product.variants);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        hasVariants = true;
-        variantsArray = parsed;
-        product.variants = parsed;
-      }
-    } else if (product.variants && typeof product.variants === 'object') {
-      const values = Object.values(product.variants);
-      if (Array.isArray(values) && values.length > 0) {
-        hasVariants = true;
-        variantsArray = values;
-        product.variants = values;
-      }
-    }
-  } catch (e) {
-    console.warn('Error parsing variants:', e);
-  }
-
   const cartItem = {
     ...product,
     quantity: qty,
     selectedVariant: selectedVariant || null,
     category: product.category || 'Uncategorized',
-    commission: product.commission || 0,
-    id: product.id || product._id // Support both PostgreSQL and MongoDB
+    commission: product.commission || 0
   };
-  
-  if (selectedVariant && hasVariants && variantsArray.length > 0) {
-    const variant = variantsArray.find(v => v.label === selectedVariant);
+  if (selectedVariant && product.variants && product.variants.length > 0) {
+    const variant = product.variants.find(v => v.label === selectedVariant);
     if (variant) {
       cartItem.price = variant.price;
       cartItem.displayName = product.name + ' (' + variant.label + ')';
@@ -615,10 +229,9 @@ function addToCart(product, qty, selectedVariant) {
   } else {
     cartItem.displayName = product.name;
     cartItem.variantLabel = null;
-    cartItem.price = product.price || 0;
   }
 
-  const existing = cart.find(i => i.id === cartItem.id && i.variantLabel === cartItem.variantLabel);
+  const existing = cart.find(i => i.id === product.id && i.variantLabel === cartItem.variantLabel);
   if (existing) {
     existing.quantity += qty;
   } else {
@@ -626,7 +239,7 @@ function addToCart(product, qty, selectedVariant) {
   }
   saveCart();
   updateBadges();
-  showToast(`Added ${qty} ${cartItem.displayName}`, 'success');
+  showToast(`Added ${qty} ${cartItem.displayName}`);
   renderContent();
 }
 
@@ -673,7 +286,7 @@ function updateDeliveryCharge() {
 // ============================================================
 function proceedToCheckout() {
   if (cart.length === 0) {
-    showToast('Your cart is empty!', 'warning');
+    showToast('Your cart is empty!');
     return;
   }
 
@@ -724,11 +337,11 @@ function closeOrderSummary() {
 // ============================================================
 function proceedToPayment() {
   if (!state.orderSummary.selectedMainArea || !state.orderSummary.selectedSubArea) {
-    showToast('Please select your delivery area', 'warning');
+    showToast('Please select your delivery area');
     return;
   }
   if (!user) {
-    showToast('Please login to place order', 'warning');
+    showToast('Please login to place order');
     openLogin();
     return;
   }
@@ -833,7 +446,7 @@ function renderPaymentPage() {
 // ============================================================
 async function confirmPayment(method) {
   if (method === 'upi') {
-    showToast('UPI/Razorpay integration coming soon!', 'info');
+    showToast('UPI/Razorpay integration coming soon!');
     return;
   }
   await placeOrder();
@@ -900,7 +513,7 @@ async function placeOrder() {
     orders.unshift(created);
 
     if (user) {
-      const cust = users.find(u => String(u.id) === String(user.id));
+      const cust = users.find(u => u.id === user.id);
       if (cust) {
         cust.total_orders = (cust.total_orders || 0) + 1;
         cust.total_spent = (cust.total_spent || 0) + grandTotal;
@@ -921,10 +534,10 @@ async function placeOrder() {
     updateBadges();
     state.showOrderSummary = false;
     state.showPayment = false;
-    showToast('✅ Order placed! #' + orderNumber, 'success');
+    showToast('✅ Order placed! #' + orderNumber);
     renderContent();
   } catch (err) {
-    showToast('❌ Failed to place order: ' + err.message, 'error');
+    showToast('❌ Failed to place order: ' + err.message);
   }
 }
 
@@ -1048,7 +661,7 @@ function switchTab(tab) {
 async function sendLoginOtp() {
   const phone = document.getElementById('loginPhone').value.trim();
   if (!phone || phone.length < 10) {
-    showToast('Please enter a valid phone number', 'warning');
+    showToast('Please enter a valid phone number');
     return;
   }
   try {
@@ -1060,18 +673,18 @@ async function sendLoginOtp() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
     otpCode = data.otp;
-    showToast(`OTP sent: ${otpCode} (demo)`, 'success');
+    showToast(`OTP sent: ${otpCode} (demo)`);
     document.getElementById('loginOtpSection').classList.remove('hidden');
     document.getElementById('loginSendOtpBtn').textContent = 'Resend OTP';
   } catch (err) {
-    showToast(err.message, 'error');
+    showToast(err.message);
   }
 }
 
 async function verifyLoginOtp() {
   const phone = document.getElementById('loginPhone').value.trim();
   const otp = document.getElementById('loginOtp').value.trim();
-  if (!otp) { showToast('Enter OTP', 'warning'); return; }
+  if (!otp) { showToast('Enter OTP'); return; }
   try {
     const res = await fetch(`${API_BASE}/auth/verify-otp`, {
       method: 'POST',
@@ -1083,13 +696,13 @@ async function verifyLoginOtp() {
     user = data.user;
     localStorage.setItem('swingy_user', JSON.stringify(user));
     closeLogin();
-    showToast(`Welcome ${user.first_name}!`, 'success');
+    showToast(`Welcome ${user.first_name}!`);
     users = await fetchData('customers');
     orders = await fetchData('orders');
     updateNavUser();
     renderContent();
   } catch (err) {
-    showToast(err.message, 'error');
+    showToast(err.message);
   }
 }
 
@@ -1100,7 +713,7 @@ async function sendSignupOtp() {
   const address = document.getElementById('signupAddress').value.trim();
   const pincode = document.getElementById('signupPincode').value.trim();
   if (!firstName || !lastName || !address || !pincode || !phone || phone.length < 10) {
-    showToast('Please fill all mandatory fields and valid phone', 'warning');
+    showToast('Please fill all mandatory fields and valid phone');
     return;
   }
   window.signupData = { firstName, lastName, address, pincode, phone };
@@ -1113,19 +726,19 @@ async function sendSignupOtp() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
     otpCode = data.otp;
-    showToast(`OTP sent: ${otpCode} (demo)`, 'success');
+    showToast(`OTP sent: ${otpCode} (demo)`);
     document.getElementById('signupOtpSection').classList.remove('hidden');
     document.getElementById('signupSendOtpBtn').textContent = 'Resend OTP';
   } catch (err) {
-    showToast(err.message, 'error');
+    showToast(err.message);
   }
 }
 
 async function verifySignupOtp() {
   const otp = document.getElementById('signupOtp').value.trim();
-  if (!otp) { showToast('Enter OTP', 'warning'); return; }
+  if (!otp) { showToast('Enter OTP'); return; }
   const data = window.signupData;
-  if (!data) { showToast('Please fill details first', 'warning'); return; }
+  if (!data) { showToast('Please fill details first'); return; }
   try {
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
@@ -1137,12 +750,12 @@ async function verifySignupOtp() {
     user = result.user;
     localStorage.setItem('swingy_user', JSON.stringify(user));
     closeLogin();
-    showToast(`Welcome ${user.first_name}!`, 'success');
+    showToast(`Welcome ${user.first_name}!`);
     users = await fetchData('customers');
     updateNavUser();
     renderContent();
   } catch (err) {
-    showToast(err.message, 'error');
+    showToast(err.message);
   }
 }
 
@@ -1151,7 +764,7 @@ function logout() {
   localStorage.removeItem('swingy_user');
   updateNavUser();
   renderContent();
-  showToast('Logged out', 'info');
+  showToast('Logged out');
 }
 
 // ============================================================
@@ -1307,13 +920,9 @@ function renderProductCard(product, onAdd) {
   mainView.style.transition = 'all 0.3s ease';
 
   const image = document.createElement('img');
-  const productImage = product.images && product.images.length > 0 ? product.images[0] : null;
-  image.src = productImage || (product.image || 'https://placehold.co/400x400');
+  image.src = product.images && product.images.length > 0 ? product.images[0] : 'https://placehold.co/400x400';
   image.alt = product.name;
   image.className = 'w-full h-36 object-cover';
-  image.onerror = function() {
-    this.src = 'https://placehold.co/400x400';
-  };
   mainView.appendChild(image);
 
   const body = document.createElement('div');
@@ -1331,7 +940,7 @@ function renderProductCard(product, onAdd) {
   priceSpan.className = 'text-primary font-bold';
   
   if (hasVariants && variantsArray.length > 0) {
-    priceSpan.textContent = `₹${variantsArray[0].price || 0}`;
+    priceSpan.textContent = `₹${variantsArray[0].price}`;
     if (variantsArray.length > 1) {
       const fromText = document.createElement('span');
       fromText.className = 'text-xs text-gray-400';
@@ -1391,14 +1000,14 @@ function renderProductCard(product, onAdd) {
       variantOption.className = `variant-option flex items-center justify-between p-3 rounded-lg mb-2 cursor-pointer transition-all duration-200 ${
         index === 0 ? 'bg-primary/10 border-2 border-primary' : 'bg-white hover:bg-gray-100 border-2 border-transparent'
       }`;
-      variantOption.dataset.variant = variant.label || variant.name || 'Default';
+      variantOption.dataset.variant = variant.label;
       
       const variantInfo = document.createElement('div');
       variantInfo.className = 'flex flex-col';
       
       const labelSpan = document.createElement('span');
       labelSpan.className = 'text-sm font-medium text-gray-800';
-      labelSpan.textContent = variant.label || variant.name || 'Variant';
+      labelSpan.textContent = variant.label || 'Variant';
       variantInfo.appendChild(labelSpan);
       
       if (variant.description) {
@@ -1425,12 +1034,12 @@ function renderProductCard(product, onAdd) {
         this.classList.remove('bg-white', 'border-transparent');
         
         selectedVariant = this.dataset.variant;
-        const selectedVariantData = variantsArray.find(v => (v.label || v.name) === selectedVariant);
+        const selectedVariantData = variantsArray.find(v => v.label === selectedVariant);
         if (selectedVariantData) {
-          priceSpan.textContent = `₹${selectedVariantData.price || 0}`;
+          priceSpan.textContent = `₹${selectedVariantData.price}`;
           const addBtn = expandedView.querySelector('.add-variant-btn');
           if (addBtn) {
-            addBtn.textContent = `Add ₹${selectedVariantData.price || 0}`;
+            addBtn.textContent = `Add ₹${selectedVariantData.price}`;
           }
         }
       });
@@ -1474,11 +1083,11 @@ function renderProductCard(product, onAdd) {
     const addBtn = document.createElement('button');
     addBtn.className = 'add-variant-btn flex-1 gradient-btn text-white px-4 py-2 rounded-full text-sm font-semibold';
     const firstVariant = variantsArray[0];
-    addBtn.textContent = firstVariant ? `Add ₹${firstVariant.price || 0}` : 'Add to Cart';
+    addBtn.textContent = firstVariant ? `Add ₹${firstVariant.price}` : 'Add to Cart';
     addBtn.addEventListener('click', function(e) {
       e.stopPropagation();
       if (!selectedVariant && variantsArray.length > 0) {
-        selectedVariant = variantsArray[0].label || variantsArray[0].name || 'Default';
+        selectedVariant = variantsArray[0].label;
         const firstOption = document.querySelector(`#variants-${product.id} .variant-option:first-child`);
         if (firstOption) {
           document.querySelectorAll(`#variants-${product.id} .variant-option`).forEach(el => {
@@ -1494,7 +1103,7 @@ function renderProductCard(product, onAdd) {
       qtyDisplay.textContent = qty;
       const firstVar = variantsArray[0];
       if (firstVar) {
-        this.textContent = `Add ₹${firstVar.price || 0}`;
+        this.textContent = `Add ₹${firstVar.price}`;
       }
     });
     addBtnContainer.appendChild(addBtn);
@@ -1610,9 +1219,6 @@ function renderRestaurantCard(restaurant) {
   img.src = restaurant.logo || 'https://placehold.co/400x300';
   img.alt = restaurant.name;
   img.className = 'w-full h-40 object-cover';
-  img.onerror = function() {
-    this.src = 'https://placehold.co/400x300';
-  };
   container.appendChild(img);
   const body = document.createElement('div');
   body.className = 'p-4';
@@ -2286,12 +1892,8 @@ function renderCartSidebar() {
         const row = document.createElement('div');
         row.className = 'flex gap-3 bg-gray-50 p-3 rounded-xl mb-2';
         const img = document.createElement('img');
-        const productImage = item.images && item.images.length > 0 ? item.images[0] : null;
-        img.src = productImage || (item.image || 'https://placehold.co/400x400');
+        img.src = item.images && item.images.length > 0 ? item.images[0] : 'https://placehold.co/400x400';
         img.className = 'w-16 h-16 rounded-lg object-cover';
-        img.onerror = function() {
-          this.src = 'https://placehold.co/400x400';
-        };
         row.appendChild(img);
         const info = document.createElement('div');
         info.className = 'flex-1';
@@ -2447,8 +2049,7 @@ function handleOrderAgain(orderItems) {
       displayName: item.name,
       variantLabel: item.variantLabel || null,
       price: item.price,
-      image: originalProduct ? (originalProduct.image || originalProduct.images?.[0]) : null,
-      images: originalProduct ? originalProduct.images : [],
+      images: originalProduct ? originalProduct.images : ['https://placehold.co/400x400'],
       category: item.category || 'Uncategorized',
       commission: item.commission || 0,
       variants: originalProduct ? originalProduct.variants : []
@@ -2460,7 +2061,7 @@ function handleOrderAgain(orderItems) {
   saveCart();
   updateBadges();
   state.showOrders = false;
-  showToast('Items added to cart', 'success');
+  showToast('Items added to cart');
   renderContent();
 }
 
