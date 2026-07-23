@@ -4,34 +4,27 @@ const { Sequelize } = require('sequelize');
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-    console.warn('⚠️ DATABASE_URL not set in environment variables');
-    console.warn('⚠️ Using in-memory SQLite for testing');
-    
-    // Fallback to SQLite for testing (optional)
-    const { Sequelize: SqliteSequelize } = require('sequelize');
-    module.exports = new SqliteSequelize({
-        dialect: 'sqlite',
-        storage: ':memory:',
-        logging: false
-    });
-} else {
-    // Use PostgreSQL
-    const sequelize = new Sequelize(databaseUrl, {
-        dialect: 'postgres',
-        dialectOptions: {
-            ssl: {
-                require: true,
-                rejectUnauthorized: false
-            }
-        },
-        logging: process.env.NODE_ENV === 'development' ? console.log : false,
-        pool: {
-            max: 5,
-            min: 0,
-            acquire: 30000,
-            idle: 10000
-        }
-    });
-    
-    module.exports = sequelize;
+    console.error('❌ DATABASE_URL is not set in environment variables');
+    console.error('Please set DATABASE_URL in your Render environment variables');
+    process.exit(1);
 }
+
+// Use PostgreSQL
+const sequelize = new Sequelize(databaseUrl, {
+    dialect: 'postgres',
+    dialectOptions: {
+        ssl: {
+            require: true,
+            rejectUnauthorized: false
+        }
+    },
+    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000
+    }
+});
+
+module.exports = sequelize;
