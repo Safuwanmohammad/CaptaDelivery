@@ -1,27 +1,14 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const Restaurant = sequelize.define('Restaurant', {
-    id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true
-    },
-    name: {
-        type: DataTypes.STRING(200),
-        allowNull: false
-    },
-    category: {
+const Setting = sequelize.define('Setting', {
+    key: {
         type: DataTypes.STRING(100),
-        allowNull: true
+        primaryKey: true
     },
-    logo: {
+    value: {
         type: DataTypes.TEXT,
         allowNull: true
-    },
-    status: {
-        type: DataTypes.STRING(20),
-        defaultValue: 'Active'
     },
     createdAt: {
         type: DataTypes.DATE,
@@ -32,10 +19,10 @@ const Restaurant = sequelize.define('Restaurant', {
         defaultValue: DataTypes.NOW
     }
 }, {
-    tableName: 'restaurants',
+    tableName: 'settings',
     timestamps: true,
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
 });
 
-module.exports = Restaurant;
+module.exports = Setting;

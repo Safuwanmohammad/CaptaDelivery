@@ -1,48 +1,35 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const User = sequelize.define('User', {
+const Place = sequelize.define('Place', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true
     },
-    first_name: {
+    area: {
         type: DataTypes.STRING(100),
-        allowNull: true
-    },
-    last_name: {
-        type: DataTypes.STRING(100),
-        allowNull: true
-    },
-    address: {
-        type: DataTypes.TEXT,
-        allowNull: true
-    },
-    pincode: {
-        type: DataTypes.STRING(20),
-        allowNull: true
-    },
-    phone: {
-        type: DataTypes.STRING(20),
-        unique: true,
         allowNull: false
     },
-    blocked: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
+    sub_area: {
+        type: DataTypes.STRING(100),
+        allowNull: false
     },
-    total_orders: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0
-    },
-    total_spent: {
+    charge: {
         type: DataTypes.DECIMAL(10, 2),
         defaultValue: 0
     },
-    last_order: {
-        type: DataTypes.DATE,
-        allowNull: true
+    min_order: {
+        type: DataTypes.DECIMAL(10, 2),
+        defaultValue: 0
+    },
+    time: {
+        type: DataTypes.STRING(50),
+        defaultValue: '20-30 min'
+    },
+    status: {
+        type: DataTypes.STRING(20),
+        defaultValue: 'Active'
     },
     createdAt: {
         type: DataTypes.DATE,
@@ -53,10 +40,10 @@ const User = sequelize.define('User', {
         defaultValue: DataTypes.NOW
     }
 }, {
-    tableName: 'users',
+    tableName: 'places',
     timestamps: true,
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
 });
 
-module.exports = User;
+module.exports = Place;
