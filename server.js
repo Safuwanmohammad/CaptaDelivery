@@ -1,133 +1,143 @@
-require('dotenv').config();
 const express = require('express');
-const path = require('path');
+const mongoose = require('mongoose');
 const cors = require('cors');
-const pool = require('./db');
+const helmet = require('helmet');
+const compression = require('compression');
+const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
+
+// ============================================
+// Initialize App
+// ============================================
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
-// ===== RUN MIGRATIONS ON STARTUP =====
-// Set RUN_MIGRATION=true in environment variables to enable
-if (process.env.RUN_MIGRATION === 'true') {
-  console.log('🔄 Running database migrations...');
-  const { exec } = require('child_process');
-  
-  // Run migrations in sequence
-  const runMigrations = async () => {
-    try {
-      // First, add variants column if missing
-      await new Promise((resolve, reject) => {
-        exec('node add-variants-column.js', (error, stdout, stderr) => {
-          if (error) {
-            console.error(`❌ Add variants error: ${error}`);
-            console.error(`stderr: ${stderr}`);
-            reject(error);
-            return;
-          }
-          console.log(`✅ Add variants output: ${stdout}`);
-          resolve();
-        });
-      });
-      
-      // Then run the main migration
-      await new Promise((resolve, reject) => {
-        exec('node migrate-db.js', (error, stdout, stderr) => {
-          if (error) {
-            console.error(`❌ Migration error: ${error}`);
-            console.error(`stderr: ${stderr}`);
-            reject(error);
-            return;
-          }
-          console.log(`✅ Migration output: ${stdout}`);
-          resolve();
-        });
-      });
-      
-      console.log('✅ All migrations completed successfully!');
-    } catch (err) {
-      console.error('❌ Migration failed:', err);
+// ============================================
+// Middleware Setup
+// ============================================
+
+// Security middleware
+app.use(helmet());
+
+// CORS configuration
+app.use(cors({
+    origin: process.env.CORS_ORIGIN || '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
+
+// Compression
+app.use(compression());
+
+// IMPORTANT: Increase payload limits for image uploads
+app.use(express.json({ 
+    limit: '1mb',  // Increased from default 100kb to handle base64 images
+    verify: (req, res, buf) => {
+        try {
+            JSON.parse(buf);
+        } catch (e) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid JSON payload'
+            });
+            throw new Error('Invalid JSON');
+        }
     }
-  };
-  
-  runMigrations();
-}
+}));
 
-// ===== MIDDLEWARE =====
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ 
+    extended: true, 
+    limit: '1mb' 
+}));
 
-// ===== DEBUG: Log all requests =====
-app.use((req, res, next) => {
-  console.log(`📡 ${req.method} ${req.url}`);
-  if (req.method === 'PUT' || req.method === 'POST') {
-    console.log('  Body:', JSON.stringify(req.body, null, 2));
-  }
-  next();
+// Serve static files
+app.use(express.static('public'));
+
+// ============================================
+// Database Connection
+// ============================================
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/captadelivery', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+})
+.then(() => {
+    console.log('✅ Connected to MongoDB');
+})
+.catch((error) => {
+    console.error('❌ MongoDB connection error:', error);
+    process.exit(1);
 });
 
-// ===== HEALTH CHECK =====
-app.get('/health', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT NOW()');
+// ============================================
+// Routes
+// ============================================
+const categoryRoutes = require('./routes/categories');
+const productRoutes = require('./routes/products');
+const restaurantRoutes = require('./routes/restaurants');
+const orderRoutes = require('./routes/orders');
+const customerRoutes = require('./routes/customers');
+const offerRoutes = require('./routes/offers');
+const placeRoutes = require('./routes/places');
+const settingsRoutes = require('./routes/settings');
+
+// Register routes
+app.use('/api', categoryRoutes);
+app.use('/api', productRoutes);
+app.use('/api', restaurantRoutes);
+app.use('/api', orderRoutes);
+app.use('/api', customerRoutes);
+app.use('/api', offerRoutes);
+app.use('/api', placeRoutes);
+app.use('/api', settingsRoutes);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
     res.json({
-      status: 'ok',
-      database: 'connected',
-      time: result.rows[0].now,
-      timestamp: new Date().toISOString()
+        status: 'OK',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        memory: process.memoryUsage()
     });
-  } catch (err) {
-    res.status(500).json({
-      status: 'error',
-      database: 'disconnected',
-      error: err.message
+});
+
+// ============================================
+// Error Handling Middleware (Must be after routes)
+// ============================================
+app.use(notFoundHandler);
+app.use(errorHandler);
+
+// ============================================
+// Start Server
+// ============================================
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📁 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🌐 CORS Origin: ${process.env.CORS_ORIGIN || '*'}`);
+});
+
+// ============================================
+// Graceful Shutdown
+// ============================================
+process.on('SIGTERM', () => {
+    console.log('🛑 SIGTERM received, shutting down gracefully...');
+    app.close(() => {
+        mongoose.connection.close(false, () => {
+            console.log('💾 MongoDB connection closed');
+            process.exit(0);
+        });
     });
-  }
 });
 
-// ===== API ROUTES =====
-app.use('/api/categories', require('./routes/categories'));
-app.use('/api/restaurants', require('./routes/restaurants'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/orders', require('./routes/orders'));
-app.use('/api/offers', require('./routes/offers'));
-app.use('/api/places', require('./routes/places'));
-app.use('/api/customers', require('./routes/customers'));
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/settings', require('./routes/settings'));
-app.use('/api/whatsapp', require('./routes/whatsapp'));
-app.use('/api/reports', require('./routes/reports'));
-
-// ===== SERVE STATIC FRONTEND =====
-const frontendPath = path.join(__dirname, '../frontend');
-console.log(`📁 Serving frontend from: ${frontendPath}`);
-app.use(express.static(frontendPath));
-
-// ===== FALLBACK =====
-app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(frontendPath, 'index.html'));
-  }
-});
-
-// ===== ERROR HANDLING =====
-app.use((err, req, res, next) => {
-  console.error('❌ Error:', err.message);
-  console.error('Stack:', err.stack);
-  res.status(500).json({
-    error: 'Something went wrong!',
-    message: err.message,
-    stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
-  });
-});
-
-// ===== START SERVER =====
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server is running on port ${PORT}`);
-  console.log(`📁 Serving frontend from: ${frontendPath}`);
-  console.log(`🔗 Visit: http://localhost:${PORT}`);
-  console.log(`📊 Admin panel: http://localhost:${PORT}/admin.html`);
-  console.log(`🔧 Migration status: ${process.env.RUN_MIGRATION === 'true' ? 'Enabled' : 'Disabled'}`);
+process.on('SIGINT', () => {
+    console.log('🛑 SIGINT received, shutting down gracefully...');
+    app.close(() => {
+        mongoose.connection.close(false, () => {
+            console.log('💾 MongoDB connection closed');
+            process.exit(0);
+        });
+    });
 });
 
 module.exports = app;
