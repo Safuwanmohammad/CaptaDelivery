@@ -9,41 +9,12 @@ const Category = sequelize.define('Category', {
     },
     name: {
         type: DataTypes.STRING(100),
-        allowNull: false,
-        validate: {
-            notEmpty: {
-                msg: 'Category name is required'
-            },
-            len: {
-                args: [2, 100],
-                msg: 'Category name must be between 2 and 100 characters'
-            }
-        }
+        allowNull: false
     },
     image: {
         type: DataTypes.TEXT,
         allowNull: true,
-        validate: {
-            isValidImage(value) {
-                if (!value) return true;
-                if (value.startsWith('http://') || value.startsWith('https://')) {
-                    return true;
-                }
-                if (value.startsWith('data:image/')) {
-                    try {
-                        const base64Data = value.split(',')[1] || value;
-                        const buffer = Buffer.from(base64Data, 'base64');
-                        if (buffer.length > 200 * 1024) {
-                            throw new Error('Image too large (max 200KB)');
-                        }
-                        return true;
-                    } catch (error) {
-                        throw new Error('Invalid image format');
-                    }
-                }
-                throw new Error('Invalid image format. Use URL or base64 image.');
-            }
-        }
+        defaultValue: null
     },
     isActive: {
         type: DataTypes.BOOLEAN,

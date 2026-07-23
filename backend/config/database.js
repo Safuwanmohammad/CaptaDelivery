@@ -1,15 +1,12 @@
 const { Sequelize } = require('sequelize');
 
-// Get database URL from environment
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-    console.error('❌ DATABASE_URL is not set in environment variables');
-    console.error('Please set DATABASE_URL in your Render environment variables');
+    console.error('❌ DATABASE_URL is not set');
     process.exit(1);
 }
 
-// Use PostgreSQL
 const sequelize = new Sequelize(databaseUrl, {
     dialect: 'postgres',
     dialectOptions: {
@@ -18,7 +15,7 @@ const sequelize = new Sequelize(databaseUrl, {
             rejectUnauthorized: false
         }
     },
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    logging: false,
     pool: {
         max: 5,
         min: 0,
