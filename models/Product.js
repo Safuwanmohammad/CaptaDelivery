@@ -21,11 +21,7 @@ const Product = sequelize.define('Product', {
     },
     restaurant_id: {
         type: DataTypes.INTEGER,
-        allowNull: true,
-        references: {
-            model: 'restaurants',
-            key: 'id'
-        }
+        allowNull: true
     },
     commission: {
         type: DataTypes.DECIMAL(5, 2),
