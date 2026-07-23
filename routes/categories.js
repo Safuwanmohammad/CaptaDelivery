@@ -35,9 +35,12 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   const { name, image } = req.body;
   try {
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ error: 'Category name is required' });
+    }
     const result = await pool.query(
       'INSERT INTO categories (name, image) VALUES ($1, $2) RETURNING *',
-      [name, image || null]
+      [name.trim(), image || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -55,9 +58,12 @@ router.put('/:id', async (req, res) => {
     if (isNaN(categoryId)) {
       return res.status(400).json({ error: 'Invalid ID format' });
     }
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ error: 'Category name is required' });
+    }
     const result = await pool.query(
       'UPDATE categories SET name=$1, image=$2 WHERE id=$3 RETURNING *',
-      [name, image || null, categoryId]
+      [name.trim(), image || null, categoryId]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Category not found' });

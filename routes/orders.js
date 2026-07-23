@@ -34,9 +34,9 @@ router.get('/:id', async (req, res) => {
 // Create order
 router.post('/', async (req, res) => {
   const { 
-    orderId, customerId, items, productTotal, deliveryCharge, 
-    rainFare, commissionAmount, adminProfit, grandTotal, 
-    paymentMethod, paymentStatus, status, deliveryAddress 
+    order_id, customer_id, items, product_total, delivery_charge, 
+    rain_fare, commission_amount, admin_profit, grand_total, 
+    payment_method, payment_status, status, delivery_address 
   } = req.body;
   
   try {
@@ -46,9 +46,9 @@ router.post('/', async (req, res) => {
         rain_fare, commission_amount, admin_profit, grand_total, 
         payment_method, payment_status, status, delivery_address
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
-      [orderId, customerId, items, productTotal, deliveryCharge, 
-       rainFare, commissionAmount, adminProfit, grandTotal, 
-       paymentMethod, paymentStatus, status, deliveryAddress]
+      [order_id, customer_id, items, product_total, delivery_charge, 
+       rain_fare, commission_amount, admin_profit, grand_total, 
+       payment_method, payment_status, status, delivery_address]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {

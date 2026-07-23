@@ -1,7 +1,7 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// PostgreSQL connection
+// PostgreSQL connection pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -12,14 +12,12 @@ const pool = new Pool({
 // Add type parsing for JSONB
 const { types } = require('pg');
 
-// Parse JSONB to JavaScript object/array
+// Parse JSONB to JavaScript objects
 types.setTypeParser(types.builtins.JSONB, (val) => {
   if (!val) return [];
   try {
-    const parsed = JSON.parse(val);
-    return parsed;
+    return JSON.parse(val);
   } catch (e) {
-    console.warn('⚠️ Failed to parse JSONB:', val);
     return [];
   }
 });

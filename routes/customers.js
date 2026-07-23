@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 
-// Get all customers (users)
+// Get all customers
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM users ORDER BY id');
