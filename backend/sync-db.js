@@ -1,6 +1,6 @@
 const sequelize = require('./config/database');
 
-// Import all models so they register with Sequelize
+// Import all models
 require('./models/Category');
 require('./models/Product');
 require('./models/Restaurant');
@@ -15,11 +15,11 @@ async function syncDB() {
         await sequelize.authenticate();
         console.log('✅ Connected to database');
         
-        // ⭐ This does everything - NO SQL needed!
+        // ⭐ This fixes everything - NO SQL needed!
         await sequelize.sync({ alter: true });
-        console.log('✅ All tables created/updated successfully!');
+        console.log('✅ Database synchronized successfully!');
         
-        console.log('\n📊 Tables created:');
+        console.log('\n📊 Tables created/updated:');
         Object.keys(sequelize.models).forEach(model => {
             console.log(`  - ${model}`);
         });

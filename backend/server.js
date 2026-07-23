@@ -85,15 +85,18 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, message: err.message });
 });
 
-// ⭐ AUTO-SYNC DATABASE - NO SQL NEEDED!
+// ⭐ AUTO-SYNC DATABASE - THIS FIXES THE 500 ERRORS
 async function startServer() {
     try {
         await sequelize.authenticate();
         console.log('✅ Connected to NeonDB');
         
-        // ⭐ This automatically creates/updates tables - NO SQL!
+        // ⭐ This automatically adds missing columns - NO SQL NEEDED!
         await sequelize.sync({ alter: true });
-        console.log('✅ Database synced automatically');
+        console.log('✅ Database synced - all tables/columns updated');
+        
+        // Log what tables exist
+        console.log('📊 Tables:', Object.keys(sequelize.models).join(', '));
         
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 Server running on port ${PORT}`);
