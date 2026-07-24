@@ -109,6 +109,7 @@ body {
 @media (max-width: 767px) {
   #bottomNav {
     display: flex !important;
+    z-index: 999999 !important;
   }
   body {
     padding-bottom: 72px !important;
@@ -318,8 +319,88 @@ body {
   pointer-events: none;
 }
 
-/* ===================== MOBILE RESPONSIVE FIXES ===================== */
+/* ============================================================
+   CART SIDEBAR FIXES - Prevent checkout button from being covered
+   ============================================================ */
+
+/* Cart sidebar container */
+.fixed.inset-0.z-50 .absolute.right-0 {
+  padding-bottom: 80px !important;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+/* Cart sidebar scrollable content */
+#cartSidebar,
+.fixed.inset-0.z-50 .absolute.right-0 {
+  padding-bottom: 80px !important;
+}
+
+/* Sticky checkout section at bottom of cart */
+.fixed.inset-0.z-50 .absolute.right-0 .border-t {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  z-index: 20;
+  padding: 16px 16px 20px 16px !important;
+  margin-bottom: 0;
+  border-top: 1px solid #e5e7eb;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+}
+
+/* Ensure cart sidebar appears above bottom nav */
+.fixed.inset-0.z-50 {
+  z-index: 999998 !important;
+}
+
+/* Cart sidebar backdrop */
+.fixed.inset-0.z-50 .absolute.inset-0.bg-black {
+  z-index: 1;
+}
+
+/* Cart sidebar content */
+.fixed.inset-0.z-50 .absolute.right-0 {
+  z-index: 2;
+}
+
+/* Checkout button in cart - ensure it's clickable */
+.fixed.inset-0.z-50 .absolute.right-0 .border-t .gradient-btn {
+  position: relative;
+  z-index: 30;
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+}
+
+/* ============================================================
+   MOBILE RESPONSIVE FIXES
+   ============================================================ */
 @media (max-width: 767px) {
+  /* Fix cart sidebar on mobile */
+  .fixed.inset-0.z-50 .absolute.right-0 {
+    padding-bottom: 80px !important;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+  
+  /* Ensure the checkout button section is always visible */
+  .fixed.inset-0.z-50 .absolute.right-0 .border-t {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    z-index: 20;
+    padding: 12px 16px 20px 16px !important;
+    margin-bottom: 0;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
+  }
+  
+  /* Make checkout button easier to tap */
+  .fixed.inset-0.z-50 .absolute.right-0 .border-t .gradient-btn {
+    min-height: 50px;
+    font-size: 1rem !important;
+    padding: 12px 16px !important;
+  }
+  
   /* Product cards – full width & visible buttons */
   .product-card {
     width: 100% !important;
@@ -501,5 +582,12 @@ body {
   }
   .top-bar .page-title h1 {
     font-size: 0.9rem !important;
+  }
+  
+  /* Cart checkout button on very small screens */
+  .fixed.inset-0.z-50 .absolute.right-0 .border-t .gradient-btn {
+    font-size: 0.85rem !important;
+    padding: 10px 12px !important;
+    min-height: 44px;
   }
 }
