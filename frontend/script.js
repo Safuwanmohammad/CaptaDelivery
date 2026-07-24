@@ -140,7 +140,6 @@ async function loadAllData() {
       fetchData('settings')
     ]);
     
-    // Ensure all data is properly set
     categories = Array.isArray(catsRes) ? catsRes : [];
     restaurants = Array.isArray(restsRes) ? restsRes : [];
     products = Array.isArray(prodsRes) ? prodsRes : [];
@@ -151,7 +150,6 @@ async function loadAllData() {
     console.log('📂 Categories loaded:', categories.length);
     console.log('📦 Products loaded:', products.length);
 
-    // Parse settings
     settings.rain_fare = parseFloat(settingsRes.rain_fare) || 20;
     settings.rain_fare_enabled = settingsRes.rain_fare_enabled !== 'false';
     settings.delivery_hours = settingsRes.delivery_hours || '9:00 AM - 10:00 PM';
@@ -173,7 +171,6 @@ async function loadAllData() {
       nextOrderNumber = max + 1;
     }
 
-    // Verify user session
     if (user) {
       const freshUser = users.find(u => u.id === user.id);
       if (freshUser) {
@@ -818,7 +815,6 @@ function onCategoryClick(catName) {
   if (searchInput) searchInput.value = '';
   if (searchInputMobile) searchInputMobile.value = '';
   state.showCategoryModal = false;
-  // Close any other modals
   state.showCart = false;
   state.showOrders = false;
   state.showAccountDrawer = false;
@@ -931,7 +927,6 @@ function renderProductCard(product, onAdd) {
     console.warn(`⚠️ Error checking variants for ${product.name}:`, e);
   }
 
-  // ---- MAIN VIEW ----
   const mainView = document.createElement('div');
   mainView.className = 'main-view cursor-pointer';
   mainView.style.transition = 'all 0.3s ease';
@@ -991,7 +986,6 @@ function renderProductCard(product, onAdd) {
   mainView.appendChild(body);
   container.appendChild(mainView);
 
-  // ---- EXPANDED VARIANTS VIEW ----
   if (hasVariants && variantsArray.length > 0) {
     const expandedView = document.createElement('div');
     expandedView.className = 'variants-expand hidden border-t border-gray-200 bg-gray-50 p-3';
@@ -1154,7 +1148,6 @@ function renderProductCard(product, onAdd) {
       }
     });
   } else {
-    // No variants - simple add to cart
     const bottom = document.createElement('div');
     bottom.className = 'flex items-center justify-between mt-2 p-3 pt-0';
 
@@ -1657,10 +1650,45 @@ function renderTrustBanner() {
 }
 
 // ============================================================
-// RENDER CATEGORIES SECTION - REMOVED FROM HOME PAGE
+// RENDER CATEGORIES SECTION - Visible on Desktop, Hidden on Mobile
 // ============================================================
 function renderCategoriesSection() {
-  return null;
+  const container = document.createElement('div');
+  container.className = 'px-4 my-8 hidden md:block';
+  const heading = document.createElement('h2');
+  heading.className = 'text-2xl font-bold mb-4';
+  heading.textContent = 'Shop by Category';
+  container.appendChild(heading);
+  const grid = document.createElement('div');
+  grid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-4';
+  const catList = categories.length > 0 ? categories : [];
+  catList.forEach(cat => {
+    const iconData = categoryIcons[cat.name] || { icon: 'fa-tag', color: 'bg-gray-100', iconColor: 'text-gray-600' };
+    const card = document.createElement('div');
+    card.className = 'category-card flex flex-col items-center gap-2 cursor-pointer p-3 rounded-xl bg-white hover:shadow-lg transition-all';
+    card.addEventListener('click', () => onCategoryClick(cat.name));
+    const iconDiv = document.createElement('div');
+    iconDiv.className = `${iconData.color} w-16 h-16 rounded-full flex items-center justify-center shadow-md`;
+    iconDiv.innerHTML = `<i class="fas ${iconData.icon} text-2xl ${iconData.iconColor}"></i>`;
+    card.appendChild(iconDiv);
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'text-sm font-semibold text-gray-700';
+    nameSpan.textContent = cat.name;
+    card.appendChild(nameSpan);
+    let count = 0;
+    if (cat.name === 'Food') {
+      count = restaurants.filter(r => r.category === 'Food' && r.status === 'Active').length;
+    } else {
+      count = products.filter(p => p.category === cat.name && p.status === 'Active').length;
+    }
+    const itemsSpan = document.createElement('span');
+    itemsSpan.className = 'text-xs text-gray-400';
+    itemsSpan.textContent = `${count} items`;
+    card.appendChild(itemsSpan);
+    grid.appendChild(card);
+  });
+  container.appendChild(grid);
+  return container;
 }
 
 // ============================================================
@@ -1765,7 +1793,7 @@ function renderFooter() {
 }
 
 // ============================================================
-// RENDER CATEGORY MODAL - FIXED
+// RENDER CATEGORY MODAL - Only visible on mobile
 // ============================================================
 function renderCategoryModal() {
   if (!state.showCategoryModal) return null;
@@ -2159,7 +2187,9 @@ function renderContent() {
     if (hero) app.appendChild(hero);
     const trust = renderTrustBanner();
     if (trust) app.appendChild(trust);
-    // Categories section is removed from home page
+    // Categories section - visible on desktop, hidden on mobile
+    const cats = renderCategoriesSection();
+    if (cats) app.appendChild(cats);
     const offersSection = renderOffersSection();
     if (offersSection) app.appendChild(offersSection);
     const productsGrid = renderProductsGrid();
@@ -2169,6 +2199,7 @@ function renderContent() {
   if (cartSidebar) app.appendChild(cartSidebar);
   const ordersModal = renderOrdersModal();
   if (ordersModal) app.appendChild(ordersModal);
+  // Category modal - only visible on mobile
   const categoryModal = renderCategoryModal();
   if (categoryModal) app.appendChild(categoryModal);
   const accountDrawer = renderAccountDrawer();

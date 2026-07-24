@@ -320,8 +320,15 @@ body {
 }
 
 /* ============================================================
-   CATEGORY MODAL IMPROVEMENTS
+   CATEGORY MODAL - Only visible on mobile
    ============================================================ */
+
+/* Hide category modal on desktop */
+@media (min-width: 768px) {
+  .fixed.inset-0.z-50.flex.items-center.justify-center.p-4 {
+    display: none !important;
+  }
+}
 
 /* Category modal items - better touch targets */
 .category-modal-item {
