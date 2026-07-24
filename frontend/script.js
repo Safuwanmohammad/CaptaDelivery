@@ -93,10 +93,16 @@ const cartBadge = document.getElementById('cartBadge');
 // API HELPERS
 // ============================================================
 async function fetchData(endpoint) {
-  const res = await fetch(`${API_BASE}/${endpoint}`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return await res.json();
+  try {
+    const res = await fetch(`${API_BASE}/${endpoint}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error(`❌ Error fetching ${endpoint}:`, err.message);
+    return [];
+  }
 }
+
 async function postData(endpoint, data) {
   const res = await fetch(`${API_BASE}/${endpoint}`, {
     method: 'POST',
@@ -106,6 +112,7 @@ async function postData(endpoint, data) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return await res.json();
 }
+
 async function putData(endpoint, data) {
   const res = await fetch(`${API_BASE}/${endpoint}`, {
     method: 'PUT',
@@ -132,12 +139,17 @@ async function loadAllData() {
       fetchData('customers'),
       fetchData('settings')
     ]);
-    categories = catsRes || [];
-    restaurants = restsRes || [];
-    products = prodsRes || [];
-    offers = offsRes || [];
-    orders = ordersRes || [];
-    users = usersRes || [];
+    
+    // Ensure all data is properly set
+    categories = Array.isArray(catsRes) ? catsRes : [];
+    restaurants = Array.isArray(restsRes) ? restsRes : [];
+    products = Array.isArray(prodsRes) ? prodsRes : [];
+    offers = Array.isArray(offsRes) ? offsRes : [];
+    orders = Array.isArray(ordersRes) ? ordersRes : [];
+    users = Array.isArray(usersRes) ? usersRes : [];
+
+    console.log('📂 Categories loaded:', categories.length);
+    console.log('📦 Products loaded:', products.length);
 
     // Parse settings
     settings.rain_fare = parseFloat(settingsRes.rain_fare) || 20;
@@ -147,10 +159,12 @@ async function loadAllData() {
     settings.service_unavailable = settingsRes.service_unavailable === 'true';
 
     const areas = {};
-    placesRes.forEach(p => {
-      if (!areas[p.area]) areas[p.area] = { subAreas: {} };
-      areas[p.area].subAreas[p.sub_area] = parseFloat(p.charge) || 0;
-    });
+    if (Array.isArray(placesRes)) {
+      placesRes.forEach(p => {
+        if (!areas[p.area]) areas[p.area] = { subAreas: {} };
+        areas[p.area].subAreas[p.sub_area] = parseFloat(p.charge) || 0;
+      });
+    }
     deliveryAreas = areas;
 
     if (orders.length > 0) {
@@ -159,10 +173,16 @@ async function loadAllData() {
       nextOrderNumber = max + 1;
     }
 
+    // Verify user session
     if (user) {
       const freshUser = users.find(u => u.id === user.id);
-      if (freshUser) user = freshUser;
-      localStorage.setItem('swingy_user', JSON.stringify(user));
+      if (freshUser) {
+        user = freshUser;
+        localStorage.setItem('swingy_user', JSON.stringify(user));
+      } else {
+        localStorage.removeItem('swingy_user');
+        user = null;
+      }
     }
 
     state.loading = false;
@@ -195,6 +215,14 @@ function showToast(message) {
 // ============================================================
 // CART
 // ============================================================
+function loadCart() {
+  try {
+    cart = JSON.parse(localStorage.getItem('swingy_cart') || '[]');
+  } catch (e) {
+    cart = [];
+  }
+}
+
 function saveCart() {
   localStorage.setItem('swingy_cart', JSON.stringify(cart));
 }
@@ -783,12 +811,17 @@ function closeAllModals(except) {
 // NAVIGATION
 // ============================================================
 function onCategoryClick(catName) {
+  console.log('📂 Category clicked:', catName);
   state.selectedCategory = catName;
   state.selectedRestaurant = null;
   state.searchTerm = '';
   if (searchInput) searchInput.value = '';
   if (searchInputMobile) searchInputMobile.value = '';
   state.showCategoryModal = false;
+  // Close any other modals
+  state.showCart = false;
+  state.showOrders = false;
+  state.showAccountDrawer = false;
   renderContent();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -863,11 +896,8 @@ function openModal(html) {
 // RENDER PRODUCT CARD WITH VARIANTS FIX
 // ============================================================
 function renderProductCard(product, onAdd) {
-  // Debug logging
   console.log('🔍 Rendering product:', product.name);
   console.log('  Variants raw:', product.variants);
-  console.log('  Variants type:', typeof product.variants);
-  console.log('  Is array:', Array.isArray(product.variants));
   
   const container = document.createElement('div');
   container.className = 'product-card bg-white rounded-xl shadow-md overflow-hidden';
@@ -875,43 +905,30 @@ function renderProductCard(product, onAdd) {
   let selectedVariant = null;
   let isExpanded = false;
 
-  // ===== FIX: Check if product has variants =====
   let hasVariants = false;
   let variantsArray = [];
   
   try {
-    // Case 1: Already an array
     if (Array.isArray(product.variants) && product.variants.length > 0) {
       hasVariants = true;
       variantsArray = product.variants;
-      console.log(`✅ ${product.name} has ${variantsArray.length} variants (array)`);
-    }
-    // Case 2: String that needs parsing
-    else if (typeof product.variants === 'string') {
+    } else if (typeof product.variants === 'string') {
       const parsed = JSON.parse(product.variants);
       if (Array.isArray(parsed) && parsed.length > 0) {
         hasVariants = true;
         variantsArray = parsed;
         product.variants = parsed;
-        console.log(`✅ ${product.name} has ${variantsArray.length} variants (parsed from string)`);
       }
-    }
-    // Case 3: Object that needs conversion
-    else if (product.variants && typeof product.variants === 'object') {
+    } else if (product.variants && typeof product.variants === 'object') {
       const values = Object.values(product.variants);
       if (Array.isArray(values) && values.length > 0) {
         hasVariants = true;
         variantsArray = values;
         product.variants = values;
-        console.log(`✅ ${product.name} has ${variantsArray.length} variants (converted from object)`);
       }
     }
   } catch (e) {
     console.warn(`⚠️ Error checking variants for ${product.name}:`, e);
-  }
-
-  if (!hasVariants && product.variants) {
-    console.log(`⚠️ ${product.name} has variants but couldn't parse:`, product.variants);
   }
 
   // ---- MAIN VIEW ----
@@ -933,7 +950,6 @@ function renderProductCard(product, onAdd) {
   name.textContent = product.name;
   body.appendChild(name);
 
-  // Price Display
   const priceDiv = document.createElement('div');
   priceDiv.className = 'flex items-center gap-2 mt-1';
   const priceSpan = document.createElement('span');
@@ -953,18 +969,13 @@ function renderProductCard(product, onAdd) {
   priceDiv.appendChild(priceSpan);
   body.appendChild(priceDiv);
 
-  // Variant Badge
   if (hasVariants) {
     const variantBadge = document.createElement('div');
     variantBadge.className = 'mt-1 text-xs text-primary font-bold bg-primary/10 px-2 py-1 rounded-full inline-block';
     variantBadge.textContent = `🎯 ${variantsArray.length} variants available`;
     body.appendChild(variantBadge);
-    console.log(`✅ Added variant badge to ${product.name}`);
-  } else {
-    console.log(`❌ No variants for ${product.name}, skipping badge`);
   }
 
-  // Rating
   const ratingDiv = document.createElement('div');
   ratingDiv.className = 'flex items-center gap-1 mb-1 mt-1';
   ratingDiv.innerHTML = `<i class="fas fa-star text-yellow-400 text-xs"></i><span class="text-xs">4.5</span>`;
@@ -982,8 +993,6 @@ function renderProductCard(product, onAdd) {
 
   // ---- EXPANDED VARIANTS VIEW ----
   if (hasVariants && variantsArray.length > 0) {
-    console.log(`🔄 Building expanded view for ${product.name} with ${variantsArray.length} variants`);
-    
     const expandedView = document.createElement('div');
     expandedView.className = 'variants-expand hidden border-t border-gray-200 bg-gray-50 p-3';
     expandedView.id = `variants-${product.id}`;
@@ -994,8 +1003,6 @@ function renderProductCard(product, onAdd) {
     expandedView.appendChild(variantTitle);
 
     variantsArray.forEach((variant, index) => {
-      console.log(`  Building variant option ${index}:`, variant);
-      
       const variantOption = document.createElement('div');
       variantOption.className = `variant-option flex items-center justify-between p-3 rounded-lg mb-2 cursor-pointer transition-all duration-200 ${
         index === 0 ? 'bg-primary/10 border-2 border-primary' : 'bg-white hover:bg-gray-100 border-2 border-transparent'
@@ -1047,7 +1054,6 @@ function renderProductCard(product, onAdd) {
       expandedView.appendChild(variantOption);
     });
 
-    // Add to Cart Section
     const addBtnContainer = document.createElement('div');
     addBtnContainer.className = 'flex items-center gap-2 mt-3 pt-2 border-t border-gray-200';
     
@@ -1256,7 +1262,6 @@ function renderCategoryPage() {
   const container = document.createElement('div');
   container.className = 'px-4 my-8';
   
-  // Back button
   const backBtn = document.createElement('button');
   backBtn.className = 'text-2xl text-gray-600 hover:text-primary transition-colors inline-flex items-center gap-2 mb-4';
   backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> Back to Home';
@@ -1265,7 +1270,6 @@ function renderCategoryPage() {
   container.appendChild(backBtn);
   
   if (state.selectedRestaurant) {
-    // Restaurant view
     const header = document.createElement('div');
     header.className = 'flex items-center gap-4 mb-6';
     const backToRestaurantsBtn = document.createElement('button');
@@ -1297,14 +1301,12 @@ function renderCategoryPage() {
     return container;
   }
   
-  // Category view
   const heading = document.createElement('h2');
   heading.className = 'text-2xl font-bold mb-4';
   heading.textContent = state.selectedCategory || 'Category';
   container.appendChild(heading);
   
   if (state.selectedCategory === 'Food') {
-    // Show restaurants for Food category
     const foodRestaurants = restaurants.filter(r => r.category === 'Food' && r.status === 'Active');
     if (foodRestaurants.length === 0) {
       const msg = document.createElement('p');
@@ -1321,7 +1323,6 @@ function renderCategoryPage() {
       container.appendChild(grid);
     }
   } else {
-    // Show products for other categories
     const catProducts = products.filter(p => p.category === state.selectedCategory && p.status === 'Active');
     if (catProducts.length === 0) {
       const msg = document.createElement('p');
@@ -1631,11 +1632,6 @@ function renderHero() {
         const productsSection = document.querySelector('.px-4.my-8');
         if (productsSection) {
           productsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else {
-          const categoriesSection = document.querySelector('.px-4.my-8.hidden.md\\:block');
-          if (categoriesSection) {
-            categoriesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
         }
       });
     }
@@ -1660,44 +1656,11 @@ function renderTrustBanner() {
   return container;
 }
 
+// ============================================================
+// RENDER CATEGORIES SECTION - REMOVED FROM HOME PAGE
+// ============================================================
 function renderCategoriesSection() {
-  const container = document.createElement('div');
-  // Remove 'hidden md:block' - make it visible on all devices
-  container.className = 'px-4 my-8 block';
-  const heading = document.createElement('h2');
-  heading.className = 'text-2xl font-bold mb-4';
-  heading.textContent = 'Shop by Category';
-  container.appendChild(heading);
-  const grid = document.createElement('div');
-  grid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-4';
-  const catList = categories.length > 0 ? categories : [];
-  catList.forEach(cat => {
-    const iconData = categoryIcons[cat.name] || { icon: 'fa-tag', color: 'bg-gray-100', iconColor: 'text-gray-600' };
-    const card = document.createElement('div');
-    card.className = 'category-card flex flex-col items-center gap-2 cursor-pointer p-3 rounded-xl bg-white hover:shadow-lg transition-all';
-    card.addEventListener('click', () => onCategoryClick(cat.name));
-    const iconDiv = document.createElement('div');
-    iconDiv.className = `${iconData.color} w-16 h-16 rounded-full flex items-center justify-center shadow-md`;
-    iconDiv.innerHTML = `<i class="fas ${iconData.icon} text-2xl ${iconData.iconColor}"></i>`;
-    card.appendChild(iconDiv);
-    const nameSpan = document.createElement('span');
-    nameSpan.className = 'text-sm font-semibold text-gray-700';
-    nameSpan.textContent = cat.name;
-    card.appendChild(nameSpan);
-    let count = 0;
-    if (cat.name === 'Food') {
-      count = restaurants.filter(r => r.category === 'Food' && r.status === 'Active').length;
-    } else {
-      count = products.filter(p => p.category === cat.name && p.status === 'Active').length;
-    }
-    const itemsSpan = document.createElement('span');
-    itemsSpan.className = 'text-xs text-gray-400';
-    itemsSpan.textContent = `${count} items`;
-    card.appendChild(itemsSpan);
-    grid.appendChild(card);
-  });
-  container.appendChild(grid);
-  return container;
+  return null;
 }
 
 // ============================================================
@@ -1801,54 +1764,95 @@ function renderFooter() {
   return footer;
 }
 
+// ============================================================
+// RENDER CATEGORY MODAL - FIXED
+// ============================================================
 function renderCategoryModal() {
   if (!state.showCategoryModal) return null;
+  
   const overlay = document.createElement('div');
   overlay.className = 'fixed inset-0 z-50 flex items-center justify-center p-4';
+  
   const backdrop = document.createElement('div');
   backdrop.className = 'absolute inset-0 bg-black bg-opacity-50';
   backdrop.addEventListener('click', toggleCategoryModal);
   overlay.appendChild(backdrop);
+  
   const modal = document.createElement('div');
   modal.className = 'relative bg-white rounded-2xl max-w-sm w-full max-h-[80vh] overflow-y-auto p-6';
+  
   const header = document.createElement('div');
   header.className = 'flex justify-between items-center mb-4';
   const title = document.createElement('h2');
   title.className = 'text-2xl font-bold';
   title.textContent = 'All Categories';
   header.appendChild(title);
+  
   const closeBtn = document.createElement('button');
-  closeBtn.className = 'text-gray-500';
+  closeBtn.className = 'text-gray-500 hover:text-gray-700';
   closeBtn.innerHTML = '<i class="fas fa-times text-2xl"></i>';
   closeBtn.addEventListener('click', toggleCategoryModal);
   header.appendChild(closeBtn);
   modal.appendChild(header);
+  
   const grid = document.createElement('div');
-  // Use 2 columns on mobile, 3 on larger screens
-  grid.className = 'grid grid-cols-2 md:grid-cols-3 gap-3';
+  grid.className = 'grid grid-cols-2 gap-3';
   
   if (categories.length === 0) {
-    grid.innerHTML = '<p class="text-gray-500 text-center col-span-2 md:col-span-3 py-4">No categories available</p>';
+    grid.innerHTML = '<p class="text-gray-500 text-center col-span-2 py-8">No categories available</p>';
   } else {
     categories.forEach(cat => {
-      const iconData = categoryIcons[cat.name] || { icon: 'fa-tag', color: 'bg-gray-100', iconColor: 'text-gray-600' };
+      const iconData = categoryIcons[cat.name] || { 
+        icon: 'fa-tag', 
+        color: 'bg-gray-100', 
+        iconColor: 'text-gray-600' 
+      };
+      
       const item = document.createElement('div');
-      item.className = 'category-modal-item flex flex-col items-center gap-2 cursor-pointer p-4 rounded-xl bg-gray-50 hover:bg-primary/10 transition border border-transparent hover:border-primary';
-      item.addEventListener('click', () => onCategoryClick(cat.name));
+      item.className = 'category-modal-item flex flex-col items-center gap-2 cursor-pointer p-4 rounded-xl bg-gray-50 hover:bg-primary/10 transition border-2 border-transparent hover:border-primary active:scale-95';
+      item.style.touchAction = 'manipulation';
+      
+      let count = 0;
+      if (cat.name === 'Food') {
+        count = restaurants.filter(r => r.category === 'Food' && r.status === 'Active').length;
+      } else {
+        count = products.filter(p => p.category === cat.name && p.status === 'Active').length;
+      }
+      
       item.innerHTML = `
         <div class="${iconData.color} w-16 h-16 rounded-full flex items-center justify-center shadow-md">
           <i class="fas ${iconData.icon} text-2xl ${iconData.iconColor}"></i>
         </div>
         <span class="text-sm font-semibold text-gray-700 text-center">${cat.name}</span>
+        <span class="text-xs text-gray-400">${count} items</span>
       `;
+      
+      item.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('📂 Category selected from modal:', cat.name);
+        onCategoryClick(cat.name);
+      });
+      
+      item.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('📂 Category selected from modal (touch):', cat.name);
+        onCategoryClick(cat.name);
+      });
+      
       grid.appendChild(item);
     });
   }
+  
   modal.appendChild(grid);
   overlay.appendChild(modal);
   return overlay;
 }
 
+// ============================================================
+// RENDER CART SIDEBAR
+// ============================================================
 function renderCartSidebar() {
   if (!state.showCart) return null;
   const grouped = {};
@@ -1870,15 +1874,18 @@ function renderCartSidebar() {
   const grandTotal = subtotal + delivery + rain;
   
   const container = document.createElement('div');
-  container.className = 'fixed inset-0 z-50';
+  container.className = 'fixed inset-0 z-[999998]';
   const backdrop = document.createElement('div');
   backdrop.className = 'absolute inset-0 bg-black bg-opacity-50';
   backdrop.addEventListener('click', toggleCart);
   container.appendChild(backdrop);
   const sidebar = document.createElement('div');
   sidebar.className = 'absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl overflow-y-auto';
+  sidebar.id = 'cartSidebar';
+  sidebar.style.paddingBottom = '80px';
+  
   const header = document.createElement('div');
-  header.className = 'sticky top-0 bg-white p-4 border-b flex justify-between';
+  header.className = 'sticky top-0 bg-white p-4 border-b flex justify-between z-10';
   const headerTitle = document.createElement('h2');
   headerTitle.className = 'text-2xl font-bold';
   headerTitle.textContent = `My Cart (${cart.length})`;
@@ -1954,7 +1961,8 @@ function renderCartSidebar() {
     });
     sidebar.appendChild(itemsContainer);
     const summary = document.createElement('div');
-    summary.className = 'border-t p-4 bg-gray-50';
+    summary.className = 'border-t p-4 bg-white sticky bottom-0 z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]';
+    summary.style.paddingBottom = '20px';
     const deliveryRow = document.createElement('div');
     deliveryRow.className = 'flex justify-between text-sm py-1';
     deliveryRow.innerHTML = `<span>Delivery</span><span>${delivery === 0 ? 'Free' : `₹${delivery}`}</span>`;
@@ -1975,7 +1983,6 @@ function renderCartSidebar() {
     checkoutBtn.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      // Close cart and proceed to checkout
       state.showCart = false;
       proceedToCheckout();
     });
@@ -1986,6 +1993,9 @@ function renderCartSidebar() {
   return container;
 }
 
+// ============================================================
+// RENDER ORDERS MODAL
+// ============================================================
 function renderOrdersModal() {
   if (!state.showOrders) return null;
   const container = document.createElement('div');
@@ -2149,8 +2159,7 @@ function renderContent() {
     if (hero) app.appendChild(hero);
     const trust = renderTrustBanner();
     if (trust) app.appendChild(trust);
-    const cats = renderCategoriesSection();
-    if (cats) app.appendChild(cats);
+    // Categories section is removed from home page
     const offersSection = renderOffersSection();
     if (offersSection) app.appendChild(offersSection);
     const productsGrid = renderProductsGrid();
@@ -2229,11 +2238,14 @@ window.removeItem = removeItem;
 window.toggleAccountDropdown = toggleAccountDropdown;
 window.showContactSupport = showContactSupport;
 window.openModal = openModal;
+window.logout = logout;
 
 // ============================================================
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', async function() {
+  loadCart();
+  
   if (navLogo) navLogo.addEventListener('click', goHome);
   if (navCart) navCart.addEventListener('click', toggleCart);
   if (navOrders) navOrders.addEventListener('click', toggleOrders);
@@ -2256,10 +2268,12 @@ document.addEventListener('DOMContentLoaded', async function() {
       }
     });
   }
+
   const storedUser = localStorage.getItem('swingy_user');
   if (storedUser) {
     try { user = JSON.parse(storedUser); } catch (e) { user = null; }
   }
+
   await loadAllData();
   updateNavUser();
   renderContent();

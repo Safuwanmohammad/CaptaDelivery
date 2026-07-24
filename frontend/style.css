@@ -320,6 +320,47 @@ body {
 }
 
 /* ============================================================
+   CATEGORY MODAL IMPROVEMENTS
+   ============================================================ */
+
+/* Category modal items - better touch targets */
+.category-modal-item {
+  transition: all 0.2s ease;
+  min-height: 100px;
+  touch-action: manipulation;
+}
+
+.category-modal-item:active {
+  transform: scale(0.95);
+}
+
+/* Category modal - smooth animation */
+.fixed.inset-0.z-50 .relative.bg-white {
+  animation: modalSlideUp 0.3s ease;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Category modal backdrop */
+.fixed.inset-0.z-50 .absolute.inset-0.bg-black {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ============================================================
    CART SIDEBAR FIXES - Prevent checkout button from being covered
    ============================================================ */
 
@@ -375,6 +416,34 @@ body {
    MOBILE RESPONSIVE FIXES
    ============================================================ */
 @media (max-width: 767px) {
+  /* Category modal on mobile */
+  .category-modal-item {
+    min-height: 80px;
+    padding: 12px !important;
+  }
+  
+  .category-modal-item .w-16.h-16 {
+    width: 48px !important;
+    height: 48px !important;
+  }
+  
+  .category-modal-item .w-16.h-16 i {
+    font-size: 1.2rem !important;
+  }
+  
+  .category-modal-item .text-sm {
+    font-size: 0.7rem !important;
+  }
+  
+  .category-modal-item .text-xs {
+    font-size: 0.6rem !important;
+  }
+  
+  .fixed.inset-0.z-50 .relative.bg-white {
+    max-width: 95% !important;
+    padding: 16px !important;
+  }
+
   /* Fix cart sidebar on mobile */
   .fixed.inset-0.z-50 .absolute.right-0 {
     padding-bottom: 80px !important;
