@@ -119,7 +119,7 @@ async function putData(endpoint, data) {
 // ============================================================
 // LOAD ALL DATA
 // ============================================================
-async function loadAllData() {
+aasync function loadAllData() {
   try {
     state.loading = true;
     const [catsRes, restsRes, prodsRes, offsRes, placesRes, ordersRes, usersRes, settingsRes] = await Promise.all([
@@ -132,12 +132,18 @@ async function loadAllData() {
       fetchData('customers'),
       fetchData('settings')
     ]);
-    categories = catsRes || [];
-    restaurants = restsRes || [];
-    products = prodsRes || [];
-    offers = offsRes || [];
-    orders = ordersRes || [];
-    users = usersRes || [];
+    
+    // Ensure all data is properly set
+    categories = Array.isArray(catsRes) ? catsRes : [];
+    restaurants = Array.isArray(restsRes) ? restsRes : [];
+    products = Array.isArray(prodsRes) ? prodsRes : [];
+    offers = Array.isArray(offsRes) ? offsRes : [];
+    orders = Array.isArray(ordersRes) ? ordersRes : [];
+    users = Array.isArray(usersRes) ? usersRes : [];
+
+    console.log('📂 Categories loaded:', categories.length);
+    console.log('📦 Products loaded:', products.length);
+    console.log('🏪 Restaurants loaded:', restaurants.length);
 
     // Parse settings
     settings.rain_fare = parseFloat(settingsRes.rain_fare) || 20;
@@ -147,10 +153,12 @@ async function loadAllData() {
     settings.service_unavailable = settingsRes.service_unavailable === 'true';
 
     const areas = {};
-    placesRes.forEach(p => {
-      if (!areas[p.area]) areas[p.area] = { subAreas: {} };
-      areas[p.area].subAreas[p.sub_area] = parseFloat(p.charge) || 0;
-    });
+    if (Array.isArray(placesRes)) {
+      placesRes.forEach(p => {
+        if (!areas[p.area]) areas[p.area] = { subAreas: {} };
+        areas[p.area].subAreas[p.sub_area] = parseFloat(p.charge) || 0;
+      });
+    }
     deliveryAreas = areas;
 
     if (orders.length > 0) {
@@ -159,10 +167,17 @@ async function loadAllData() {
       nextOrderNumber = max + 1;
     }
 
+    // Verify user session
     if (user) {
       const freshUser = users.find(u => u.id === user.id);
-      if (freshUser) user = freshUser;
-      localStorage.setItem('swingy_user', JSON.stringify(user));
+      if (freshUser) {
+        user = freshUser;
+        localStorage.setItem('swingy_user', JSON.stringify(user));
+      } else {
+        // User no longer exists, clear session
+        localStorage.removeItem('swingy_user');
+        user = null;
+      }
     }
 
     state.loading = false;
@@ -1255,13 +1270,17 @@ function renderRestaurantCard(restaurant) {
 function renderCategoryPage() {
   const container = document.createElement('div');
   container.className = 'px-4 my-8';
+  
+  // Back button
   const backBtn = document.createElement('button');
-  backBtn.className = 'text-2xl text-gray-600 hover:text-primary transition-colors hidden md:inline-flex items-center gap-2 mb-4';
-  backBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
+  backBtn.className = 'text-2xl text-gray-600 hover:text-primary transition-colors inline-flex items-center gap-2 mb-4';
+  backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> Back to Home';
   backBtn.title = 'Back to Home';
   backBtn.addEventListener('click', goHome);
   container.appendChild(backBtn);
+  
   if (state.selectedRestaurant) {
+    // Restaurant view
     const header = document.createElement('div');
     header.className = 'flex items-center gap-4 mb-6';
     const backToRestaurantsBtn = document.createElement('button');
@@ -1274,6 +1293,7 @@ function renderCategoryPage() {
     title.textContent = state.selectedRestaurant.name;
     header.appendChild(title);
     container.appendChild(header);
+    
     const menuItems = products.filter(p => p.restaurant_id === state.selectedRestaurant.id && p.status === 'Active');
     if (menuItems.length === 0) {
       const msg = document.createElement('p');
@@ -1291,11 +1311,15 @@ function renderCategoryPage() {
     }
     return container;
   }
+  
+  // Category view
   const heading = document.createElement('h2');
   heading.className = 'text-2xl font-bold mb-4';
-  heading.textContent = state.selectedCategory;
+  heading.textContent = state.selectedCategory || 'Category';
   container.appendChild(heading);
+  
   if (state.selectedCategory === 'Food') {
+    // Show restaurants for Food category
     const foodRestaurants = restaurants.filter(r => r.category === 'Food' && r.status === 'Active');
     if (foodRestaurants.length === 0) {
       const msg = document.createElement('p');
@@ -1312,6 +1336,7 @@ function renderCategoryPage() {
       container.appendChild(grid);
     }
   } else {
+    // Show products for other categories
     const catProducts = products.filter(p => p.category === state.selectedCategory && p.status === 'Active');
     if (catProducts.length === 0) {
       const msg = document.createElement('p');
@@ -1328,6 +1353,7 @@ function renderCategoryPage() {
       container.appendChild(grid);
     }
   }
+  
   return container;
 }
 
