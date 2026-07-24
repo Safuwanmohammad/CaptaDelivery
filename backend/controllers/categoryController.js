@@ -1,11 +1,22 @@
 const pool = require('../db');
 
+// Helper function to check if column exists
+async function columnExists(table, column) {
+  const result = await pool.query(`
+    SELECT EXISTS (
+      SELECT FROM information_schema.columns 
+      WHERE table_name = $1 AND column_name = $2
+    )
+  `, [table, column]);
+  return result.rows[0].exists;
+}
+
 // Get all categories
 exports.getAllCategories = async (req, res) => {
   try {
     console.log('[Categories] Fetching all categories...');
     
-    // First check if categories table exists
+    // Check if table exists
     const tableCheck = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -14,25 +25,27 @@ exports.getAllCategories = async (req, res) => {
     `);
     
     if (!tableCheck.rows[0].exists) {
-      console.log('[Categories] Table does not exist, returning empty array');
+      console.log('[Categories] Table does not exist, creating...');
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS categories (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          image TEXT,
+          created_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
       return res.json([]);
     }
     
-    // Check what columns exist
-    const columns = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'categories'
-    `);
-    const existingColumns = columns.rows.map(r => r.column_name);
-    console.log('[Categories] Existing columns:', existingColumns);
+    // Check if image column exists
+    const hasImageColumn = await columnExists('categories', 'image');
+    const hasImagesColumn = await columnExists('categories', 'images');
     
-    // Build query with only existing columns
-    let selectFields = ['id', 'name'];
-    if (existingColumns.includes('image')) selectFields.push('image');
-    if (existingColumns.includes('created_at')) selectFields.push('created_at');
+    let imageField = 'NULL as image';
+    if (hasImageColumn) imageField = 'image';
+    else if (hasImagesColumn) imageField = 'images as image';
     
-    const query = `SELECT ${selectFields.join(', ')} FROM categories ORDER BY id`;
+    const query = `SELECT id, name, ${imageField}, created_at FROM categories ORDER BY id`;
     const result = await pool.query(query);
     
     console.log(`[Categories] Found ${result.rows.length} categories`);
@@ -56,26 +69,21 @@ exports.createCategory = async (req, res) => {
       return res.status(400).json({ error: 'Category name is required' });
     }
     
-    // Check what columns exist
-    const columns = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'categories'
-    `);
-    const existingColumns = columns.rows.map(r => r.column_name);
+    // Check if image column exists
+    const hasImageColumn = await columnExists('categories', 'image');
+    const hasImagesColumn = await columnExists('categories', 'images');
     
-    // Build insert query with only existing columns
-    let fields = ['name'];
-    let values = [name.trim()];
-    let paramCount = 2;
-    
-    if (existingColumns.includes('image') && image !== undefined) {
-      fields.push('image');
-      values.push(image || null);
+    let query, values;
+    if (hasImageColumn) {
+      query = 'INSERT INTO categories (name, image) VALUES ($1, $2) RETURNING *';
+      values = [name.trim(), image || null];
+    } else if (hasImagesColumn) {
+      query = 'INSERT INTO categories (name, images) VALUES ($1, $2) RETURNING *';
+      values = [name.trim(), image || null];
+    } else {
+      query = 'INSERT INTO categories (name) VALUES ($1) RETURNING *';
+      values = [name.trim()];
     }
-    
-    const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
-    const query = `INSERT INTO categories (${fields.join(', ')}) VALUES (${placeholders}) RETURNING *`;
     
     const result = await pool.query(query, values);
     console.log('[Categories] Created:', result.rows[0]);
@@ -103,29 +111,21 @@ exports.updateCategory = async (req, res) => {
       return res.status(404).json({ error: 'Category not found' });
     }
     
-    // Check what columns exist
-    const columns = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'categories'
-    `);
-    const existingColumns = columns.rows.map(r => r.column_name);
+    // Check if image column exists
+    const hasImageColumn = await columnExists('categories', 'image');
+    const hasImagesColumn = await columnExists('categories', 'images');
     
-    // Build update query with only existing columns
-    let updates = [];
-    let values = [];
-    let paramCount = 1;
-    
-    updates.push(`name = $${paramCount++}`);
-    values.push(name.trim());
-    
-    if (existingColumns.includes('image') && image !== undefined) {
-      updates.push(`image = $${paramCount++}`);
-      values.push(image || null);
+    let query, values;
+    if (hasImageColumn) {
+      query = 'UPDATE categories SET name = $1, image = $2 WHERE id = $3 RETURNING *';
+      values = [name.trim(), image || null, id];
+    } else if (hasImagesColumn) {
+      query = 'UPDATE categories SET name = $1, images = $2 WHERE id = $3 RETURNING *';
+      values = [name.trim(), image || null, id];
+    } else {
+      query = 'UPDATE categories SET name = $1 WHERE id = $2 RETURNING *';
+      values = [name.trim(), id];
     }
-    
-    values.push(id);
-    const query = `UPDATE categories SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`;
     
     const result = await pool.query(query, values);
     console.log('[Categories] Updated:', result.rows[0]);

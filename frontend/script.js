@@ -1651,7 +1651,8 @@ function renderTrustBanner() {
 
 function renderCategoriesSection() {
   const container = document.createElement('div');
-  container.className = 'px-4 my-8 hidden md:block';
+  // Remove 'hidden md:block' - make it visible on all devices
+  container.className = 'px-4 my-8 block';
   const heading = document.createElement('h2');
   heading.className = 'text-2xl font-bold mb-4';
   heading.textContent = 'Shop by Category';
@@ -1812,20 +1813,26 @@ function renderCategoryModal() {
   header.appendChild(closeBtn);
   modal.appendChild(header);
   const grid = document.createElement('div');
-  grid.className = 'grid grid-cols-2 gap-3';
-  categories.forEach(cat => {
-    const iconData = categoryIcons[cat.name] || { icon: 'fa-tag', color: 'bg-gray-100', iconColor: 'text-gray-600' };
-    const item = document.createElement('div');
-    item.className = 'category-modal-item flex flex-col items-center gap-2 cursor-pointer p-4 rounded-xl bg-gray-50 hover:bg-primary/10 transition border border-transparent hover:border-primary';
-    item.addEventListener('click', () => onCategoryClick(cat.name));
-    item.innerHTML = `
-      <div class="${iconData.color} w-16 h-16 rounded-full flex items-center justify-center shadow-md">
-        <i class="fas ${iconData.icon} text-2xl ${iconData.iconColor}"></i>
-      </div>
-      <span class="text-sm font-semibold text-gray-700">${cat.name}</span>
-    `;
-    grid.appendChild(item);
-  });
+  // Use 2 columns on mobile, 3 on larger screens
+  grid.className = 'grid grid-cols-2 md:grid-cols-3 gap-3';
+  
+  if (categories.length === 0) {
+    grid.innerHTML = '<p class="text-gray-500 text-center col-span-2 md:col-span-3 py-4">No categories available</p>';
+  } else {
+    categories.forEach(cat => {
+      const iconData = categoryIcons[cat.name] || { icon: 'fa-tag', color: 'bg-gray-100', iconColor: 'text-gray-600' };
+      const item = document.createElement('div');
+      item.className = 'category-modal-item flex flex-col items-center gap-2 cursor-pointer p-4 rounded-xl bg-gray-50 hover:bg-primary/10 transition border border-transparent hover:border-primary';
+      item.addEventListener('click', () => onCategoryClick(cat.name));
+      item.innerHTML = `
+        <div class="${iconData.color} w-16 h-16 rounded-full flex items-center justify-center shadow-md">
+          <i class="fas ${iconData.icon} text-2xl ${iconData.iconColor}"></i>
+        </div>
+        <span class="text-sm font-semibold text-gray-700 text-center">${cat.name}</span>
+      `;
+      grid.appendChild(item);
+    });
+  }
   modal.appendChild(grid);
   overlay.appendChild(modal);
   return overlay;
