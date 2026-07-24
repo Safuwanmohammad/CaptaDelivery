@@ -547,7 +547,7 @@
 </head>
 <body>
 
-<!-- ========== ADMIN LOGIN OVERLAY - FIXED ========== -->
+<!-- ========== ADMIN LOGIN OVERLAY ========== -->
 <div id="adminLoginOverlay" class="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900/80 backdrop-blur-sm">
   <div class="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full shadow-2xl">
     <h2 class="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-white">Admin Login</h2>
@@ -565,7 +565,6 @@
         </div>
       </div>
       <button onclick="sendAdminOtp()" id="adminSendOtpBtn" class="btn btn-primary w-full text-white py-3 rounded-xl font-semibold">Send OTP</button>
-      <button onclick="debugAdminPhones()" class="btn btn-outline w-full py-2 rounded-xl text-sm">🔍 Debug Admin Phones</button>
     </div>
     <p class="text-center text-xs text-gray-400 dark:text-gray-500 mt-4">OTP will be sent to your phone. Check console if not received.</p>
   </div>
@@ -750,102 +749,6 @@
   });
 
   // ============================================================
-  // ADMIN LOGIN - FIXED
-  // ============================================================
-  
-  // Debug function to check admin phones
-  async function debugAdminPhones() {
-    try {
-      const res = await fetch(`${API_BASE}/auth/admin/phones`);
-      const data = await res.json();
-      console.log('📱 Admin phones from server:', data);
-      alert('Admin phones: ' + JSON.stringify(data, null, 2));
-    } catch (err) {
-      console.error('Debug error:', err);
-      alert('Error fetching admin phones: ' + err.message);
-    }
-  }
-
-  async function sendAdminOtp() {
-    const phone = document.getElementById('adminPhone').value.trim();
-    if (!phone || phone.length < 10) {
-      showToast('Please enter a valid phone number');
-      return;
-    }
-    
-    const sendBtn = document.getElementById('adminSendOtpBtn');
-    sendBtn.disabled = true;
-    sendBtn.textContent = 'Sending...';
-    
-    try {
-      console.log('📤 Sending admin OTP for:', phone);
-      const res = await fetch(`${API_BASE}/auth/admin/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone })
-      });
-      const data = await res.json();
-      console.log('📥 Response:', data);
-      
-      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
-      
-      document.getElementById('adminOtpSection').classList.remove('hidden');
-      document.getElementById('adminSendOtpBtn').textContent = 'Resend OTP';
-      showToast('OTP sent! Check console for the OTP code.');
-      console.log('📱 Admin OTP:', data.otp);
-    } catch (err) {
-      showToast('❌ ' + err.message);
-      console.error('Send OTP error:', err);
-      document.getElementById('adminSendOtpBtn').textContent = 'Send OTP';
-    } finally {
-      sendBtn.disabled = false;
-    }
-  }
-
-  async function verifyAdminOtp() {
-    const phone = document.getElementById('adminPhone').value.trim();
-    const otp = document.getElementById('adminOtp').value.trim();
-    
-    if (!otp) { 
-      showToast('Please enter OTP'); 
-      return; 
-    }
-    
-    const verifyBtn = document.querySelector('#adminOtpSection .btn-primary');
-    if (verifyBtn) {
-      verifyBtn.disabled = true;
-      verifyBtn.textContent = 'Verifying...';
-    }
-    
-    try {
-      console.log('🔐 Verifying admin OTP for:', phone);
-      const res = await fetch(`${API_BASE}/auth/admin/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, otp })
-      });
-      const data = await res.json();
-      console.log('📥 Verify response:', data);
-      
-      if (!res.ok) throw new Error(data.error || 'Verification failed');
-      
-      localStorage.setItem('adminLoggedIn', 'true');
-      localStorage.setItem('adminPhone', phone);
-      document.getElementById('adminLoginOverlay').classList.add('hidden');
-      showToast('✅ Welcome Admin!');
-      loadAllData().then(() => navigateTo('dashboard'));
-    } catch (err) {
-      showToast('❌ ' + err.message);
-      console.error('Verify OTP error:', err);
-    } finally {
-      if (verifyBtn) {
-        verifyBtn.disabled = false;
-        verifyBtn.textContent = 'Verify';
-      }
-    }
-  }
-
-  // ============================================================
   // NAVIGATION
   // ============================================================
   document.querySelectorAll('#sidebarNav a').forEach(link => {
@@ -951,6 +854,53 @@
     } catch (err) {
       console.error('Failed to load data:', err);
       showToast('Error loading data from server. Check backend.');
+    }
+  }
+
+  // ============================================================
+  // ADMIN LOGIN
+  // ============================================================
+  async function sendAdminOtp() {
+    const phone = document.getElementById('adminPhone').value.trim();
+    if (!phone || phone.length < 10) {
+      showToast('Please enter a valid phone number');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/auth/admin/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+      document.getElementById('adminOtpSection').classList.remove('hidden');
+      document.getElementById('adminSendOtpBtn').textContent = 'Resend OTP';
+      showToast('OTP sent to your phone! (Check console for demo)');
+    } catch (err) {
+      showToast(err.message);
+    }
+  }
+
+  async function verifyAdminOtp() {
+    const phone = document.getElementById('adminPhone').value.trim();
+    const otp = document.getElementById('adminOtp').value.trim();
+    if (!otp) { showToast('Enter OTP'); return; }
+    try {
+      const res = await fetch(`${API_BASE}/auth/admin/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, otp })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Verification failed');
+      localStorage.setItem('adminLoggedIn', 'true');
+      localStorage.setItem('adminPhone', phone);
+      document.getElementById('adminLoginOverlay').classList.add('hidden');
+      showToast('Welcome Admin!');
+      loadAllData().then(() => navigateTo('dashboard'));
+    } catch (err) {
+      showToast(err.message);
     }
   }
 
@@ -3009,7 +2959,6 @@
   window.updateUnavailableDays = updateUnavailableDays;
   window.saveUnavailableDays = saveUnavailableDays;
   window.showCategoryCommission = showCategoryCommission;
-  window.debugAdminPhones = debugAdminPhones;
 
   // ============================================================
   // INIT

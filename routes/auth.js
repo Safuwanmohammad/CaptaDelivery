@@ -70,31 +70,12 @@ router.post('/verify-otp', async (req, res) => {
     
     const normalizedPhone = normalizePhone(phone);
     
-    // Check OTP
     if (otpStore[normalizedPhone] !== otp) {
       return res.status(400).json({ error: 'Invalid OTP' });
     }
     
-    // Check if user exists
     const result = await pool.query('SELECT * FROM users WHERE phone = $1', [normalizedPhone]);
     if (result.rows.length === 0) {
-      // Check if this is an admin trying to login
-      const adminPhones = await getAdminPhones();
-      const isAdmin = adminPhones.some(p => p === normalizedPhone);
-      if (isAdmin) {
-        // Admin doesn't need a user account to login
-        delete otpStore[normalizedPhone];
-        return res.json({ 
-          message: 'Admin login successful', 
-          user: { 
-            id: 0, 
-            first_name: 'Admin', 
-            last_name: '', 
-            phone: normalizedPhone,
-            isAdmin: true 
-          } 
-        });
-      }
       return res.status(404).json({ error: 'No account found. Please sign up.' });
     }
     

@@ -39,10 +39,10 @@ let offers = [];
 let deliveryAreas = {};
 let orders = [];
 let users = [];
-let user = null;
+let user = JSON.parse(localStorage.getItem('swingy_user')) || null;
 let otpCode = null;
 let nextOrderNumber = 1;
-let cart = [];
+let cart = JSON.parse(localStorage.getItem('swingy_cart') || '[]');
 
 let settings = {
   rain_fare: 20,
@@ -159,17 +159,10 @@ async function loadAllData() {
       nextOrderNumber = max + 1;
     }
 
-    // Verify user session
     if (user) {
       const freshUser = users.find(u => u.id === user.id);
-      if (freshUser) {
-        user = freshUser;
-        localStorage.setItem('swingy_user', JSON.stringify(user));
-      } else {
-        // User no longer exists, clear session
-        localStorage.removeItem('swingy_user');
-        user = null;
-      }
+      if (freshUser) user = freshUser;
+      localStorage.setItem('swingy_user', JSON.stringify(user));
     }
 
     state.loading = false;
@@ -202,14 +195,6 @@ function showToast(message) {
 // ============================================================
 // CART
 // ============================================================
-function loadCart() {
-  try {
-    cart = JSON.parse(localStorage.getItem('swingy_cart') || '[]');
-  } catch (e) {
-    cart = [];
-  }
-}
-
 function saveCart() {
   localStorage.setItem('swingy_cart', JSON.stringify(cart));
 }
@@ -1846,19 +1831,14 @@ function renderCategoryModal() {
   return overlay;
 }
 
-// ============================================================
-// RENDER CART SIDEBAR - FIXED VERSION
-// ============================================================
 function renderCartSidebar() {
   if (!state.showCart) return null;
-  
   const grouped = {};
   cart.forEach(item => {
     const cat = item.category || 'Uncategorized';
     if (!grouped[cat]) grouped[cat] = [];
     grouped[cat].push(item);
   });
-  
   let subtotal = 0;
   const categoryTotals = {};
   Object.keys(grouped).forEach(cat => {
@@ -1866,28 +1846,21 @@ function renderCartSidebar() {
     categoryTotals[cat] = total;
     subtotal += total;
   });
-  
   const delivery = subtotal > 199 ? 0 : 40;
   const rainFareEnabled = settings.rain_fare_enabled !== false;
   const rain = rainFareEnabled ? (parseFloat(settings.rain_fare) || 0) : 0;
   const grandTotal = subtotal + delivery + rain;
   
   const container = document.createElement('div');
-  container.className = 'fixed inset-0 z-[999998]';
-  container.id = 'cartSidebarContainer';
-  
+  container.className = 'fixed inset-0 z-50';
   const backdrop = document.createElement('div');
   backdrop.className = 'absolute inset-0 bg-black bg-opacity-50';
   backdrop.addEventListener('click', toggleCart);
   container.appendChild(backdrop);
-  
   const sidebar = document.createElement('div');
   sidebar.className = 'absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl overflow-y-auto';
-  sidebar.id = 'cartSidebar';
-  sidebar.style.paddingBottom = '80px';
-  
   const header = document.createElement('div');
-  header.className = 'sticky top-0 bg-white p-4 border-b flex justify-between z-10';
+  header.className = 'sticky top-0 bg-white p-4 border-b flex justify-between';
   const headerTitle = document.createElement('h2');
   headerTitle.className = 'text-2xl font-bold';
   headerTitle.textContent = `My Cart (${cart.length})`;
@@ -1897,7 +1870,6 @@ function renderCartSidebar() {
   closeBtn.addEventListener('click', toggleCart);
   header.appendChild(closeBtn);
   sidebar.appendChild(header);
-  
   if (cart.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'text-center py-12';
@@ -1963,11 +1935,8 @@ function renderCartSidebar() {
       itemsContainer.appendChild(catSubtotal);
     });
     sidebar.appendChild(itemsContainer);
-    
-    // Checkout section - FIXED: sticky at bottom with proper padding
     const summary = document.createElement('div');
-    summary.className = 'border-t p-4 bg-white sticky bottom-0 z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]';
-    summary.style.paddingBottom = '20px';
+    summary.className = 'border-t p-4 bg-gray-50';
     const deliveryRow = document.createElement('div');
     deliveryRow.className = 'flex justify-between text-sm py-1';
     deliveryRow.innerHTML = `<span>Delivery</span><span>${delivery === 0 ? 'Free' : `₹${delivery}`}</span>`;
@@ -1980,7 +1949,6 @@ function renderCartSidebar() {
     totalRow.className = 'flex justify-between font-bold text-lg pt-2 border-t border-gray-300';
     totalRow.innerHTML = `<span>Grand Total</span><span>₹${grandTotal}</span>`;
     summary.appendChild(totalRow);
-    
     const checkoutBtn = document.createElement('button');
     checkoutBtn.className = 'gradient-btn w-full text-white py-3 rounded-full mt-4';
     checkoutBtn.style.position = 'relative';
@@ -1989,20 +1957,17 @@ function renderCartSidebar() {
     checkoutBtn.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
+      // Close cart and proceed to checkout
       state.showCart = false;
       proceedToCheckout();
     });
     summary.appendChild(checkoutBtn);
     sidebar.appendChild(summary);
   }
-  
   container.appendChild(sidebar);
   return container;
 }
 
-// ============================================================
-// RENDER ORDERS MODAL
-// ============================================================
 function renderOrdersModal() {
   if (!state.showOrders) return null;
   const container = document.createElement('div');
@@ -2246,16 +2211,11 @@ window.removeItem = removeItem;
 window.toggleAccountDropdown = toggleAccountDropdown;
 window.showContactSupport = showContactSupport;
 window.openModal = openModal;
-window.logout = logout;
 
 // ============================================================
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', async function() {
-  // Load cart from localStorage
-  loadCart();
-  
-  // Event listeners
   if (navLogo) navLogo.addEventListener('click', goHome);
   if (navCart) navCart.addEventListener('click', toggleCart);
   if (navOrders) navOrders.addEventListener('click', toggleOrders);
@@ -2278,19 +2238,10 @@ document.addEventListener('DOMContentLoaded', async function() {
       }
     });
   }
-
-  // Check for saved user session
   const storedUser = localStorage.getItem('swingy_user');
   if (storedUser) {
-    try { 
-      user = JSON.parse(storedUser); 
-    } catch (e) { 
-      user = null; 
-      localStorage.removeItem('swingy_user');
-    }
+    try { user = JSON.parse(storedUser); } catch (e) { user = null; }
   }
-
-  // Load all data (this will verify user session)
   await loadAllData();
   updateNavUser();
   renderContent();
