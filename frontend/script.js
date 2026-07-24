@@ -119,7 +119,7 @@ async function putData(endpoint, data) {
 // ============================================================
 // LOAD ALL DATA
 // ============================================================
-aasync function loadAllData() {
+async function loadAllData() {
   try {
     state.loading = true;
     const [catsRes, restsRes, prodsRes, offsRes, placesRes, ordersRes, usersRes, settingsRes] = await Promise.all([
@@ -132,18 +132,12 @@ aasync function loadAllData() {
       fetchData('customers'),
       fetchData('settings')
     ]);
-    
-    // Ensure all data is properly set
-    categories = Array.isArray(catsRes) ? catsRes : [];
-    restaurants = Array.isArray(restsRes) ? restsRes : [];
-    products = Array.isArray(prodsRes) ? prodsRes : [];
-    offers = Array.isArray(offsRes) ? offsRes : [];
-    orders = Array.isArray(ordersRes) ? ordersRes : [];
-    users = Array.isArray(usersRes) ? usersRes : [];
-
-    console.log('📂 Categories loaded:', categories.length);
-    console.log('📦 Products loaded:', products.length);
-    console.log('🏪 Restaurants loaded:', restaurants.length);
+    categories = catsRes || [];
+    restaurants = restsRes || [];
+    products = prodsRes || [];
+    offers = offsRes || [];
+    orders = ordersRes || [];
+    users = usersRes || [];
 
     // Parse settings
     settings.rain_fare = parseFloat(settingsRes.rain_fare) || 20;
@@ -153,12 +147,10 @@ aasync function loadAllData() {
     settings.service_unavailable = settingsRes.service_unavailable === 'true';
 
     const areas = {};
-    if (Array.isArray(placesRes)) {
-      placesRes.forEach(p => {
-        if (!areas[p.area]) areas[p.area] = { subAreas: {} };
-        areas[p.area].subAreas[p.sub_area] = parseFloat(p.charge) || 0;
-      });
-    }
+    placesRes.forEach(p => {
+      if (!areas[p.area]) areas[p.area] = { subAreas: {} };
+      areas[p.area].subAreas[p.sub_area] = parseFloat(p.charge) || 0;
+    });
     deliveryAreas = areas;
 
     if (orders.length > 0) {
@@ -167,17 +159,10 @@ aasync function loadAllData() {
       nextOrderNumber = max + 1;
     }
 
-    // Verify user session
     if (user) {
       const freshUser = users.find(u => u.id === user.id);
-      if (freshUser) {
-        user = freshUser;
-        localStorage.setItem('swingy_user', JSON.stringify(user));
-      } else {
-        // User no longer exists, clear session
-        localStorage.removeItem('swingy_user');
-        user = null;
-      }
+      if (freshUser) user = freshUser;
+      localStorage.setItem('swingy_user', JSON.stringify(user));
     }
 
     state.loading = false;
