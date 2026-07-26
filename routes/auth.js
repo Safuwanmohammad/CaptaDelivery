@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const axios = require('axios');
+const crypto = require('crypto');
 
 // In-memory OTP store (use Redis in production)
 const otpStore = {};
@@ -29,14 +30,13 @@ function normalizePhone(phone) {
 }
 
 // ============================================================
-// CRITICAL FIX: Proper phone formatting for 2Factor API
+// CRITICAL: Phone formatting for 2Factor API
 // 2Factor expects: 91XXXXXXXXXX (no +, no leading 0)
 // ============================================================
 function formatPhoneFor2Factor(phone) {
   // Remove the + prefix
   let formatted = phone.replace('+', '');
   
-  // If it starts with 91, keep it
   // If it starts with 0, remove it
   if (formatted.startsWith('0')) {
     formatted = formatted.substring(1);
@@ -51,96 +51,303 @@ function formatPhoneFor2Factor(phone) {
 }
 
 // ============================================================
-// SEND SMS OTP VIA 2FACTOR - COMPLETELY FIXED
+// COMPLETE DEBUGGING: SEND SMS OTP VIA 2FACTOR
 // ============================================================
 async function sendSmsOtp(phone, otp) {
+  const startTime = Date.now();
+  const requestId = crypto.randomBytes(8).toString('hex');
+  
+  console.log('\n');
+  console.log('=================================================');
+  console.log('📱 OTP REQUEST START');
+  console.log('=================================================');
+  console.log(`Request ID:     ${requestId}`);
+  console.log(`Timestamp:      ${new Date().toISOString()}`);
+  console.log(`Customer Phone: ${phone}`);
+  console.log(`Generated OTP:  ${otp}`);
+  console.log('=================================================');
+  
+  // ============================================================
+  // STEP 1: CHECK ENVIRONMENT
+  // ============================================================
+  console.log('\n📋 ENVIRONMENT CHECK:');
+  
+  const apiKey = process.env.TWO_FACTOR_API_KEY;
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  
+  console.log(`  Node Environment:  ${nodeEnv}`);
+  console.log(`  TWO_FACTOR_API_KEY: ${apiKey ? '✅ PRESENT (length: ' + apiKey.length + ')' : '❌ MISSING'}`);
+  console.log(`  API Key Format:    ${apiKey ? (apiKey.match(/^[A-Za-z0-9-]+$/) ? '✅ Valid format' : '⚠️ Contains special characters') : 'N/A'}`);
+  
+  if (!apiKey) {
+    console.log('\n❌ CRITICAL: API Key is missing from environment variables!');
+    console.log('=================================================\n');
+    return { 
+      success: false, 
+      error: 'API_KEY_MISSING',
+      details: 'TWO_FACTOR_API_KEY not set in environment variables'
+    };
+  }
+  
+  // ============================================================
+  // STEP 2: FORMAT PHONE NUMBER
+  // ============================================================
+  console.log('\n📞 PHONE FORMATTING:');
+  console.log(`  Original:         ${phone}`);
+  
+  const formattedPhone = formatPhoneFor2Factor(phone);
+  console.log(`  Formatted:        ${formattedPhone}`);
+  
+  // Validate phone format
+  const phoneValid = /^[0-9]{10,13}$/.test(formattedPhone);
+  console.log(`  Phone Valid:      ${phoneValid ? '✅ PASS' : '❌ FAIL'}`);
+  
+  if (!phoneValid) {
+    console.log('❌ Invalid phone format for 2Factor');
+    console.log('=================================================\n');
+    return { 
+      success: false, 
+      error: 'INVALID_PHONE_FORMAT',
+      details: `Phone format ${formattedPhone} is invalid for 2Factor`
+    };
+  }
+  
+  // ============================================================
+  // STEP 3: BUILD REQUEST
+  // ============================================================
+  const templateName = 'OTP1'; // Default 2Factor template
+  
+  // 2Factor.in API endpoint
+  const url = `https://2factor.in/API/V1/${apiKey}/SMS/${formattedPhone}/${otp}/${templateName}`;
+  const maskedUrl = url.replace(apiKey, '***MASKED***');
+  
+  console.log('\n📤 REQUEST DETAILS:');
+  console.log(`  HTTP Method:      GET`);
+  console.log(`  Template Name:    ${templateName}`);
+  console.log(`  Template Check:   ${templateName === 'OTP1' ? '✅ Using default template' : '⚠️ Custom template'}`);
+  console.log(`  URL:              ${maskedUrl}`);
+  console.log(`  Headers:          Content-Type: application/json`);
+  console.log(`  Timeout:          30000ms`);
+  
+  // ============================================================
+  // STEP 4: SEND REQUEST
+  // ============================================================
+  console.log('\n⏳ Sending request to 2Factor...');
+  console.log(`  Request ID:       ${requestId}`);
+  console.log(`  Start Time:       ${new Date().toISOString()}`);
+  
   try {
-    const apiKey = process.env.TWO_FACTOR_API_KEY;
-    
-    console.log('🔑 2Factor API Key present:', apiKey ? 'Yes (length: ' + apiKey.length + ')' : 'No');
-    
-    if (!apiKey) {
-      console.error('❌ 2Factor API key not configured in environment variables');
-      return { 
-        success: false, 
-        error: '2Factor API key not configured',
-        details: 'Please add TWO_FACTOR_API_KEY to your .env file'
-      };
-    }
-    
-    // CRITICAL FIX: Format phone correctly for 2Factor
-    const formattedPhone = formatPhoneFor2Factor(phone);
-    
-    // 2Factor.in API endpoint for SMS OTP
-    // Using template name OTP1 (default template)
-    const url = `https://2factor.in/API/V1/${apiKey}/SMS/${formattedPhone}/${otp}/OTP1`;
-    
-    console.log('📤 Sending 2Factor SMS request:');
-    console.log(`  Original Phone: ${phone}`);
-    console.log(`  Formatted Phone: ${formattedPhone}`);
-    console.log(`  OTP: ${otp}`);
-    console.log(`  URL: ${url.replace(apiKey, '***')}`);
-    
     const response = await axios({
       method: 'GET',
       url: url,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json'
+      },
+      // This allows us to see the full request/response
+      validateStatus: function (status) {
+        return status >= 200 && status < 500; // Accept all status codes for debugging
       }
     });
     
-    console.log('📥 2Factor API Response Status:', response.status);
-    console.log('📥 2Factor API Response:', JSON.stringify(response.data, null, 2));
+    const endTime = Date.now();
+    const timeTaken = endTime - startTime;
+    
+    // ============================================================
+    // STEP 5: PROCESS RESPONSE
+    // ============================================================
+    console.log('\n=================================================');
+    console.log('📥 2FACTOR RESPONSE');
+    console.log('=================================================');
+    console.log(`  Request ID:       ${requestId}`);
+    console.log(`  Status Code:      ${response.status}`);
+    console.log(`  Status Text:      ${response.statusText || 'OK'}`);
+    console.log(`  Time Taken:       ${timeTaken}ms`);
+    console.log(`  Content-Type:     ${response.headers['content-type'] || 'unknown'}`);
+    console.log('-------------------------------------------------');
+    console.log('  RESPONSE BODY:');
+    console.log(JSON.stringify(response.data, null, 2));
+    console.log('-------------------------------------------------');
     
     // Check response status
-    if (response.data.Status === 'Success') {
-      console.log('✅ 2Factor SMS sent successfully!');
-      return { 
-        success: true, 
-        data: response.data,
-        message: 'OTP sent successfully via SMS'
-      };
+    if (response.status === 200) {
+      // 2Factor returns Status: "Success" or error details
+      const status = response.data.Status;
+      const details = response.data.Details || response.data.Message || 'No details provided';
+      
+      console.log('\n🔍 RESPONSE ANALYSIS:');
+      console.log(`  Status Field:     ${status || 'MISSING'}`);
+      console.log(`  Details:          ${details}`);
+      
+      if (status === 'Success') {
+        console.log('\n✅ SUCCESS: Request accepted by 2Factor');
+        console.log(`  OTP sent to:      ${formattedPhone}`);
+        console.log(`  OTP:              ${otp}`);
+        
+        console.log('\n=================================================');
+        console.log('✅ OTP REQUEST SUCCESSFULLY ACCEPTED');
+        console.log('=================================================\n');
+        
+        return { 
+          success: true, 
+          data: response.data,
+          requestId: requestId,
+          message: 'OTP sent successfully via SMS'
+        };
+      } else {
+        console.log('\n❌ FAILED: Request rejected by 2Factor');
+        console.log(`  Reason:           ${details}`);
+        console.log(`  Status:           ${status || 'UNKNOWN'}`);
+        
+        console.log('\n=================================================');
+        console.log('❌ REQUEST REJECTED BY 2FACTOR');
+        console.log(`   Reason: ${details}`);
+        console.log('=================================================\n');
+        
+        return { 
+          success: false, 
+          error: details,
+          status: status,
+          details: response.data
+        };
+      }
     } else {
-      // Log the actual error from 2Factor
-      const errorMessage = response.data.Details || response.data.Message || 'SMS sending failed';
-      console.error('❌ 2Factor API error:', errorMessage);
-      console.error('  Full response:', JSON.stringify(response.data, null, 2));
+      // Non-200 response
+      console.log('\n❌ HTTP ERROR: Non-200 response');
+      console.log(`  Status:           ${response.status}`);
+      console.log(`  Body:             ${JSON.stringify(response.data)}`);
+      
+      console.log('\n=================================================');
+      console.log('❌ REQUEST FAILED WITH HTTP ERROR');
+      console.log(`   Status: ${response.status}`);
+      console.log('=================================================\n');
       
       return { 
         success: false, 
-        error: errorMessage,
+        error: `HTTP ${response.status}: ${response.statusText}`,
+        statusCode: response.status,
         details: response.data
       };
     }
-  } catch (err) {
-    console.error('❌ 2Factor SMS exception:', err.message);
     
+  } catch (err) {
+    const endTime = Date.now();
+    const timeTaken = endTime - startTime;
+    
+    // ============================================================
+    // STEP 6: PROCESS ERROR
+    // ============================================================
+    console.log('\n=================================================');
+    console.log('❌ 2FACTOR ERROR');
+    console.log('=================================================');
+    console.log(`  Request ID:       ${requestId}`);
+    console.log(`  Time Taken:       ${timeTaken}ms`);
+    
+    // Determine error type
     if (err.response) {
       // The request was made and the server responded with a status code
       // that falls out of the range of 2xx
-      console.error('  Response status:', err.response.status);
-      console.error('  Response data:', JSON.stringify(err.response.data, null, 2));
+      console.log(`  Error Type:       HTTP RESPONSE`);
+      console.log(`  Status Code:      ${err.response.status}`);
+      console.log(`  Status Text:      ${err.response.statusText || 'Unknown'}`);
+      console.log('  Response Headers:');
+      console.log(JSON.stringify(err.response.headers, null, 2));
+      console.log('  Response Body:');
+      console.log(JSON.stringify(err.response.data, null, 2));
+      
+      // Check for specific error codes
+      if (err.response.status === 401) {
+        console.log('\n🔑 AUTHENTICATION FAILED: Invalid API Key');
+        console.log('  Your 2Factor API key may be invalid or expired.');
+        console.log('  Please check your TWO_FACTOR_API_KEY environment variable.');
+      } else if (err.response.status === 403) {
+        console.log('\n🚫 FORBIDDEN: Access denied');
+        console.log('  Your 2Factor account may not have SMS permissions.');
+      } else if (err.response.status === 404) {
+        console.log('\n🔍 NOT FOUND: Invalid endpoint');
+        console.log('  The API endpoint may have changed.');
+        console.log('  Check the 2Factor API documentation.');
+      } else if (err.response.status === 429) {
+        console.log('\n⏰ RATE LIMITED: Too many requests');
+        console.log('  Please wait before trying again.');
+      } else if (err.response.status >= 500) {
+        console.log('\n💥 SERVER ERROR: 2Factor service issue');
+        console.log('  Try again later.');
+      }
+      
+      console.log('\n=================================================');
+      console.log('❌ REQUEST FAILED - SERVER RESPONDED WITH ERROR');
+      console.log(`   Status: ${err.response.status}`);
+      console.log(`   Message: ${err.response.data?.Details || err.response.statusText}`);
+      console.log('=================================================\n');
+      
       return { 
         success: false, 
         error: err.response.data?.Details || err.response.statusText,
         statusCode: err.response.status,
-        details: err.response.data
+        details: err.response.data,
+        type: 'HTTP_RESPONSE'
       };
+      
     } else if (err.request) {
       // The request was made but no response was received
-      console.error('  No response received from 2Factor API');
-      return { 
-        success: false, 
-        error: 'No response from 2Factor API. Check your internet connection.',
-        details: 'Request timeout or network error'
-      };
-    } else {
-      // Something happened in setting up the request that triggered an Error
+      console.log(`  Error Type:       NETWORK ERROR`);
+      console.log(`  Error Code:       ${err.code || 'UNKNOWN'}`);
+      console.log(`  Error Message:    ${err.message}`);
+      
+      // Detect specific network errors
+      if (err.code === 'ECONNREFUSED') {
+        console.log('\n🔌 CONNECTION REFUSED: 2Factor server not reachable');
+        console.log('  Check if the 2Factor API endpoint is correct.');
+        console.log('  Your server may need to allow outbound HTTPS connections.');
+      } else if (err.code === 'ENOTFOUND') {
+        console.log('\n🌐 DNS ERROR: Cannot resolve 2factor.in');
+        console.log('  DNS resolution failed. Check your DNS settings.');
+        console.log('  Render might need custom DNS configuration.');
+      } else if (err.code === 'ETIMEDOUT') {
+        console.log('\n⏰ REQUEST TIMEOUT: 2Factor did not respond in time');
+        console.log('  The 2Factor API may be slow or unavailable.');
+      } else if (err.code === 'ECONNRESET') {
+        console.log('\n🔌 CONNECTION RESET: Connection was interrupted');
+        console.log('  This could be a network issue or a firewall blocking the request.');
+      } else if (err.code === 'CERT_HAS_EXPIRED') {
+        console.log('\n🔐 SSL CERTIFICATE ERROR: 2Factor SSL certificate expired');
+        console.log('  This is a 2Factor issue. Contact their support.');
+      } else if (err.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') {
+        console.log('\n🔐 SSL VERIFICATION FAILED');
+        console.log('  SSL certificate verification failed.');
+        console.log('  You may need to add `rejectUnauthorized: false` in development.');
+      }
+      
+      console.log('\n=================================================');
+      console.log('❌ REQUEST FAILED - NO RESPONSE FROM 2FACTOR');
+      console.log(`   Error: ${err.code || err.message}`);
+      console.log('=================================================\n');
+      
       return { 
         success: false, 
         error: err.message,
-        details: 'Request setup error'
+        code: err.code,
+        type: 'NETWORK_ERROR'
+      };
+      
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.log(`  Error Type:       REQUEST SETUP ERROR`);
+      console.log(`  Error Message:    ${err.message}`);
+      console.log(`  Stack Trace:`);
+      console.log(err.stack);
+      
+      console.log('\n=================================================');
+      console.log('❌ REQUEST FAILED - SETUP ERROR');
+      console.log(`   Error: ${err.message}`);
+      console.log('=================================================\n');
+      
+      return { 
+        success: false, 
+        error: err.message,
+        type: 'SETUP_ERROR',
+        details: err.stack
       };
     }
   }
@@ -152,54 +359,91 @@ async function sendSmsOtp(phone, otp) {
 router.post('/send-otp', async (req, res) => {
   try {
     const { phone } = req.body;
-    console.log('📱 Received OTP request for phone:', phone);
     
+    console.log('\n=================================================');
+    console.log('🚀 OTP API REQUEST RECEIVED');
+    console.log('=================================================');
+    console.log(`  Timestamp:        ${new Date().toISOString()}`);
+    console.log(`  IP Address:       ${req.ip || req.connection.remoteAddress}`);
+    console.log(`  User Agent:       ${req.headers['user-agent'] || 'Unknown'}`);
+    console.log(`  Request Body:     ${JSON.stringify(req.body)}`);
+    console.log('=================================================\n');
+    
+    // Validate phone
     if (!phone || phone.length < 10) {
-      console.log('❌ Invalid phone number:', phone);
+      console.log('❌ Invalid phone number received');
       return res.status(400).json({ error: 'Valid phone number required' });
     }
     
+    // Normalize phone
     const normalizedPhone = normalizePhone(phone);
-    console.log('📱 Normalized phone:', normalizedPhone);
+    console.log(`📱 Phone normalized: ${normalizedPhone}`);
     
+    // Generate OTP
     const otp = generateOtp();
-    console.log('🔢 Generated OTP:', otp);
+    console.log(`🔢 OTP generated: ${otp}`);
     
     // Store OTP with expiry (10 minutes)
     otpStore[normalizedPhone] = {
       otp: otp,
       expiresAt: Date.now() + 10 * 60 * 1000,
-      attempts: 0
+      attempts: 0,
+      createdAt: new Date().toISOString()
     };
+    console.log(`💾 OTP stored for ${normalizedPhone}, expires at ${new Date(otpStore[normalizedPhone].expiresAt).toISOString()}`);
     
-    console.log(`📱 OTP stored for ${normalizedPhone}: ${otp}`);
-    
-    // Send SMS via 2Factor
+    // Send SMS via 2Factor with full debugging
     const result = await sendSmsOtp(normalizedPhone, otp);
     
-    if (!result.success) {
-      console.error('❌ Failed to send SMS OTP:', result.error);
-      console.error('  Details:', JSON.stringify(result.details, null, 2));
+    // ============================================================
+    // FINAL RESULT
+    // ============================================================
+    console.log('\n=================================================');
+    console.log('📋 FINAL OTP RESULT');
+    console.log('=================================================');
+    
+    if (result.success) {
+      console.log('✅ OTP REQUEST SUCCESSFULLY ACCEPTED');
+      console.log(`   OTP: ${otp}`);
+      console.log(`   Phone: ${normalizedPhone}`);
+      console.log(`   Request ID: ${result.requestId || 'N/A'}`);
+      console.log('=================================================\n');
       
-      // Still return the OTP for demo purposes so users can see it in logs
-      return res.json({ 
-        message: 'OTP generated. SMS delivery failed. Check console logs for details.',
+      res.json({ 
+        message: 'OTP sent successfully via SMS',
+        otp: otp,
+        smsFailed: false,
+        requestId: result.requestId
+      });
+    } else {
+      console.log('❌ OTP REQUEST FAILED');
+      console.log(`   Reason: ${result.error}`);
+      console.log(`   Type: ${result.type || 'UNKNOWN'}`);
+      if (result.details) {
+        console.log(`   Details: ${JSON.stringify(result.details)}`);
+      }
+      console.log('=================================================\n');
+      
+      // Still return OTP for debugging
+      res.json({ 
+        message: 'OTP generated. SMS delivery failed. Check Render logs for details.',
         otp: otp,
         smsFailed: true,
         error: result.error,
+        type: result.type,
         details: result.details
       });
     }
     
-    console.log('✅ OTP sent successfully via SMS');
-    res.json({ 
-      message: 'OTP sent successfully via SMS',
-      otp: otp,
-      smsFailed: false
-    });
   } catch (err) {
-    console.error('❌ Send OTP error:', err);
-    res.status(500).json({ error: 'Server error: ' + err.message });
+    console.error('\n❌ UNHANDLED ERROR IN OTP ROUTE:');
+    console.error(err);
+    console.error('=================================================\n');
+    
+    res.status(500).json({ 
+      error: 'Server error: ' + err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
   }
 });
 
@@ -209,7 +453,14 @@ router.post('/send-otp', async (req, res) => {
 router.post('/verify-otp', async (req, res) => {
   try {
     const { phone, otp } = req.body;
-    console.log('📱 Verify OTP request for phone:', phone);
+    
+    console.log('\n=================================================');
+    console.log('🔐 OTP VERIFY REQUEST RECEIVED');
+    console.log('=================================================');
+    console.log(`  Timestamp:        ${new Date().toISOString()}`);
+    console.log(`  Phone:            ${phone}`);
+    console.log(`  OTP Provided:     ${otp}`);
+    console.log('=================================================\n');
     
     if (!phone || !otp) {
       return res.status(400).json({ error: 'Phone and OTP required' });
@@ -223,19 +474,26 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(400).json({ error: 'No OTP found. Please request a new OTP.' });
     }
     
+    console.log(`  Stored OTP:       ${stored.otp}`);
+    console.log(`  Attempts:         ${stored.attempts}/5`);
+    console.log(`  Expires At:       ${new Date(stored.expiresAt).toISOString()}`);
+    console.log(`  Time Remaining:   ${Math.max(0, Math.floor((stored.expiresAt - Date.now()) / 1000))}s`);
+    
     if (stored.attempts >= 5) {
       delete otpStore[normalizedPhone];
+      console.log('❌ Too many failed attempts, OTP cleared');
       return res.status(400).json({ error: 'Too many failed attempts. Please request a new OTP.' });
     }
     
     if (Date.now() > stored.expiresAt) {
       delete otpStore[normalizedPhone];
+      console.log('❌ OTP expired');
       return res.status(400).json({ error: 'OTP has expired. Please request a new OTP.' });
     }
     
     if (stored.otp !== otp) {
       stored.attempts += 1;
-      console.log(`❌ Invalid OTP for ${normalizedPhone}. Attempts: ${stored.attempts}`);
+      console.log(`❌ Invalid OTP. Attempts remaining: ${5 - stored.attempts}`);
       return res.status(400).json({ 
         error: 'Invalid OTP', 
         attemptsRemaining: 5 - stored.attempts 
@@ -243,8 +501,9 @@ router.post('/verify-otp', async (req, res) => {
     }
     
     // OTP verified successfully
-    console.log('✅ OTP verified successfully for:', normalizedPhone);
+    console.log('✅ OTP verified successfully');
     delete otpStore[normalizedPhone];
+    console.log('=================================================\n');
     
     // Check if user exists
     const result = await pool.query('SELECT * FROM users WHERE phone = $1', [normalizedPhone]);
@@ -365,7 +624,8 @@ router.post('/admin/send-otp', async (req, res) => {
         message: 'OTP generated. SMS delivery failed. Check console logs.',
         otp: otp,
         smsFailed: true,
-        error: result.error
+        error: result.error,
+        type: result.type
       });
     }
     
@@ -422,6 +682,29 @@ router.post('/admin/verify-otp', async (req, res) => {
     console.error('Admin verify OTP error:', err);
     res.status(500).json({ error: 'Server error: ' + err.message });
   }
+});
+
+// ============================================================
+// DEBUG ROUTE: Check OTP status
+// ============================================================
+router.get('/status/:phone', (req, res) => {
+  const phone = req.params.phone;
+  const normalized = normalizePhone(phone);
+  const stored = otpStore[normalized];
+  
+  if (!stored) {
+    return res.json({ exists: false, message: 'No OTP found' });
+  }
+  
+  res.json({
+    exists: true,
+    phone: normalized,
+    otp: stored.otp,
+    attempts: stored.attempts,
+    expiresAt: new Date(stored.expiresAt).toISOString(),
+    timeRemaining: Math.max(0, Math.floor((stored.expiresAt - Date.now()) / 1000)),
+    isExpired: Date.now() > stored.expiresAt
+  });
 });
 
 module.exports = router;
