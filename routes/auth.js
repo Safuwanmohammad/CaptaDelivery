@@ -13,10 +13,18 @@ function generateOtp() {
 function normalizePhone(phone) {
   if (!phone) return '';
   let cleaned = phone.replace(/[\s\-]/g, '');
+  // Remove any non-digit characters except +
+  cleaned = cleaned.replace(/[^0-9+]/g, '');
   if (!cleaned.startsWith('+')) {
     cleaned = '+91' + cleaned;
   }
   return cleaned;
+}
+
+function formatPhoneFor2Factor(phone) {
+  // 2Factor expects phone number without + sign
+  // Example: +919876543210 -> 919876543210
+  return phone.replace('+', '');
 }
 
 // ============================================================
@@ -26,25 +34,62 @@ async function sendSmsOtp(phone, otp) {
   try {
     const apiKey = process.env.TWO_FACTOR_API_KEY;
     if (!apiKey) {
-      console.warn('⚠️ 2Factor API key not configured, using demo OTP');
-      return { success: true, isDemo: true };
+      console.warn('⚠️ 2Factor API key not configured');
+      return { 
+        success: false, 
+        error: '2Factor API key not configured',
+        isDemo: true 
+      };
     }
     
-    // 2Factor.in API endpoint for SMS OTP
-    const url = `https://2factor.in/API/V1/${apiKey}/SMS/${phone}/${otp}/OTP1`;
+    // Format phone for 2Factor (remove +)
+    const formattedPhone = formatPhoneFor2Factor(phone);
     
-    const response = await axios.get(url);
-    console.log('📱 2Factor SMS response:', response.data);
+    // 2Factor.in API endpoint for SMS OTP
+    // Using template name OTP1 (default template)
+    const url = `https://2factor.in/API/V1/${apiKey}/SMS/${formattedPhone}/${otp}/OTP1`;
+    
+    console.log('📤 Sending 2Factor SMS request:');
+    console.log(`  Phone: ${formattedPhone}`);
+    console.log(`  OTP: ${otp}`);
+    console.log(`  URL: ${url.replace(apiKey, '***')}`);
+    
+    const response = await axios({
+      method: 'GET',
+      url: url,
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log('📥 2Factor API Response:', JSON.stringify(response.data, null, 2));
     
     if (response.data.Status === 'Success') {
-      return { success: true, data: response.data };
+      return { 
+        success: true, 
+        data: response.data,
+        message: 'OTP sent successfully via SMS'
+      };
     } else {
-      console.error('❌ 2Factor SMS error:', response.data);
-      return { success: false, error: response.data.Details || 'SMS sending failed' };
+      console.error('❌ 2Factor API error:', response.data);
+      return { 
+        success: false, 
+        error: response.data.Details || 'SMS sending failed',
+        details: response.data
+      };
     }
   } catch (err) {
     console.error('❌ 2Factor SMS exception:', err.message);
-    return { success: false, error: err.message };
+    if (err.response) {
+      console.error('  Response status:', err.response.status);
+      console.error('  Response data:', JSON.stringify(err.response.data, null, 2));
+    }
+    return { 
+      success: false, 
+      error: err.message,
+      details: err.response?.data
+    };
   }
 }
 
@@ -68,25 +113,26 @@ router.post('/send-otp', async (req, res) => {
       attempts: 0
     };
     
-    console.log(`📱 OTP for ${normalizedPhone}: ${otp}`);
+    console.log(`📱 OTP generated for ${normalizedPhone}: ${otp}`);
     
     // Send SMS via 2Factor
     const result = await sendSmsOtp(normalizedPhone, otp);
     
-    if (!result.success && !result.isDemo) {
+    if (!result.success) {
       console.error('❌ Failed to send SMS OTP:', result.error);
-      // Still return the OTP for demo purposes
+      // Still return the OTP for demo purposes so users can see it in logs
       return res.json({ 
-        message: 'OTP generated (SMS failed, check console for OTP)', 
+        message: 'OTP generated. If SMS is not delivered, check console logs for OTP.',
         otp: otp,
-        smsFailed: true
+        smsFailed: true,
+        error: result.error
       });
     }
     
     res.json({ 
-      message: 'OTP sent via SMS', 
+      message: 'OTP sent successfully via SMS',
       otp: otp,
-      isDemo: result.isDemo || false
+      smsFailed: false
     });
   } catch (err) {
     console.error('Send OTP error:', err);
@@ -247,10 +293,19 @@ router.post('/admin/send-otp', async (req, res) => {
     // Send SMS via 2Factor
     const result = await sendSmsOtp(normalizedPhone, otp);
     
+    if (!result.success) {
+      return res.json({ 
+        message: 'OTP generated. If SMS is not delivered, check console logs.',
+        otp: otp,
+        smsFailed: true,
+        error: result.error
+      });
+    }
+    
     res.json({ 
-      message: 'Admin OTP sent', 
+      message: 'Admin OTP sent successfully',
       otp: otp,
-      isDemo: result.isDemo || false
+      smsFailed: false
     });
   } catch (err) {
     console.error('Admin send OTP error:', err);

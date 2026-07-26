@@ -149,6 +149,7 @@ async function loadAllData() {
 
     console.log('📂 Categories loaded:', categories.length);
     console.log('📦 Products loaded:', products.length);
+    console.log('🏪 Restaurants loaded:', restaurants.length);
 
     settings.rain_fare = parseFloat(settingsRes.rain_fare) || 20;
     settings.rain_fare_enabled = settingsRes.rain_fare_enabled !== 'false';
@@ -696,7 +697,7 @@ async function sendLoginOtp() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
     otpCode = data.otp;
-    showToast(`OTP sent: ${otpCode} (demo)`);
+    showToast(`OTP sent: ${otpCode} (check SMS)`);
     document.getElementById('loginOtpSection').classList.remove('hidden');
     document.getElementById('loginSendOtpBtn').textContent = 'Resend OTP';
   } catch (err) {
@@ -749,7 +750,7 @@ async function sendSignupOtp() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
     otpCode = data.otp;
-    showToast(`OTP sent: ${otpCode} (demo)`);
+    showToast(`OTP sent: ${otpCode} (check SMS)`);
     document.getElementById('signupOtpSection').classList.remove('hidden');
     document.getElementById('signupSendOtpBtn').textContent = 'Resend OTP';
   } catch (err) {
@@ -1609,7 +1610,7 @@ function renderOrderSummary() {
 }
 
 // ============================================================
-// RENDER HERO
+// RENDER HERO - FIXED SHOP NOW BUTTON
 // ============================================================
 function renderHero() {
   const container = document.createElement('div');
@@ -1617,22 +1618,42 @@ function renderHero() {
   container.innerHTML = `
     <h1 class="text-3xl md:text-5xl font-bold mb-4">Groceries & Meat Delivered in Minutes</h1>
     <p class="text-lg mb-6">Fresh groceries, premium meat and more – delivered fast.</p>
-    <button id="shopNowBtn" class="bg-white text-primary px-8 py-3 rounded-full font-bold">Shop Now →</button>
+    <button id="shopNowBtn" class="bg-white text-primary px-8 py-3 rounded-full font-bold cursor-pointer touch-manipulation" style="pointer-events: auto; z-index: 10; position: relative; touch-action: manipulation; -webkit-tap-highlight-color: transparent;">
+      Shop Now →
+    </button>
   `;
   
-  setTimeout(() => {
-    const btn = container.querySelector('#shopNowBtn');
-    if (btn) {
-      btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        const productsSection = document.querySelector('.px-4.my-8');
-        if (productsSection) {
-          productsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Add click/touch event listener directly
+  const btn = container.querySelector('#shopNowBtn');
+  if (btn) {
+    // Remove any existing listeners by cloning
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    
+    // Add event listeners
+    const handleShopNow = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('🛒 Shop Now clicked!');
+      const productsSection = document.querySelector('.px-4.my-8');
+      if (productsSection) {
+        productsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        // Fallback: scroll to products section
+        const allSections = document.querySelectorAll('.px-4.my-8');
+        if (allSections.length > 0) {
+          allSections[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-      });
-    }
-  }, 100);
+      }
+    };
+    
+    newBtn.addEventListener('click', handleShopNow);
+    newBtn.addEventListener('touchstart', function(e) {
+      // Just to ensure touch events work
+      console.log('🛒 Shop Now touched!');
+    }, { passive: true });
+    newBtn.addEventListener('touchend', handleShopNow);
+  }
   
   return container;
 }
@@ -1748,41 +1769,134 @@ function renderOffersSection() {
   return container;
 }
 
+// ============================================================
+// RENDER PRODUCTS GRID - FIXED SEARCH
+// ============================================================
 function renderProductsGrid() {
   const container = document.createElement('div');
   container.className = 'px-4 my-8';
-  let filtered = products;
-  if (state.searchTerm) {
-    filtered = products.filter(p =>
-      p.name.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
-      p.category.toLowerCase().includes(state.searchTerm.toLowerCase())
-    );
+  
+  let filteredProducts = [];
+  let filteredRestaurants = [];
+  let filteredCategories = [];
+  let searchTerm = state.searchTerm.trim().toLowerCase();
+  
+  if (searchTerm) {
+    // Search in products
+    filteredProducts = products.filter(p => {
+      const nameMatch = p.name.toLowerCase().includes(searchTerm);
+      const categoryMatch = p.category && p.category.toLowerCase().includes(searchTerm);
+      const descMatch = p.description && p.description.toLowerCase().includes(searchTerm);
+      return (nameMatch || categoryMatch || descMatch) && p.status === 'Active';
+    });
+    
+    // Search in restaurants
+    filteredRestaurants = restaurants.filter(r => {
+      const nameMatch = r.name.toLowerCase().includes(searchTerm);
+      const categoryMatch = r.category && r.category.toLowerCase().includes(searchTerm);
+      return (nameMatch || categoryMatch) && r.status === 'Active';
+    });
+    
+    // Search in categories
+    filteredCategories = categories.filter(c => {
+      return c.name.toLowerCase().includes(searchTerm);
+    });
+    
+    const totalResults = filteredProducts.length + filteredRestaurants.length + filteredCategories.length;
+    
     const heading = document.createElement('h2');
     heading.className = 'text-2xl font-bold mb-4';
-    heading.textContent = `Search Results (${filtered.length})`;
+    heading.textContent = `🔍 Search Results (${totalResults} found)`;
     container.appendChild(heading);
+    
+    // Show categories that match
+    if (filteredCategories.length > 0) {
+      const catSection = document.createElement('div');
+      catSection.className = 'mb-6';
+      const catHeading = document.createElement('h3');
+      catHeading.className = 'text-lg font-semibold text-primary mb-2';
+      catHeading.textContent = '📂 Categories';
+      catSection.appendChild(catHeading);
+      const catGrid = document.createElement('div');
+      catGrid.className = 'flex flex-wrap gap-2';
+      filteredCategories.forEach(cat => {
+        const badge = document.createElement('span');
+        badge.className = 'bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium cursor-pointer hover:bg-primary/20 transition';
+        badge.textContent = cat.name;
+        badge.addEventListener('click', () => onCategoryClick(cat.name));
+        catGrid.appendChild(badge);
+      });
+      catSection.appendChild(catGrid);
+      container.appendChild(catSection);
+    }
+    
+    // Show restaurants that match
+    if (filteredRestaurants.length > 0) {
+      const restSection = document.createElement('div');
+      restSection.className = 'mb-6';
+      const restHeading = document.createElement('h3');
+      restHeading.className = 'text-lg font-semibold text-primary mb-2';
+      restHeading.textContent = '🏪 Restaurants';
+      restSection.appendChild(restHeading);
+      const restGrid = document.createElement('div');
+      restGrid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
+      filteredRestaurants.forEach(rest => {
+        const card = renderRestaurantCard(rest);
+        restGrid.appendChild(card);
+      });
+      restSection.appendChild(restGrid);
+      container.appendChild(restSection);
+    }
+    
+    // Show products that match
+    if (filteredProducts.length > 0) {
+      const prodSection = document.createElement('div');
+      prodSection.className = 'mb-6';
+      const prodHeading = document.createElement('h3');
+      prodHeading.className = 'text-lg font-semibold text-primary mb-2';
+      prodHeading.textContent = '🛒 Products';
+      prodSection.appendChild(prodHeading);
+      const prodGrid = document.createElement('div');
+      prodGrid.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4';
+      filteredProducts.forEach(p => {
+        const card = renderProductCard(p, addToCart);
+        prodGrid.appendChild(card);
+      });
+      prodSection.appendChild(prodGrid);
+      container.appendChild(prodSection);
+    }
+    
+    if (totalResults === 0) {
+      const msg = document.createElement('p');
+      msg.className = 'text-gray-500 text-center py-8';
+      msg.textContent = `No results found for "${searchTerm}". Try searching for products, restaurants, or categories.`;
+      container.appendChild(msg);
+    }
+    
   } else {
     const heading = document.createElement('h2');
     heading.className = 'text-2xl font-bold mb-4';
     heading.textContent = 'Popular Picks';
     container.appendChild(heading);
+    
+    let displayProducts = products.filter(p => p.category !== 'Food' && p.status === 'Active');
+    if (displayProducts.length === 0) {
+      const msg = document.createElement('p');
+      msg.className = 'text-gray-500 text-center py-8';
+      msg.textContent = 'No products found.';
+      container.appendChild(msg);
+      return container;
+    }
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4';
+    const shuffled = displayProducts.sort(() => 0.5 - Math.random()).slice(0, 8);
+    shuffled.forEach(p => {
+      const card = renderProductCard(p, addToCart);
+      grid.appendChild(card);
+    });
+    container.appendChild(grid);
   }
-  let displayProducts = filtered.filter(p => p.category !== 'Food' && p.status === 'Active');
-  if (displayProducts.length === 0) {
-    const msg = document.createElement('p');
-    msg.className = 'text-gray-500 text-center py-8';
-    msg.textContent = 'No products found.';
-    container.appendChild(msg);
-    return container;
-  }
-  const grid = document.createElement('div');
-  grid.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4';
-  const shuffled = displayProducts.sort(() => 0.5 - Math.random()).slice(0, 8);
-  shuffled.forEach(p => {
-    const card = renderProductCard(p, addToCart);
-    grid.appendChild(card);
-  });
-  container.appendChild(grid);
+  
   return container;
 }
 
@@ -1797,7 +1911,7 @@ function renderFooter() {
 }
 
 // ============================================================
-// RENDER CATEGORY MODAL - Only visible on mobile - FIXED CLICK ISSUE
+// RENDER CATEGORY MODAL - Only visible on mobile
 // ============================================================
 function renderCategoryModal() {
   if (!state.showCategoryModal) return null;
@@ -1878,7 +1992,6 @@ function renderCategoryModal() {
         <span class="text-xs text-gray-400">${count} items</span>
       `;
       
-      // Use both click and touch events for maximum compatibility
       const handleCategoryClick = function(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -1888,16 +2001,13 @@ function renderCategoryModal() {
       
       item.addEventListener('click', handleCategoryClick);
       item.addEventListener('touchend', function(e) {
-        // Prevent default to avoid double-firing
         e.preventDefault();
         e.stopPropagation();
         console.log('📂 Category selected from modal (touch):', cat.name);
         onCategoryClick(cat.name);
       });
       
-      // Also add mousedown for faster response
       item.addEventListener('mousedown', function(e) {
-        // Just visual feedback, no action
         this.style.transform = 'scale(0.95)';
       });
       
@@ -2032,7 +2142,6 @@ function renderCartSidebar() {
     deliveryRow.innerHTML = `<span>Delivery</span><span>${delivery === 0 ? 'Free' : `₹${delivery}`}</span>`;
     summary.appendChild(deliveryRow);
     
-    // Only show rain fare if enabled and > 0
     if (rainFareEnabled && rain > 0) {
       const rainRow = document.createElement('div');
       rainRow.className = 'flex justify-between text-sm py-1';
@@ -2228,7 +2337,6 @@ function renderContent() {
     if (hero) app.appendChild(hero);
     const trust = renderTrustBanner();
     if (trust) app.appendChild(trust);
-    // Categories section - visible on desktop, hidden on mobile
     const cats = renderCategoriesSection();
     if (cats) app.appendChild(cats);
     const offersSection = renderOffersSection();
@@ -2240,7 +2348,6 @@ function renderContent() {
   if (cartSidebar) app.appendChild(cartSidebar);
   const ordersModal = renderOrdersModal();
   if (ordersModal) app.appendChild(ordersModal);
-  // Category modal - only visible on mobile
   const categoryModal = renderCategoryModal();
   if (categoryModal) app.appendChild(categoryModal);
   const accountDrawer = renderAccountDrawer();
