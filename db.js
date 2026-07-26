@@ -9,7 +9,7 @@ const pool = new Pool({
   }
 });
 
-// IMPORTANT: Add type parsing for JSONB
+// Add type parsing for JSONB
 const { types } = require('pg');
 
 // Parse JSONB to JavaScript object/array
@@ -24,7 +24,7 @@ types.setTypeParser(types.builtins.JSONB, (val) => {
   }
 });
 
-// Parse JSON (if any)
+// Parse JSON
 types.setTypeParser(types.builtins.JSON, (val) => {
   if (!val) return [];
   try {
