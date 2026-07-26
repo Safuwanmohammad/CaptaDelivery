@@ -1620,6 +1620,9 @@ function renderOrderSummary() {
 // ============================================================
 // RENDER HERO - FIXED: Direct event binding, no setTimeout
 // ============================================================
+// ============================================================
+// RENDER HERO - COMPLETELY FIXED for mobile
+// ============================================================
 function renderHero() {
   const container = document.createElement('div');
   container.className = 'bg-gradient-to-r from-blue-600 to-primary rounded-2xl mx-4 my-4 p-8 text-white';
@@ -1627,46 +1630,64 @@ function renderHero() {
     <h1 class="text-3xl md:text-5xl font-bold mb-4">Groceries & Meat Delivered in Minutes</h1>
     <p class="text-lg mb-6">Fresh groceries, premium meat and more – delivered fast.</p>
     <button id="shopNowBtn" class="bg-white text-primary px-8 py-3 rounded-full font-bold cursor-pointer" 
-      style="pointer-events: auto; touch-action: manipulation; -webkit-tap-highlight-color: transparent; position: relative; z-index: 10;">
+      style="pointer-events: auto !important; touch-action: manipulation !important; -webkit-tap-highlight-color: transparent !important; position: relative; z-index: 100 !important; display: inline-block; min-height: 48px; min-width: 120px;">
       Shop Now →
     </button>
   `;
   
-  // Direct event binding - NO setTimeout
+  // Get the button directly
   const btn = container.querySelector('#shopNowBtn');
   if (btn) {
-    // Define the handler function
-    const handleShopNow = function(e) {
-      e.preventDefault();
-      e.stopPropagation();
+    console.log('🎯 Shop Now button found, attaching events...');
+    
+    // Function to scroll to products
+    const scrollToProducts = function(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       console.log('🛒 Shop Now clicked/tapped!');
       
-      // Find the products section
-      let productsSection = document.querySelector('.px-4.my-8');
-      if (!productsSection) {
-        // Fallback: find any section with products
-        productsSection = document.querySelector('.grid.grid-cols-2');
+      // Try multiple selectors to find the products section
+      let target = document.querySelector('.px-4.my-8');
+      if (!target) {
+        target = document.querySelector('.grid.grid-cols-2.md\\:grid-cols-3');
       }
-      if (!productsSection) {
-        // Last resort: scroll to the main content
-        productsSection = document.getElementById('app');
+      if (!target) {
+        target = document.querySelector('.grid.grid-cols-2');
       }
-      if (productsSection) {
-        productsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (!target) {
+        target = document.querySelector('#app > div:last-child');
+      }
+      if (!target) {
+        target = document.getElementById('app');
+      }
+      
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
       }
     };
     
-    // Add multiple event types for maximum compatibility
-    btn.addEventListener('click', handleShopNow);
-    btn.addEventListener('touchend', function(e) {
-      // Prevent default to avoid double-firing
+    // Remove any existing listeners by cloning
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    
+    // Attach events directly to the new button
+    newBtn.addEventListener('click', scrollToProducts);
+    newBtn.addEventListener('touchend', function(e) {
       e.preventDefault();
-      handleShopNow(e);
+      scrollToProducts(e);
     });
-    btn.addEventListener('touchstart', function(e) {
-      // Just log for debugging
+    newBtn.addEventListener('touchstart', function(e) {
+      // Just for debugging
       console.log('🛒 Shop Now touchstart detected');
     }, { passive: true });
+    
+    console.log('✅ Shop Now button events attached');
+  } else {
+    console.log('❌ Shop Now button not found!');
   }
   
   return container;

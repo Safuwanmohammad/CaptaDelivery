@@ -12,30 +12,53 @@ function generateOtp() {
 
 function normalizePhone(phone) {
   if (!phone) return '';
+  // Remove all spaces and dashes
   let cleaned = phone.replace(/[\s\-]/g, '');
   // Remove any non-digit characters except +
   cleaned = cleaned.replace(/[^0-9+]/g, '');
+  
+  // If it doesn't start with +, add +91
   if (!cleaned.startsWith('+')) {
+    // If it starts with 0, remove the 0
+    if (cleaned.startsWith('0')) {
+      cleaned = cleaned.substring(1);
+    }
     cleaned = '+91' + cleaned;
   }
   return cleaned;
 }
 
 // ============================================================
-// FIXED: Proper phone formatting for 2Factor API
-// 2Factor expects phone number WITHOUT the + prefix
-// Example: +919876543210 -> 919876543210
+// CRITICAL FIX: Proper phone formatting for 2Factor API
+// 2Factor expects: 91XXXXXXXXXX (no +, no leading 0)
 // ============================================================
 function formatPhoneFor2Factor(phone) {
-  return phone.replace('+', '');
+  // Remove the + prefix
+  let formatted = phone.replace('+', '');
+  
+  // If it starts with 91, keep it
+  // If it starts with 0, remove it
+  if (formatted.startsWith('0')) {
+    formatted = formatted.substring(1);
+  }
+  
+  // Ensure it has 91 prefix
+  if (!formatted.startsWith('91')) {
+    formatted = '91' + formatted;
+  }
+  
+  return formatted;
 }
 
 // ============================================================
-// SEND SMS OTP VIA 2FACTOR - FIXED
+// SEND SMS OTP VIA 2FACTOR - COMPLETELY FIXED
 // ============================================================
 async function sendSmsOtp(phone, otp) {
   try {
     const apiKey = process.env.TWO_FACTOR_API_KEY;
+    
+    console.log('🔑 2Factor API Key present:', apiKey ? 'Yes (length: ' + apiKey.length + ')' : 'No');
+    
     if (!apiKey) {
       console.error('❌ 2Factor API key not configured in environment variables');
       return { 
@@ -45,7 +68,7 @@ async function sendSmsOtp(phone, otp) {
       };
     }
     
-    // FIX: Remove + prefix for 2Factor API
+    // CRITICAL FIX: Format phone correctly for 2Factor
     const formattedPhone = formatPhoneFor2Factor(phone);
     
     // 2Factor.in API endpoint for SMS OTP
@@ -67,10 +90,12 @@ async function sendSmsOtp(phone, otp) {
       }
     });
     
+    console.log('📥 2Factor API Response Status:', response.status);
     console.log('📥 2Factor API Response:', JSON.stringify(response.data, null, 2));
     
     // Check response status
     if (response.data.Status === 'Success') {
+      console.log('✅ 2Factor SMS sent successfully!');
       return { 
         success: true, 
         data: response.data,
@@ -78,7 +103,7 @@ async function sendSmsOtp(phone, otp) {
       };
     } else {
       // Log the actual error from 2Factor
-      const errorMessage = response.data.Details || 'SMS sending failed';
+      const errorMessage = response.data.Details || response.data.Message || 'SMS sending failed';
       console.error('❌ 2Factor API error:', errorMessage);
       console.error('  Full response:', JSON.stringify(response.data, null, 2));
       
@@ -127,12 +152,18 @@ async function sendSmsOtp(phone, otp) {
 router.post('/send-otp', async (req, res) => {
   try {
     const { phone } = req.body;
+    console.log('📱 Received OTP request for phone:', phone);
+    
     if (!phone || phone.length < 10) {
+      console.log('❌ Invalid phone number:', phone);
       return res.status(400).json({ error: 'Valid phone number required' });
     }
     
     const normalizedPhone = normalizePhone(phone);
+    console.log('📱 Normalized phone:', normalizedPhone);
+    
     const otp = generateOtp();
+    console.log('🔢 Generated OTP:', otp);
     
     // Store OTP with expiry (10 minutes)
     otpStore[normalizedPhone] = {
@@ -141,7 +172,7 @@ router.post('/send-otp', async (req, res) => {
       attempts: 0
     };
     
-    console.log(`📱 OTP generated for ${normalizedPhone}: ${otp}`);
+    console.log(`📱 OTP stored for ${normalizedPhone}: ${otp}`);
     
     // Send SMS via 2Factor
     const result = await sendSmsOtp(normalizedPhone, otp);
@@ -151,7 +182,6 @@ router.post('/send-otp', async (req, res) => {
       console.error('  Details:', JSON.stringify(result.details, null, 2));
       
       // Still return the OTP for demo purposes so users can see it in logs
-      // This helps during debugging
       return res.json({ 
         message: 'OTP generated. SMS delivery failed. Check console logs for details.',
         otp: otp,
@@ -161,13 +191,14 @@ router.post('/send-otp', async (req, res) => {
       });
     }
     
+    console.log('✅ OTP sent successfully via SMS');
     res.json({ 
       message: 'OTP sent successfully via SMS',
       otp: otp,
       smsFailed: false
     });
   } catch (err) {
-    console.error('Send OTP error:', err);
+    console.error('❌ Send OTP error:', err);
     res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
@@ -178,6 +209,8 @@ router.post('/send-otp', async (req, res) => {
 router.post('/verify-otp', async (req, res) => {
   try {
     const { phone, otp } = req.body;
+    console.log('📱 Verify OTP request for phone:', phone);
+    
     if (!phone || !otp) {
       return res.status(400).json({ error: 'Phone and OTP required' });
     }
@@ -186,6 +219,7 @@ router.post('/verify-otp', async (req, res) => {
     const stored = otpStore[normalizedPhone];
     
     if (!stored) {
+      console.log('❌ No OTP found for:', normalizedPhone);
       return res.status(400).json({ error: 'No OTP found. Please request a new OTP.' });
     }
     
@@ -201,6 +235,7 @@ router.post('/verify-otp', async (req, res) => {
     
     if (stored.otp !== otp) {
       stored.attempts += 1;
+      console.log(`❌ Invalid OTP for ${normalizedPhone}. Attempts: ${stored.attempts}`);
       return res.status(400).json({ 
         error: 'Invalid OTP', 
         attemptsRemaining: 5 - stored.attempts 
@@ -208,6 +243,7 @@ router.post('/verify-otp', async (req, res) => {
     }
     
     // OTP verified successfully
+    console.log('✅ OTP verified successfully for:', normalizedPhone);
     delete otpStore[normalizedPhone];
     
     // Check if user exists
@@ -322,7 +358,6 @@ router.post('/admin/send-otp', async (req, res) => {
     
     console.log(`📱 Admin OTP for ${normalizedPhone}: ${otp}`);
     
-    // Send SMS via 2Factor
     const result = await sendSmsOtp(normalizedPhone, otp);
     
     if (!result.success) {
