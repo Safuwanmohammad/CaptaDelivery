@@ -426,10 +426,11 @@ function renderPaymentPage() {
       <span>Delivery</span>
       <span>₹${state.orderSummary.deliveryCharge}</span>
     </div>
+    ${state.orderSummary.rainFare > 0 ? `
     <div class="flex justify-between">
       <span>Rain Fare</span>
       <span>₹${state.orderSummary.rainFare}</span>
-    </div>
+    </div>` : ''}
     <div class="flex justify-between font-bold text-lg text-primary mt-2 pt-2 border-t">
       <span>Grand Total</span>
       <span>₹${state.orderSummary.grandTotal}</span>
@@ -489,9 +490,6 @@ function closePayment() {
 // PLACE ORDER
 // ============================================================
 async function placeOrder() {
-  const orderNumber = 'ORD-' + String(nextOrderNumber).padStart(4, '0');
-  nextOrderNumber++;
-
   const itemsWithCommission = cart.map(item => ({
     ...item,
     commission: item.commission || 0
@@ -510,7 +508,6 @@ async function placeOrder() {
   const grandTotal = productTotal + deliveryCharge + rainFare;
 
   const newOrder = {
-    orderId: orderNumber,
     customerId: user ? user.id : 1,
     items: itemsWithCommission.map(item => ({
       name: item.displayName || item.name,
@@ -530,7 +527,8 @@ async function placeOrder() {
     paymentMethod: 'COD',
     paymentStatus: 'Pending',
     status: 'Pending',
-    deliveryAddress: `${state.orderSummary.selectedSubArea}, ${state.orderSummary.selectedMainArea}`
+    deliveryAddress: `${state.orderSummary.selectedSubArea}, ${state.orderSummary.selectedMainArea}`,
+    discount: 0
   };
 
   try {
@@ -559,7 +557,7 @@ async function placeOrder() {
     updateBadges();
     state.showOrderSummary = false;
     state.showPayment = false;
-    showToast('✅ Order placed! #' + orderNumber);
+    showToast('✅ Order placed! #' + (created.order_number || created.order_id));
     renderContent();
   } catch (err) {
     showToast('❌ Failed to place order: ' + err.message);
@@ -1561,13 +1559,19 @@ function renderOrderSummary() {
   });
   subAreaDiv.appendChild(subSelect);
   addressSection.appendChild(subAreaDiv);
-  const rainFareDiv = document.createElement('div');
-  rainFareDiv.className = 'flex justify-between items-center text-sm text-gray-600 border-t border-gray-100 pt-2 mt-2';
-  rainFareDiv.innerHTML = `
-    <span>Rain Fare</span>
-    <span>₹${state.orderSummary.rainFare}</span>
-  `;
-  addressSection.appendChild(rainFareDiv);
+  
+  // Only show rain fare if enabled and > 0
+  const rainFareEnabled = settings.rain_fare_enabled !== false;
+  if (rainFareEnabled && state.orderSummary.rainFare > 0) {
+    const rainFareDiv = document.createElement('div');
+    rainFareDiv.className = 'flex justify-between items-center text-sm text-gray-600 border-t border-gray-100 pt-2 mt-2';
+    rainFareDiv.innerHTML = `
+      <span>Rain Fare</span>
+      <span>₹${state.orderSummary.rainFare}</span>
+    `;
+    addressSection.appendChild(rainFareDiv);
+  }
+  
   const deliveryChargeDiv = document.createElement('div');
   deliveryChargeDiv.className = 'flex justify-between items-center text-sm text-gray-600 border-t border-gray-100 pt-2';
   deliveryChargeDiv.innerHTML = `
@@ -1793,21 +1797,29 @@ function renderFooter() {
 }
 
 // ============================================================
-// RENDER CATEGORY MODAL - Only visible on mobile
+// RENDER CATEGORY MODAL - Only visible on mobile - FIXED CLICK ISSUE
 // ============================================================
 function renderCategoryModal() {
   if (!state.showCategoryModal) return null;
   
   const overlay = document.createElement('div');
   overlay.className = 'fixed inset-0 z-50 flex items-center justify-center p-4';
+  overlay.style.pointerEvents = 'auto';
   
   const backdrop = document.createElement('div');
   backdrop.className = 'absolute inset-0 bg-black bg-opacity-50';
-  backdrop.addEventListener('click', toggleCategoryModal);
+  backdrop.style.pointerEvents = 'auto';
+  backdrop.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleCategoryModal();
+  });
   overlay.appendChild(backdrop);
   
   const modal = document.createElement('div');
   modal.className = 'relative bg-white rounded-2xl max-w-sm w-full max-h-[80vh] overflow-y-auto p-6';
+  modal.style.pointerEvents = 'auto';
+  modal.style.zIndex = '51';
   
   const header = document.createElement('div');
   header.className = 'flex justify-between items-center mb-4';
@@ -1819,7 +1831,13 @@ function renderCategoryModal() {
   const closeBtn = document.createElement('button');
   closeBtn.className = 'text-gray-500 hover:text-gray-700';
   closeBtn.innerHTML = '<i class="fas fa-times text-2xl"></i>';
-  closeBtn.addEventListener('click', toggleCategoryModal);
+  closeBtn.style.pointerEvents = 'auto';
+  closeBtn.style.cursor = 'pointer';
+  closeBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleCategoryModal();
+  });
   header.appendChild(closeBtn);
   modal.appendChild(header);
   
@@ -1838,7 +1856,12 @@ function renderCategoryModal() {
       
       const item = document.createElement('div');
       item.className = 'category-modal-item flex flex-col items-center gap-2 cursor-pointer p-4 rounded-xl bg-gray-50 hover:bg-primary/10 transition border-2 border-transparent hover:border-primary active:scale-95';
+      item.style.pointerEvents = 'auto';
+      item.style.cursor = 'pointer';
       item.style.touchAction = 'manipulation';
+      item.style.userSelect = 'none';
+      item.style.webkitTapHighlightColor = 'transparent';
+      item.style.zIndex = '52';
       
       let count = 0;
       if (cat.name === 'Food') {
@@ -1855,18 +1878,31 @@ function renderCategoryModal() {
         <span class="text-xs text-gray-400">${count} items</span>
       `;
       
-      item.addEventListener('click', function(e) {
+      // Use both click and touch events for maximum compatibility
+      const handleCategoryClick = function(e) {
         e.preventDefault();
         e.stopPropagation();
         console.log('📂 Category selected from modal:', cat.name);
         onCategoryClick(cat.name);
-      });
+      };
       
+      item.addEventListener('click', handleCategoryClick);
       item.addEventListener('touchend', function(e) {
+        // Prevent default to avoid double-firing
         e.preventDefault();
         e.stopPropagation();
         console.log('📂 Category selected from modal (touch):', cat.name);
         onCategoryClick(cat.name);
+      });
+      
+      // Also add mousedown for faster response
+      item.addEventListener('mousedown', function(e) {
+        // Just visual feedback, no action
+        this.style.transform = 'scale(0.95)';
+      });
+      
+      item.addEventListener('mouseup', function(e) {
+        this.style.transform = 'scale(1)';
       });
       
       grid.appendChild(item);
@@ -1995,10 +2031,15 @@ function renderCartSidebar() {
     deliveryRow.className = 'flex justify-between text-sm py-1';
     deliveryRow.innerHTML = `<span>Delivery</span><span>${delivery === 0 ? 'Free' : `₹${delivery}`}</span>`;
     summary.appendChild(deliveryRow);
-    const rainRow = document.createElement('div');
-    rainRow.className = 'flex justify-between text-sm py-1';
-    rainRow.innerHTML = `<span>Rain Fare</span><span>₹${rain}</span>`;
-    summary.appendChild(rainRow);
+    
+    // Only show rain fare if enabled and > 0
+    if (rainFareEnabled && rain > 0) {
+      const rainRow = document.createElement('div');
+      rainRow.className = 'flex justify-between text-sm py-1';
+      rainRow.innerHTML = `<span>Rain Fare</span><span>₹${rain}</span>`;
+      summary.appendChild(rainRow);
+    }
+    
     const totalRow = document.createElement('div');
     totalRow.className = 'flex justify-between font-bold text-lg pt-2 border-t border-gray-300';
     totalRow.innerHTML = `<span>Grand Total</span><span>₹${grandTotal}</span>`;
@@ -2061,7 +2102,7 @@ function renderOrdersModal() {
       top.className = 'flex justify-between items-start';
       const left = document.createElement('div');
       left.innerHTML = `
-        <p class="text-sm text-gray-500">Order #${order.order_id} • ${new Date(order.date).toLocaleString()}</p>
+        <p class="text-sm text-gray-500">Order #${order.order_number || order.order_id} • ${new Date(order.date).toLocaleString()}</p>
         ${order.delivery_address ? `<p class="text-xs text-gray-400">📍 ${order.delivery_address}</p>` : ''}
         <p class="font-semibold mt-1">Total: ₹${order.grand_total}</p>
       `;

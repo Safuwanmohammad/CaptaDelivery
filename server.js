@@ -6,126 +6,7 @@ const pool = require('./db');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ============================================================
-// AUTO MIGRATION: FIX DATABASE SCHEMA (SAFE VERSION)
-// ============================================================
-async function fixDatabaseSchema() {
-  try {
-    console.log('🔍 Checking database schema...');
-    
-    // ===== STEP 1: Add variants column if it doesn't exist =====
-    await pool.query(`
-      DO $$ 
-      BEGIN 
-        BEGIN
-          ALTER TABLE products ADD COLUMN variants jsonb DEFAULT '[]'::jsonb;
-        EXCEPTION
-          WHEN duplicate_column THEN 
-            RAISE NOTICE 'Column variants already exists, skipping...';
-        END;
-      END $$;
-    `);
-    console.log('✅ Variants column check complete');
-    
-    // ===== STEP 2: Check if images column exists =====
-    const checkImages = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'products' AND column_name = 'images'
-    `);
-    
-    if (checkImages.rows.length === 0) {
-      console.log('⚠️ images column not found, adding it...');
-      await pool.query(`
-        ALTER TABLE products 
-        ADD COLUMN images jsonb DEFAULT '[]'::jsonb
-      `);
-      console.log('✅ images column added');
-      console.log('✅ Database schema is now correct!');
-      return;
-    }
-    
-    const currentType = checkImages.rows[0].data_type;
-    console.log(`📊 Current images column type: ${currentType}`);
-    
-    if (currentType === 'jsonb') {
-      console.log('✅ images column is already jsonb');
-      console.log('✅ Database schema is now correct!');
-      return;
-    }
-    
-    console.log('🔄 Converting images column to jsonb...');
-    
-    try {
-      // Add new column
-      await pool.query(`
-        ALTER TABLE products 
-        ADD COLUMN IF NOT EXISTS images_new jsonb DEFAULT '[]'::jsonb
-      `);
-      console.log('✅ Created temporary column');
-      
-      // Handle null and empty values safely
-      await pool.query(`
-        UPDATE products 
-        SET images_new = '[]'::jsonb
-        WHERE images IS NULL OR images = '{}' OR images = '' OR images = '[]'
-      `);
-      
-      // For non-empty arrays, try to convert
-      await pool.query(`
-        UPDATE products 
-        SET images_new = images::jsonb
-        WHERE images IS NOT NULL 
-        AND images != '{}' 
-        AND images != '' 
-        AND images != '[]'
-        AND images::text LIKE '[%'
-      `);
-      
-      // For anything else, set to empty array
-      await pool.query(`
-        UPDATE products 
-        SET images_new = '[]'::jsonb
-        WHERE images_new IS NULL
-      `);
-      
-      console.log('✅ Data copied to temp column');
-      
-      // Drop old column
-      await pool.query(`
-        ALTER TABLE products 
-        DROP COLUMN IF EXISTS images
-      `);
-      console.log('✅ Dropped old images column');
-      
-      // Rename temp column
-      await pool.query(`
-        ALTER TABLE products 
-        RENAME COLUMN images_new TO images
-      `);
-      console.log('✅ Renamed temp column to images');
-      
-      // Set default
-      await pool.query(`
-        ALTER TABLE products 
-        ALTER COLUMN images SET DEFAULT '[]'::jsonb
-      `);
-      console.log('✅ Set default value for images');
-      
-      console.log('✅ Images column converted to jsonb successfully!');
-    } catch (err) {
-      console.log('⚠️ Conversion had issues, but continuing...');
-    }
-    
-    console.log('✅ Database schema check complete!');
-  } catch (err) {
-    console.error('❌ Error fixing database schema:', err.message);
-  }
-}
-
-// ============================================================
-// MIDDLEWARE
-// ============================================================
+// ===== MIDDLEWARE =====
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -139,9 +20,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ============================================================
-// HEALTH CHECK
-// ============================================================
+// ===== HEALTH CHECK =====
 app.get('/health', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
@@ -160,29 +39,36 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// ============================================================
-// MIGRATION API ENDPOINT
-// ============================================================
-app.post('/api/migration/run', async (req, res) => {
-  try {
-    console.log('🔄 Running manual migration...');
-    await fixDatabaseSchema();
-    res.json({ 
-      success: true, 
-      message: '✅ Migration completed successfully!' 
-    });
-  } catch (err) {
-    console.error('❌ Migration error:', err.message);
-    res.status(500).json({ 
-      success: false, 
-      error: err.message 
-    });
+// ===== WHATSAPP WEBHOOK VERIFICATION =====
+app.get('/webhook/whatsapp', (req, res) => {
+  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+  
+  if (mode && token === verifyToken) {
+    res.status(200).send(challenge);
+  } else {
+    res.sendStatus(403);
   }
 });
 
-// ============================================================
-// API ROUTES
-// ============================================================
+// ===== WHATSAPP WEBHOOK FOR INCOMING MESSAGES =====
+app.post('/webhook/whatsapp', express.json({ type: 'application/json' }), (req, res) => {
+  try {
+    const body = req.body;
+    if (body.object === 'whatsapp_business_account') {
+      console.log('📩 WhatsApp webhook received:', JSON.stringify(body, null, 2));
+      // Process incoming messages if needed
+    }
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('Webhook error:', err);
+    res.sendStatus(500);
+  }
+});
+
+// ===== API ROUTES =====
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/restaurants', require('./routes/restaurants'));
 app.use('/api/products', require('./routes/products'));
@@ -195,25 +81,19 @@ app.use('/api/settings', require('./routes/settings'));
 app.use('/api/whatsapp', require('./routes/whatsapp'));
 app.use('/api/reports', require('./routes/reports'));
 
-// ============================================================
-// SERVE STATIC FRONTEND
-// ============================================================
+// ===== SERVE STATIC FRONTEND =====
 const frontendPath = path.join(__dirname, '../frontend');
 console.log(`📁 Serving frontend from: ${frontendPath}`);
 app.use(express.static(frontendPath));
 
-// ============================================================
-// FALLBACK
-// ============================================================
+// ===== FALLBACK =====
 app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api')) {
+  if (!req.path.startsWith('/api') && !req.path.startsWith('/webhook')) {
     res.sendFile(path.join(frontendPath, 'index.html'));
   }
 });
 
-// ============================================================
-// ERROR HANDLING
-// ============================================================
+// ===== ERROR HANDLING =====
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err.message);
   console.error('Stack:', err.stack);
@@ -224,28 +104,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ============================================================
-// START SERVER
-// ============================================================
+// ===== START SERVER =====
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server is running on port ${PORT}`);
   console.log(`📁 Serving frontend from: ${frontendPath}`);
   console.log(`🔗 Visit: http://localhost:${PORT}`);
   console.log(`📊 Admin panel: http://localhost:${PORT}/admin.html`);
-});
-
-// ============================================================
-// RUN DATABASE MIGRATION ON STARTUP (DISABLED FOR NOW)
-// ============================================================
-pool.query('SELECT NOW()', async (err, result) => {
-  if (err) {
-    console.error('❌ Database connection error:', err.message);
-  } else {
-    console.log('✅ Connected to PostgreSQL at', result.rows[0].now);
-    // Temporarily disabled - productController.js handles the format
-    // await fixDatabaseSchema();
-    console.log('✅ Using productController.js to handle image format');
-  }
 });
 
 module.exports = app;
