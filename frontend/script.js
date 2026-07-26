@@ -697,7 +697,11 @@ async function sendLoginOtp() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
     otpCode = data.otp;
-    showToast(`OTP sent: ${otpCode} (check SMS)`);
+    if (data.smsFailed) {
+      showToast(`OTP generated but SMS failed. Check console logs. OTP: ${otpCode}`);
+    } else {
+      showToast(`OTP sent via SMS! Check your phone.`);
+    }
     document.getElementById('loginOtpSection').classList.remove('hidden');
     document.getElementById('loginSendOtpBtn').textContent = 'Resend OTP';
   } catch (err) {
@@ -750,7 +754,11 @@ async function sendSignupOtp() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
     otpCode = data.otp;
-    showToast(`OTP sent: ${otpCode} (check SMS)`);
+    if (data.smsFailed) {
+      showToast(`OTP generated but SMS failed. Check console logs. OTP: ${otpCode}`);
+    } else {
+      showToast(`OTP sent via SMS! Check your phone.`);
+    }
     document.getElementById('signupOtpSection').classList.remove('hidden');
     document.getElementById('signupSendOtpBtn').textContent = 'Resend OTP';
   } catch (err) {
@@ -888,7 +896,7 @@ function openModal(html) {
 }
 
 // ============================================================
-// RENDER PRODUCT CARD WITH VARIANTS FIX
+// RENDER PRODUCT CARD WITH VARIANTS
 // ============================================================
 function renderProductCard(product, onAdd) {
   console.log('🔍 Rendering product:', product.name);
@@ -1610,7 +1618,7 @@ function renderOrderSummary() {
 }
 
 // ============================================================
-// RENDER HERO - FIXED SHOP NOW BUTTON
+// RENDER HERO - FIXED: Direct event binding, no setTimeout
 // ============================================================
 function renderHero() {
   const container = document.createElement('div');
@@ -1618,41 +1626,47 @@ function renderHero() {
   container.innerHTML = `
     <h1 class="text-3xl md:text-5xl font-bold mb-4">Groceries & Meat Delivered in Minutes</h1>
     <p class="text-lg mb-6">Fresh groceries, premium meat and more – delivered fast.</p>
-    <button id="shopNowBtn" class="bg-white text-primary px-8 py-3 rounded-full font-bold cursor-pointer touch-manipulation" style="pointer-events: auto; z-index: 10; position: relative; touch-action: manipulation; -webkit-tap-highlight-color: transparent;">
+    <button id="shopNowBtn" class="bg-white text-primary px-8 py-3 rounded-full font-bold cursor-pointer" 
+      style="pointer-events: auto; touch-action: manipulation; -webkit-tap-highlight-color: transparent; position: relative; z-index: 10;">
       Shop Now →
     </button>
   `;
   
-  // Add click/touch event listener directly
+  // Direct event binding - NO setTimeout
   const btn = container.querySelector('#shopNowBtn');
   if (btn) {
-    // Remove any existing listeners by cloning
-    const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, btn);
-    
-    // Add event listeners
+    // Define the handler function
     const handleShopNow = function(e) {
       e.preventDefault();
       e.stopPropagation();
-      console.log('🛒 Shop Now clicked!');
-      const productsSection = document.querySelector('.px-4.my-8');
+      console.log('🛒 Shop Now clicked/tapped!');
+      
+      // Find the products section
+      let productsSection = document.querySelector('.px-4.my-8');
+      if (!productsSection) {
+        // Fallback: find any section with products
+        productsSection = document.querySelector('.grid.grid-cols-2');
+      }
+      if (!productsSection) {
+        // Last resort: scroll to the main content
+        productsSection = document.getElementById('app');
+      }
       if (productsSection) {
         productsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        // Fallback: scroll to products section
-        const allSections = document.querySelectorAll('.px-4.my-8');
-        if (allSections.length > 0) {
-          allSections[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
       }
     };
     
-    newBtn.addEventListener('click', handleShopNow);
-    newBtn.addEventListener('touchstart', function(e) {
-      // Just to ensure touch events work
-      console.log('🛒 Shop Now touched!');
+    // Add multiple event types for maximum compatibility
+    btn.addEventListener('click', handleShopNow);
+    btn.addEventListener('touchend', function(e) {
+      // Prevent default to avoid double-firing
+      e.preventDefault();
+      handleShopNow(e);
+    });
+    btn.addEventListener('touchstart', function(e) {
+      // Just log for debugging
+      console.log('🛒 Shop Now touchstart detected');
     }, { passive: true });
-    newBtn.addEventListener('touchend', handleShopNow);
   }
   
   return container;
@@ -1782,31 +1796,38 @@ function renderProductsGrid() {
   let searchTerm = state.searchTerm.trim().toLowerCase();
   
   if (searchTerm) {
+    console.log('🔍 Searching for:', searchTerm);
+    
     // Search in products
     filteredProducts = products.filter(p => {
-      const nameMatch = p.name.toLowerCase().includes(searchTerm);
+      const nameMatch = p.name && p.name.toLowerCase().includes(searchTerm);
       const categoryMatch = p.category && p.category.toLowerCase().includes(searchTerm);
       const descMatch = p.description && p.description.toLowerCase().includes(searchTerm);
-      return (nameMatch || categoryMatch || descMatch) && p.status === 'Active';
+      const isActive = p.status === 'Active';
+      return (nameMatch || categoryMatch || descMatch) && isActive;
     });
+    console.log(`  Found ${filteredProducts.length} products`);
     
     // Search in restaurants
     filteredRestaurants = restaurants.filter(r => {
-      const nameMatch = r.name.toLowerCase().includes(searchTerm);
+      const nameMatch = r.name && r.name.toLowerCase().includes(searchTerm);
       const categoryMatch = r.category && r.category.toLowerCase().includes(searchTerm);
-      return (nameMatch || categoryMatch) && r.status === 'Active';
+      const isActive = r.status === 'Active';
+      return (nameMatch || categoryMatch) && isActive;
     });
+    console.log(`  Found ${filteredRestaurants.length} restaurants`);
     
     // Search in categories
     filteredCategories = categories.filter(c => {
-      return c.name.toLowerCase().includes(searchTerm);
+      return c.name && c.name.toLowerCase().includes(searchTerm);
     });
+    console.log(`  Found ${filteredCategories.length} categories`);
     
     const totalResults = filteredProducts.length + filteredRestaurants.length + filteredCategories.length;
     
     const heading = document.createElement('h2');
     heading.className = 'text-2xl font-bold mb-4';
-    heading.textContent = `🔍 Search Results (${totalResults} found)`;
+    heading.textContent = `🔍 Search Results for "${state.searchTerm}" (${totalResults} found)`;
     container.appendChild(heading);
     
     // Show categories that match

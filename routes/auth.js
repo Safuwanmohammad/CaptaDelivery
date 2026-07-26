@@ -21,28 +21,31 @@ function normalizePhone(phone) {
   return cleaned;
 }
 
+// ============================================================
+// FIXED: Proper phone formatting for 2Factor API
+// 2Factor expects phone number WITHOUT the + prefix
+// Example: +919876543210 -> 919876543210
+// ============================================================
 function formatPhoneFor2Factor(phone) {
-  // 2Factor expects phone number without + sign
-  // Example: +919876543210 -> 919876543210
   return phone.replace('+', '');
 }
 
 // ============================================================
-// SEND SMS OTP VIA 2FACTOR
+// SEND SMS OTP VIA 2FACTOR - FIXED
 // ============================================================
 async function sendSmsOtp(phone, otp) {
   try {
     const apiKey = process.env.TWO_FACTOR_API_KEY;
     if (!apiKey) {
-      console.warn('⚠️ 2Factor API key not configured');
+      console.error('❌ 2Factor API key not configured in environment variables');
       return { 
         success: false, 
         error: '2Factor API key not configured',
-        isDemo: true 
+        details: 'Please add TWO_FACTOR_API_KEY to your .env file'
       };
     }
     
-    // Format phone for 2Factor (remove +)
+    // FIX: Remove + prefix for 2Factor API
     const formattedPhone = formatPhoneFor2Factor(phone);
     
     // 2Factor.in API endpoint for SMS OTP
@@ -50,7 +53,8 @@ async function sendSmsOtp(phone, otp) {
     const url = `https://2factor.in/API/V1/${apiKey}/SMS/${formattedPhone}/${otp}/OTP1`;
     
     console.log('📤 Sending 2Factor SMS request:');
-    console.log(`  Phone: ${formattedPhone}`);
+    console.log(`  Original Phone: ${phone}`);
+    console.log(`  Formatted Phone: ${formattedPhone}`);
     console.log(`  OTP: ${otp}`);
     console.log(`  URL: ${url.replace(apiKey, '***')}`);
     
@@ -65,6 +69,7 @@ async function sendSmsOtp(phone, otp) {
     
     console.log('📥 2Factor API Response:', JSON.stringify(response.data, null, 2));
     
+    // Check response status
     if (response.data.Status === 'Success') {
       return { 
         success: true, 
@@ -72,24 +77,47 @@ async function sendSmsOtp(phone, otp) {
         message: 'OTP sent successfully via SMS'
       };
     } else {
-      console.error('❌ 2Factor API error:', response.data);
+      // Log the actual error from 2Factor
+      const errorMessage = response.data.Details || 'SMS sending failed';
+      console.error('❌ 2Factor API error:', errorMessage);
+      console.error('  Full response:', JSON.stringify(response.data, null, 2));
+      
       return { 
         success: false, 
-        error: response.data.Details || 'SMS sending failed',
+        error: errorMessage,
         details: response.data
       };
     }
   } catch (err) {
     console.error('❌ 2Factor SMS exception:', err.message);
+    
     if (err.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
       console.error('  Response status:', err.response.status);
       console.error('  Response data:', JSON.stringify(err.response.data, null, 2));
+      return { 
+        success: false, 
+        error: err.response.data?.Details || err.response.statusText,
+        statusCode: err.response.status,
+        details: err.response.data
+      };
+    } else if (err.request) {
+      // The request was made but no response was received
+      console.error('  No response received from 2Factor API');
+      return { 
+        success: false, 
+        error: 'No response from 2Factor API. Check your internet connection.',
+        details: 'Request timeout or network error'
+      };
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      return { 
+        success: false, 
+        error: err.message,
+        details: 'Request setup error'
+      };
     }
-    return { 
-      success: false, 
-      error: err.message,
-      details: err.response?.data
-    };
   }
 }
 
@@ -120,12 +148,16 @@ router.post('/send-otp', async (req, res) => {
     
     if (!result.success) {
       console.error('❌ Failed to send SMS OTP:', result.error);
+      console.error('  Details:', JSON.stringify(result.details, null, 2));
+      
       // Still return the OTP for demo purposes so users can see it in logs
+      // This helps during debugging
       return res.json({ 
-        message: 'OTP generated. If SMS is not delivered, check console logs for OTP.',
+        message: 'OTP generated. SMS delivery failed. Check console logs for details.',
         otp: otp,
         smsFailed: true,
-        error: result.error
+        error: result.error,
+        details: result.details
       });
     }
     
@@ -295,7 +327,7 @@ router.post('/admin/send-otp', async (req, res) => {
     
     if (!result.success) {
       return res.json({ 
-        message: 'OTP generated. If SMS is not delivered, check console logs.',
+        message: 'OTP generated. SMS delivery failed. Check console logs.',
         otp: otp,
         smsFailed: true,
         error: result.error
