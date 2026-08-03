@@ -7,54 +7,75 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ============================================================
-// ENVIRONMENT VALIDATION
-// ============================================================
-console.log('\n=================================================');
-console.log('🚀 CaptaDelivery Server Starting');
-console.log('=================================================');
-console.log(`  Environment:  ${process.env.NODE_ENV || 'development'}`);
-console.log(`  Port:         ${PORT}`);
-
-// Validate critical environment variables
-const requiredEnv = ['DATABASE_URL'];
-const missingEnv = requiredEnv.filter(key => !process.env[key]);
-
-if (missingEnv.length > 0) {
-  console.error(`❌ Missing required environment variables: ${missingEnv.join(', ')}`);
-  process.exit(1);
-}
-
-// Check 2Factor API Key (warn but don't fail)
-if (!process.env.TWO_FACTOR_API_KEY) {
-  console.warn('⚠️  TWO_FACTOR_API_KEY is not set. OTP functionality will not work.');
-} else {
-  console.log(`✅ TWO_FACTOR_API_KEY: ${process.env.TWO_FACTOR_API_KEY ? 'Configured' : 'Missing'}`);
-}
-
-console.log('=================================================\n');
-
-// ============================================================
 // MIDDLEWARE
 // ============================================================
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// ===== DEBUG: Log all requests (development only) =====
-if (process.env.NODE_ENV !== 'production') {
-  app.use((req, res, next) => {
-    console.log(`📡 ${req.method} ${req.url}`);
-    if (req.method === 'PUT' || req.method === 'POST') {
-      // Don't log sensitive data like OTP requests
-      if (req.url.includes('/auth')) {
-        console.log('  Body: [SENSITIVE DATA HIDDEN]');
-      } else {
-        console.log('  Body:', JSON.stringify(req.body, null, 2));
-      }
+// ============================================================
+// WHATSAPP WEBHOOK - VERIFICATION (GET)
+// ============================================================
+app.get('/webhook', (req, res) => {
+  console.log('🔍 Webhook verification request received');
+  console.log('Query params:', req.query);
+  
+  const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'CaptaDeliveryVerify2026';
+  
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+  
+  console.log(`  Mode: ${mode}`);
+  console.log(`  Token: ${token}`);
+  console.log(`  Expected Token: ${VERIFY_TOKEN}`);
+  console.log(`  Challenge: ${challenge}`);
+  
+  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+    console.log('✅ Webhook verified successfully!');
+    res.status(200).send(challenge);
+  } else {
+    console.log('❌ Webhook verification failed');
+    console.log(`  Mode match: ${mode === 'subscribe'}`);
+    console.log(`  Token match: ${token === VERIFY_TOKEN}`);
+    res.sendStatus(403);
+  }
+});
+
+// ============================================================
+// WHATSAPP WEBHOOK - INCOMING MESSAGES (POST)
+// ============================================================
+app.post('/webhook', express.json({ type: 'application/json' }), (req, res) => {
+  try {
+    const body = req.body;
+    console.log('📩 WhatsApp webhook POST received');
+    
+    if (body.object === 'whatsapp_business_account') {
+      body.entry.forEach(entry => {
+        entry.changes.forEach(change => {
+          if (change.field === 'messages') {
+            const message = change.value.messages[0];
+            if (message) {
+              console.log(`  From: ${message.from}`);
+              console.log(`  Text: ${message.text?.body || 'No text'}`);
+              // Process incoming message here
+            }
+          }
+          if (change.field === 'message_status') {
+            const status = change.value.statuses[0];
+            console.log(`  Status: ${status.status} for message ${status.id}`);
+          }
+        });
+      });
+      res.sendStatus(200);
+    } else {
+      res.sendStatus(404);
     }
-    next();
-  });
-}
+  } catch (err) {
+    console.error('Webhook error:', err);
+    res.sendStatus(500);
+  }
+});
 
 // ============================================================
 // HEALTH CHECK
@@ -66,8 +87,7 @@ app.get('/health', async (req, res) => {
       status: 'ok',
       database: 'connected',
       time: result.rows[0].now,
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'development'
+      timestamp: new Date().toISOString()
     });
   } catch (err) {
     res.status(500).json({
@@ -104,7 +124,7 @@ app.use(express.static(frontendPath));
 // FALLBACK
 // ============================================================
 app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api')) {
+  if (!req.path.startsWith('/api') && !req.path.startsWith('/webhook')) {
     res.sendFile(path.join(frontendPath, 'index.html'));
   }
 });
@@ -129,6 +149,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📁 Serving frontend from: ${frontendPath}`);
   console.log(`🔗 Visit: http://localhost:${PORT}`);
   console.log(`📊 Admin panel: http://localhost:${PORT}/admin.html`);
+  console.log(`📱 Webhook endpoint: http://localhost:${PORT}/webhook`);
 });
 
 module.exports = app;
