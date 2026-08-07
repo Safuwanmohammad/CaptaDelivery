@@ -207,7 +207,7 @@ function showToast(message) {
   toastTimeout = setTimeout(() => {
     state.toastMsg = null;
     renderContent();
-  }, 2500);
+  }, 3000);
 }
 
 // ============================================================
@@ -311,6 +311,8 @@ function updateDeliveryCharge() {
 // PROCEED TO CHECKOUT
 // ============================================================
 function proceedToCheckout() {
+  console.log('🛒 Proceed to Checkout clicked');
+  
   if (cart.length === 0) {
     showToast('Your cart is empty!');
     return;
@@ -359,18 +361,25 @@ function closeOrderSummary() {
 }
 
 // ============================================================
-// PROCEED TO PAYMENT
+// PROCEED TO PAYMENT - FIXED
 // ============================================================
 function proceedToPayment() {
+  console.log('💳 Proceed to Payment clicked');
+  
+  // Check if delivery area is selected
   if (!state.orderSummary.selectedMainArea || !state.orderSummary.selectedSubArea) {
     showToast('Please select your delivery area');
     return;
   }
+  
+  // Check if user is logged in
   if (!user) {
     showToast('Please login to place order');
     openLogin();
     return;
   }
+  
+  // Navigate to payment page
   state.showPayment = true;
   state.showOrderSummary = false;
   renderContent();
@@ -378,7 +387,7 @@ function proceedToPayment() {
 }
 
 // ============================================================
-// RENDER PAYMENT PAGE
+// RENDER PAYMENT PAGE - FIXED
 // ============================================================
 function renderPaymentPage() {
   if (!state.showPayment) return null;
@@ -387,25 +396,34 @@ function renderPaymentPage() {
 
   const container = document.createElement('div');
   container.className = 'fixed inset-0 z-50 overflow-y-auto bg-gray-50 p-4 md:p-6';
+  container.style.position = 'fixed';
+  container.style.top = '0';
+  container.style.left = '0';
+  container.style.width = '100%';
+  container.style.height = '100%';
+  container.style.zIndex = '9999';
+  container.style.backgroundColor = '#f9fafb';
 
   const content = document.createElement('div');
-  content.className = 'max-w-3xl mx-auto bg-white rounded-2xl shadow-xl p-6';
+  content.className = 'max-w-3xl mx-auto bg-white rounded-2xl shadow-xl p-6 mt-20 mb-20';
 
   const header = document.createElement('div');
   header.className = 'flex justify-between items-center border-b pb-4 mb-4';
   header.innerHTML = `
     <h2 class="text-2xl font-bold">💳 Payment</h2>
-    <button onclick="closePayment()" class="text-gray-500 hover:text-gray-700 text-2xl">
+    <button onclick="closePayment()" class="text-gray-500 hover:text-gray-700 text-2xl" style="background:none;border:none;cursor:pointer;">
       <i class="fas fa-times"></i>
     </button>
   `;
   content.appendChild(header);
 
+  // Order Summary
   const summaryDiv = document.createElement('div');
   summaryDiv.className = 'mb-6';
   const grouped = state.orderSummary.categoryTotals;
   const items = state.orderSummary.items;
   let itemsHtml = '';
+  
   Object.keys(grouped).forEach(cat => {
     const catItems = items.filter(item => (item.category || 'Uncategorized') === cat);
     const catTotal = grouped[cat];
@@ -416,6 +434,7 @@ function renderPaymentPage() {
     });
     itemsHtml += `<div class="flex justify-between text-sm font-semibold border-b border-gray-100 py-1"><span>Subtotal</span><span>₹${catTotal}</span></div>`;
   });
+  
   summaryDiv.innerHTML = `
     <h3 class="font-semibold text-lg mb-2">Order Summary</h3>
     ${itemsHtml}
@@ -439,25 +458,31 @@ function renderPaymentPage() {
   `;
   content.appendChild(summaryDiv);
 
+  // Payment Methods
   const paymentDiv = document.createElement('div');
   paymentDiv.className = 'mb-4';
   paymentDiv.innerHTML = `
     <h3 class="font-semibold text-lg mb-2">Choose Payment Method</h3>
     <div class="flex flex-col gap-3">
-      <button onclick="confirmPayment('cod')" class="gradient-btn text-white py-3 rounded-xl font-semibold w-full">
+      <button onclick="confirmPayment('cod')" class="gradient-btn text-white py-3 rounded-xl font-semibold w-full" style="background:linear-gradient(135deg, #007BFF 0%, #0056b3 100%);border:none;cursor:pointer;font-size:1rem;">
         <i class="fas fa-hand-holding-usd mr-2"></i> Cash on Delivery
       </button>
-      <button onclick="confirmPayment('upi')" class="btn btn-outline py-3 rounded-xl font-semibold w-full border-2 border-primary text-primary hover:bg-primary hover:text-white transition">
+      <button onclick="confirmPayment('upi')" class="btn btn-outline py-3 rounded-xl font-semibold w-full" style="background:transparent;border:2px solid #007BFF;color:#007BFF;cursor:pointer;font-size:1rem;">
         <i class="fas fa-credit-card mr-2"></i> UPI / Bank (Coming Soon)
       </button>
     </div>
   `;
   content.appendChild(paymentDiv);
 
+  // Back button
   const backBtn = document.createElement('button');
   backBtn.className = 'text-gray-600 hover:text-gray-800 font-medium mt-4';
   backBtn.textContent = '← Back to Order Summary';
-  backBtn.addEventListener('click', () => {
+  backBtn.style.background = 'none';
+  backBtn.style.border = 'none';
+  backBtn.style.cursor = 'pointer';
+  backBtn.style.padding = '10px';
+  backBtn.addEventListener('click', function() {
     state.showPayment = false;
     state.showOrderSummary = true;
     renderContent();
@@ -469,17 +494,28 @@ function renderPaymentPage() {
 }
 
 // ============================================================
-// CONFIRM PAYMENT
+// CONFIRM PAYMENT - FIXED
 // ============================================================
 async function confirmPayment(method) {
+  console.log('💳 Confirm Payment called with method:', method);
+  
   if (method === 'upi') {
     showToast('UPI/Razorpay integration coming soon!');
     return;
   }
-  await placeOrder();
-  state.showPayment = false;
-  state.showOrderSummary = false;
-  renderContent();
+  
+  // Show loading state
+  showToast('⏳ Placing your order...');
+  
+  try {
+    await placeOrder();
+    state.showPayment = false;
+    state.showOrderSummary = false;
+    renderContent();
+  } catch (err) {
+    console.error('Payment error:', err);
+    showToast('❌ Failed to place order: ' + err.message);
+  }
 }
 
 function closePayment() {
@@ -488,13 +524,29 @@ function closePayment() {
 }
 
 // ============================================================
-// PLACE ORDER
+// PLACE ORDER - FIXED
 // ============================================================
 async function placeOrder() {
+  console.log('📦 Placing order...');
+  
+  // Check if cart is empty
+  if (cart.length === 0) {
+    showToast('Your cart is empty!');
+    return;
+  }
+  
+  // Check if user is logged in
+  if (!user) {
+    showToast('Please login to place order');
+    openLogin();
+    return;
+  }
+
   const itemsWithCommission = cart.map(item => ({
     ...item,
     commission: item.commission || 0
   }));
+  
   const productTotal = state.orderSummary.subtotal;
   const deliveryCharge = state.orderSummary.deliveryCharge;
   
@@ -533,7 +585,10 @@ async function placeOrder() {
   };
 
   try {
+    console.log('📤 Sending order:', newOrder);
     const created = await postData('orders', newOrder);
+    console.log('✅ Order created:', created);
+    
     orders.unshift(created);
 
     if (user) {
@@ -548,11 +603,14 @@ async function placeOrder() {
             total_spent: cust.total_spent,
             last_order: cust.last_order
           });
-        } catch (e) { /* ignore */ }
+        } catch (e) { 
+          console.error('Failed to update customer stats:', e);
+        }
         user = cust;
         localStorage.setItem('swingy_user', JSON.stringify(user));
       }
     }
+    
     cart = [];
     saveCart();
     updateBadges();
@@ -561,7 +619,8 @@ async function placeOrder() {
     showToast('✅ Order placed! #' + (created.order_number || created.order_id));
     renderContent();
   } catch (err) {
-    showToast('❌ Failed to place order: ' + err.message);
+    console.error('❌ Failed to place order:', err);
+    throw err;
   }
 }
 
@@ -900,7 +959,6 @@ function openModal(html) {
 // ============================================================
 function renderProductCard(product, onAdd) {
   console.log('🔍 Rendering product:', product.name);
-  console.log('  Variants raw:', product.variants);
   
   const container = document.createElement('div');
   container.className = 'product-card bg-white rounded-xl shadow-md overflow-hidden';
@@ -1435,21 +1493,24 @@ function renderOrderSummary() {
   container.appendChild(backdrop);
   const content = document.createElement('div');
   content.className = 'relative z-50 max-w-4xl mx-auto p-4 md:p-6 min-h-screen';
+  
   const header = document.createElement('div');
   header.className = 'flex justify-between items-center mb-6 bg-white rounded-xl p-4 shadow-md';
   header.innerHTML = `
     <h2 class="text-2xl font-bold text-gray-800">📋 Order Summary</h2>
-    <button onclick="closeOrderSummary()" class="text-gray-500 hover:text-gray-700 text-2xl">
+    <button onclick="closeOrderSummary()" class="text-gray-500 hover:text-gray-700 text-2xl" style="background:none;border:none;cursor:pointer;">
       <i class="fas fa-times"></i>
     </button>
   `;
   content.appendChild(header);
+  
   const itemsSection = document.createElement('div');
   itemsSection.className = 'bg-white rounded-xl p-4 shadow-md mb-4';
   const itemsTitle = document.createElement('h3');
   itemsTitle.className = 'font-semibold text-lg mb-3 text-gray-700';
   itemsTitle.textContent = '🛒 Your Items';
   itemsSection.appendChild(itemsTitle);
+  
   const grouped = state.orderSummary.categoryTotals;
   const items = state.orderSummary.items;
   Object.keys(grouped).forEach(cat => {
@@ -1476,6 +1537,7 @@ function renderOrderSummary() {
     });
     itemsSection.appendChild(catDiv);
   });
+  
   const subtotalDiv = document.createElement('div');
   subtotalDiv.className = 'flex justify-between items-center pt-2 font-semibold text-gray-700';
   subtotalDiv.innerHTML = `
@@ -1484,18 +1546,21 @@ function renderOrderSummary() {
   `;
   itemsSection.appendChild(subtotalDiv);
   content.appendChild(itemsSection);
+  
   const addressSection = document.createElement('div');
   addressSection.className = 'bg-white rounded-xl p-4 shadow-md mb-4';
   const addressTitle = document.createElement('h3');
   addressTitle.className = 'font-semibold text-lg mb-3 text-gray-700';
   addressTitle.textContent = '📍 Delivery Address';
   addressSection.appendChild(addressTitle);
+  
   const mainAreaDiv = document.createElement('div');
   mainAreaDiv.className = 'mb-3';
   const mainLabel = document.createElement('label');
   mainLabel.className = 'block text-sm font-medium text-gray-700 mb-1';
   mainLabel.textContent = 'Main Area';
   mainAreaDiv.appendChild(mainLabel);
+  
   const mainSelect = document.createElement('select');
   mainSelect.className = 'w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none';
   mainSelect.id = 'mainAreaSelect';
@@ -1503,15 +1568,18 @@ function renderOrderSummary() {
   defaultMain.value = '';
   defaultMain.textContent = 'Select Main Area';
   mainSelect.appendChild(defaultMain);
+  
   Object.keys(deliveryAreas).forEach(area => {
     const opt = document.createElement('option');
     opt.value = area;
     opt.textContent = area;
     mainSelect.appendChild(opt);
   });
+  
   if (state.orderSummary.selectedMainArea) {
     mainSelect.value = state.orderSummary.selectedMainArea;
   }
+  
   mainSelect.addEventListener('change', function() {
     const mainArea = this.value;
     state.orderSummary.selectedMainArea = mainArea;
@@ -1534,14 +1602,17 @@ function renderOrderSummary() {
     updateDeliveryCharge();
     renderContent();
   });
+  
   mainAreaDiv.appendChild(mainSelect);
   addressSection.appendChild(mainAreaDiv);
+  
   const subAreaDiv = document.createElement('div');
   subAreaDiv.className = 'mb-3';
   const subLabel = document.createElement('label');
   subLabel.className = 'block text-sm font-medium text-gray-700 mb-1';
   subLabel.textContent = 'Sub-Area';
   subAreaDiv.appendChild(subLabel);
+  
   const subSelect = document.createElement('select');
   subSelect.id = 'subAreaSelect';
   subSelect.className = 'w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none';
@@ -1549,6 +1620,7 @@ function renderOrderSummary() {
   defaultSub.value = '';
   defaultSub.textContent = 'Select Sub-Area';
   subSelect.appendChild(defaultSub);
+  
   if (state.orderSummary.selectedMainArea && deliveryAreas[state.orderSummary.selectedMainArea]) {
     const subAreas = deliveryAreas[state.orderSummary.selectedMainArea].subAreas;
     Object.keys(subAreas).forEach(sub => {
@@ -1558,18 +1630,20 @@ function renderOrderSummary() {
       subSelect.appendChild(opt);
     });
   }
+  
   if (state.orderSummary.selectedSubArea) {
     subSelect.value = state.orderSummary.selectedSubArea;
   }
+  
   subSelect.addEventListener('change', function() {
     state.orderSummary.selectedSubArea = this.value;
     updateDeliveryCharge();
     renderContent();
   });
+  
   subAreaDiv.appendChild(subSelect);
   addressSection.appendChild(subAreaDiv);
   
-  // Only show rain fare if enabled and > 0
   const rainFareEnabled = settings.rain_fare_enabled !== false;
   if (rainFareEnabled && state.orderSummary.rainFare > 0) {
     const rainFareDiv = document.createElement('div');
@@ -1589,6 +1663,7 @@ function renderOrderSummary() {
   `;
   addressSection.appendChild(deliveryChargeDiv);
   content.appendChild(addressSection);
+  
   const totalSection = document.createElement('div');
   totalSection.className = 'bg-white rounded-xl p-4 shadow-md mb-4';
   const totalRow = document.createElement('div');
@@ -1598,30 +1673,40 @@ function renderOrderSummary() {
     <span>₹${state.orderSummary.grandTotal}</span>
   `;
   totalSection.appendChild(totalRow);
+  
   const proceedBtn = document.createElement('button');
   proceedBtn.className = 'gradient-btn w-full text-white py-3 rounded-xl font-semibold text-lg mt-4 hover:scale-[1.02] transition-transform';
   proceedBtn.textContent = 'Proceed to Payment →';
-  proceedBtn.addEventListener('click', proceedToPayment);
+  proceedBtn.style.cursor = 'pointer';
+  proceedBtn.style.border = 'none';
+  proceedBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('🔄 Proceed to Payment button clicked');
+    proceedToPayment();
+  });
   totalSection.appendChild(proceedBtn);
+  
   const backBtn = document.createElement('button');
   backBtn.className = 'w-full mt-2 text-gray-600 hover:text-gray-800 font-medium py-2';
   backBtn.textContent = '← Back to Cart';
+  backBtn.style.background = 'none';
+  backBtn.style.border = 'none';
+  backBtn.style.cursor = 'pointer';
   backBtn.addEventListener('click', () => {
     state.showOrderSummary = false;
     state.showCart = true;
     renderContent();
   });
   totalSection.appendChild(backBtn);
+  
   content.appendChild(totalSection);
   container.appendChild(content);
   return container;
 }
 
 // ============================================================
-// RENDER HERO - FIXED: Direct event binding, no setTimeout
-// ============================================================
-// ============================================================
-// RENDER HERO - COMPLETELY FIXED for mobile
+// RENDER HERO
 // ============================================================
 function renderHero() {
   const container = document.createElement('div');
@@ -1630,25 +1715,19 @@ function renderHero() {
     <h1 class="text-3xl md:text-5xl font-bold mb-4">Groceries & Meat Delivered in Minutes</h1>
     <p class="text-lg mb-6">Fresh groceries, premium meat and more – delivered fast.</p>
     <button id="shopNowBtn" class="bg-white text-primary px-8 py-3 rounded-full font-bold cursor-pointer" 
-      style="pointer-events: auto !important; touch-action: manipulation !important; -webkit-tap-highlight-color: transparent !important; position: relative; z-index: 100 !important; display: inline-block; min-height: 48px; min-width: 120px;">
+      style="pointer-events: auto; touch-action: manipulation; -webkit-tap-highlight-color: transparent; position: relative; z-index: 10;">
       Shop Now →
     </button>
   `;
   
-  // Get the button directly
   const btn = container.querySelector('#shopNowBtn');
   if (btn) {
-    console.log('🎯 Shop Now button found, attaching events...');
-    
-    // Function to scroll to products
     const scrollToProducts = function(e) {
       if (e) {
         e.preventDefault();
         e.stopPropagation();
       }
       console.log('🛒 Shop Now clicked/tapped!');
-      
-      // Try multiple selectors to find the products section
       let target = document.querySelector('.px-4.my-8');
       if (!target) {
         target = document.querySelector('.grid.grid-cols-2.md\\:grid-cols-3');
@@ -1657,12 +1736,8 @@ function renderHero() {
         target = document.querySelector('.grid.grid-cols-2');
       }
       if (!target) {
-        target = document.querySelector('#app > div:last-child');
-      }
-      if (!target) {
         target = document.getElementById('app');
       }
-      
       if (target) {
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else {
@@ -1670,24 +1745,11 @@ function renderHero() {
       }
     };
     
-    // Remove any existing listeners by cloning
-    const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, btn);
-    
-    // Attach events directly to the new button
-    newBtn.addEventListener('click', scrollToProducts);
-    newBtn.addEventListener('touchend', function(e) {
+    btn.addEventListener('click', scrollToProducts);
+    btn.addEventListener('touchend', function(e) {
       e.preventDefault();
       scrollToProducts(e);
     });
-    newBtn.addEventListener('touchstart', function(e) {
-      // Just for debugging
-      console.log('🛒 Shop Now touchstart detected');
-    }, { passive: true });
-    
-    console.log('✅ Shop Now button events attached');
-  } else {
-    console.log('❌ Shop Now button not found!');
   }
   
   return container;
@@ -1710,7 +1772,7 @@ function renderTrustBanner() {
 }
 
 // ============================================================
-// RENDER CATEGORIES SECTION - Visible on Desktop, Hidden on Mobile
+// RENDER CATEGORIES SECTION
 // ============================================================
 function renderCategoriesSection() {
   const container = document.createElement('div');
@@ -1805,7 +1867,7 @@ function renderOffersSection() {
 }
 
 // ============================================================
-// RENDER PRODUCTS GRID - FIXED SEARCH
+// RENDER PRODUCTS GRID - WITH SEARCH
 // ============================================================
 function renderProductsGrid() {
   const container = document.createElement('div');
@@ -1819,7 +1881,6 @@ function renderProductsGrid() {
   if (searchTerm) {
     console.log('🔍 Searching for:', searchTerm);
     
-    // Search in products
     filteredProducts = products.filter(p => {
       const nameMatch = p.name && p.name.toLowerCase().includes(searchTerm);
       const categoryMatch = p.category && p.category.toLowerCase().includes(searchTerm);
@@ -1829,7 +1890,6 @@ function renderProductsGrid() {
     });
     console.log(`  Found ${filteredProducts.length} products`);
     
-    // Search in restaurants
     filteredRestaurants = restaurants.filter(r => {
       const nameMatch = r.name && r.name.toLowerCase().includes(searchTerm);
       const categoryMatch = r.category && r.category.toLowerCase().includes(searchTerm);
@@ -1838,7 +1898,6 @@ function renderProductsGrid() {
     });
     console.log(`  Found ${filteredRestaurants.length} restaurants`);
     
-    // Search in categories
     filteredCategories = categories.filter(c => {
       return c.name && c.name.toLowerCase().includes(searchTerm);
     });
@@ -1851,7 +1910,6 @@ function renderProductsGrid() {
     heading.textContent = `🔍 Search Results for "${state.searchTerm}" (${totalResults} found)`;
     container.appendChild(heading);
     
-    // Show categories that match
     if (filteredCategories.length > 0) {
       const catSection = document.createElement('div');
       catSection.className = 'mb-6';
@@ -1872,7 +1930,6 @@ function renderProductsGrid() {
       container.appendChild(catSection);
     }
     
-    // Show restaurants that match
     if (filteredRestaurants.length > 0) {
       const restSection = document.createElement('div');
       restSection.className = 'mb-6';
@@ -1890,7 +1947,6 @@ function renderProductsGrid() {
       container.appendChild(restSection);
     }
     
-    // Show products that match
     if (filteredProducts.length > 0) {
       const prodSection = document.createElement('div');
       prodSection.className = 'mb-6';
@@ -1953,7 +2009,7 @@ function renderFooter() {
 }
 
 // ============================================================
-// RENDER CATEGORY MODAL - Only visible on mobile
+// RENDER CATEGORY MODAL
 // ============================================================
 function renderCategoryModal() {
   if (!state.showCategoryModal) return null;
@@ -2047,14 +2103,6 @@ function renderCategoryModal() {
         e.stopPropagation();
         console.log('📂 Category selected from modal (touch):', cat.name);
         onCategoryClick(cat.name);
-      });
-      
-      item.addEventListener('mousedown', function(e) {
-        this.style.transform = 'scale(0.95)';
-      });
-      
-      item.addEventListener('mouseup', function(e) {
-        this.style.transform = 'scale(1)';
       });
       
       grid.appendChild(item);
