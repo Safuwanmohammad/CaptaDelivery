@@ -63,6 +63,7 @@ async function call2FactorAutogen(phone) {
 
   const formattedPhone = formatPhoneFor2Factor(phone);
   
+<<<<<<< HEAD
   console.log('=================================================');
   console.log('📤 2Factor AUTOGEN REQUEST (SMS)');
   console.log('=================================================');
@@ -77,25 +78,45 @@ async function call2FactorAutogen(phone) {
 
   try {
     console.log('⏳ Sending request to 2Factor...');
+=======
+  console.log('📤 2Factor AUTOGEN Request:');
+  console.log(`  Phone: ${formattedPhone}`);
+  console.log(`  API Key: ${apiKey ? '✅ Present' : '❌ Missing'}`);
+  
+  // NO OTP is generated here - 2Factor generates it
+  const url = `https://2factor.in/API/V1/${apiKey}/SMS/${formattedPhone}/AUTOGEN/OTP1`;
+
+  try {
+    console.log('⏳ Calling 2Factor AUTOGEN API...');
+>>>>>>> 9bfa32b09e311972027d08f167de1b3320a4cf6e
     const response = await axios({
       method: 'GET',
       url: url,
       timeout: 30000
     });
 
+<<<<<<< HEAD
     console.log('\n=================================================');
     console.log('📥 2Factor AUTOGEN RESPONSE');
     console.log('=================================================');
     console.log(`  Status Code:    ${response.status}`);
     console.log(`  Response:       ${JSON.stringify(response.data, null, 2)}`);
     console.log('=================================================\n');
+=======
+    console.log('📥 2Factor Response Status:', response.status);
+    console.log('📥 2Factor Response Data:', JSON.stringify(response.data, null, 2));
+>>>>>>> 9bfa32b09e311972027d08f167de1b3320a4cf6e
 
     if (response.data && response.data.Status === 'Success') {
       const sessionId = response.data.Details;
       if (!sessionId) {
         return { success: false, error: 'NO_SESSION_ID' };
       }
+<<<<<<< HEAD
       console.log(`✅ Session ID: ${sessionId.substring(0, 8)}...`);
+=======
+      console.log(`✅ Session ID received: ${sessionId.substring(0, 8)}...`);
+>>>>>>> 9bfa32b09e311972027d08f167de1b3320a4cf6e
       return { success: true, sessionId: sessionId };
     } else {
       const errorMsg = response.data?.Details || response.data?.Message || 'Unknown error';
@@ -103,9 +124,13 @@ async function call2FactorAutogen(phone) {
       return { success: false, error: errorMsg };
     }
   } catch (err) {
+<<<<<<< HEAD
     console.log('\n=================================================');
     console.log('❌ 2Factor AUTOGEN ERROR');
     console.log('=================================================');
+=======
+    console.log('❌ 2Factor API Error:');
+>>>>>>> 9bfa32b09e311972027d08f167de1b3320a4cf6e
     if (err.response) {
       console.log(`  Status: ${err.response.status}`);
       console.log(`  Data: ${JSON.stringify(err.response.data, null, 2)}`);
@@ -114,7 +139,10 @@ async function call2FactorAutogen(phone) {
     } else {
       console.log(`  Error: ${err.message}`);
     }
+<<<<<<< HEAD
     console.log('=================================================\n');
+=======
+>>>>>>> 9bfa32b09e311972027d08f167de1b3320a4cf6e
     return { success: false, error: err.message };
   }
 }
@@ -128,29 +156,44 @@ async function call2FactorVerify(sessionId, otp) {
     return { success: false, error: 'API_KEY_MISSING' };
   }
 
+<<<<<<< HEAD
   console.log('=================================================');
   console.log('📤 2Factor VERIFY REQUEST');
   console.log('=================================================');
   console.log(`  Session ID:     ${sessionId.substring(0, 8)}...`);
   console.log(`  OTP:            ${otp ? '✅ Provided' : '❌ Missing'}`);
   console.log('=================================================');
+=======
+  console.log('📤 2Factor Verify Request:');
+  console.log(`  Session ID: ${sessionId.substring(0, 8)}...`);
+  console.log(`  OTP: ${otp ? '✅ Provided' : '❌ Missing'}`);
+>>>>>>> 9bfa32b09e311972027d08f167de1b3320a4cf6e
 
   const url = `https://2factor.in/API/V1/${apiKey}/SMS/VERIFY/${sessionId}/${otp}`;
 
   try {
+<<<<<<< HEAD
     console.log('⏳ Sending verify request to 2Factor...');
+=======
+    console.log('⏳ Calling 2Factor Verify API...');
+>>>>>>> 9bfa32b09e311972027d08f167de1b3320a4cf6e
     const response = await axios({
       method: 'GET',
       url: url,
       timeout: 30000
     });
 
+<<<<<<< HEAD
     console.log('\n=================================================');
     console.log('📥 2Factor VERIFY RESPONSE');
     console.log('=================================================');
     console.log(`  Status Code:    ${response.status}`);
     console.log(`  Response:       ${JSON.stringify(response.data, null, 2)}`);
     console.log('=================================================\n');
+=======
+    console.log('📥 2Factor Verify Response Status:', response.status);
+    console.log('📥 2Factor Verify Data:', JSON.stringify(response.data, null, 2));
+>>>>>>> 9bfa32b09e311972027d08f167de1b3320a4cf6e
 
     if (response.data && response.data.Status === 'Success') {
       return { success: true };
@@ -159,9 +202,13 @@ async function call2FactorVerify(sessionId, otp) {
       return { success: false, error: errorMsg };
     }
   } catch (err) {
+<<<<<<< HEAD
     console.log('\n=================================================');
     console.log('❌ 2Factor VERIFY ERROR');
     console.log('=================================================');
+=======
+    console.log('❌ 2Factor Verify Error:');
+>>>>>>> 9bfa32b09e311972027d08f167de1b3320a4cf6e
     if (err.response) {
       console.log(`  Status: ${err.response.status}`);
       console.log(`  Data: ${JSON.stringify(err.response.data, null, 2)}`);
@@ -170,7 +217,10 @@ async function call2FactorVerify(sessionId, otp) {
     } else {
       console.log(`  Error: ${err.message}`);
     }
+<<<<<<< HEAD
     console.log('=================================================\n');
+=======
+>>>>>>> 9bfa32b09e311972027d08f167de1b3320a4cf6e
     return { success: false, error: err.message };
   }
 }
