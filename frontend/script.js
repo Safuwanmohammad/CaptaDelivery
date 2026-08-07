@@ -24,6 +24,12 @@ window.fetch = function(...args) {
             console.log('  Variants:', data.variants);
           }
         }
+        if (args[0].includes('/api/auth/verify-otp')) {
+          console.log('🔐 OTP Verify Response:', data);
+        }
+        if (args[0].includes('/api/auth/send-otp')) {
+          console.log('📱 OTP Send Response:', data);
+        }
       }).catch(() => {});
       return response;
     });
@@ -362,37 +368,29 @@ function closeOrderSummary() {
 }
 
 // ============================================================
-// PROCEED TO PAYMENT - FIXED
+// PROCEED TO PAYMENT
 // ============================================================
 function proceedToPayment() {
   console.log('💳 Proceed to Payment clicked');
   console.log('  Delivery Area:', state.orderSummary.selectedMainArea, state.orderSummary.selectedSubArea);
   console.log('  User logged in:', !!user);
   
-  // Check if delivery area is selected
   if (!state.orderSummary.selectedMainArea || !state.orderSummary.selectedSubArea) {
     showToast('Please select your delivery area');
     return;
   }
   
-  // Check if user is logged in
   if (!user) {
     console.log('⚠️ User not logged in - showing login');
     showToast('Please login to place order');
-    // Open the login modal
     openLogin();
     return;
   }
   
-  // Navigate to payment page
   console.log('  Setting showPayment to true...');
   state.showPayment = true;
   state.showOrderSummary = false;
-  
-  console.log('  Calling renderContent...');
   renderContent();
-  
-  console.log('  Scrolling to top...');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -718,7 +716,7 @@ async function placeOrder() {
 }
 
 // ============================================================
-// USER AUTHENTICATION - FIXED LOGIN
+// USER AUTHENTICATION - FIXED
 // ============================================================
 let accountDropdownOpen = false;
 
@@ -801,7 +799,7 @@ function updateNavUser() {
 }
 
 // ============================================================
-// LOGIN FUNCTIONS - FIXED
+// LOGIN FUNCTIONS - COMPLETELY FIXED
 // ============================================================
 function openLogin() {
   console.log('🔐 Opening login modal');
@@ -843,87 +841,150 @@ function switchTab(tab) {
   }
 }
 
+// ============================================================
+// SEND LOGIN OTP - FIXED
+// ============================================================
 async function sendLoginOtp() {
-  const phone = document.getElementById('loginPhone').value.trim();
+  const phoneInput = document.getElementById('loginPhone');
+  const phone = phoneInput ? phoneInput.value.trim() : '';
+  
+  console.log('📱 sendLoginOtp called with phone:', phone);
+  
   if (!phone || phone.length < 10) {
     showToast('Please enter a valid phone number');
     return;
   }
+  
   try {
+    showToast('⏳ Sending OTP...');
     const res = await fetch(`${API_BASE}/auth/send-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
-    otpCode = data.otp;
-    if (data.smsFailed) {
-      showToast(`OTP generated but SMS failed. Check console logs. OTP: ${otpCode}`);
-    } else {
-      showToast(`OTP sent via SMS! Check your phone.`);
+    console.log('📱 OTP Response:', data);
+    
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to send OTP');
     }
-    document.getElementById('loginOtpSection').classList.remove('hidden');
-    document.getElementById('loginSendOtpBtn').textContent = 'Resend OTP';
+    
+    otpCode = data.otp;
+    
+    if (data.smsFailed) {
+      showToast(`⚠️ OTP generated but SMS failed. OTP: ${otpCode} (Check console)`);
+    } else {
+      showToast(`✅ OTP sent via SMS! Check your phone. OTP: ${otpCode} (Demo)`);
+    }
+    
+    const otpSection = document.getElementById('loginOtpSection');
+    if (otpSection) otpSection.classList.remove('hidden');
+    
+    const sendBtn = document.getElementById('loginSendOtpBtn');
+    if (sendBtn) sendBtn.textContent = 'Resend OTP';
+    
   } catch (err) {
-    showToast(err.message);
+    console.error('❌ Send OTP error:', err);
+    showToast('❌ ' + err.message);
   }
 }
 
+// ============================================================
+// VERIFY LOGIN OTP - FIXED
+// ============================================================
 async function verifyLoginOtp() {
-  const phone = document.getElementById('loginPhone').value.trim();
-  const otp = document.getElementById('loginOtp').value.trim();
-  if (!otp) { showToast('Enter OTP'); return; }
+  const phoneInput = document.getElementById('loginPhone');
+  const otpInput = document.getElementById('loginOtp');
+  const phone = phoneInput ? phoneInput.value.trim() : '';
+  const otp = otpInput ? otpInput.value.trim() : '';
+  
+  console.log('🔐 verifyLoginOtp called with phone:', phone, 'otp:', otp);
+  
+  if (!phone || phone.length < 10) {
+    showToast('Please enter a valid phone number');
+    return;
+  }
+  
+  if (!otp || otp.length < 4) {
+    showToast('Please enter the OTP');
+    return;
+  }
+  
   try {
+    showToast('⏳ Verifying OTP...');
     const res = await fetch(`${API_BASE}/auth/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone, otp })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Verification failed');
+    console.log('🔐 Verify OTP Response:', data);
+    
+    if (!res.ok) {
+      throw new Error(data.error || 'Verification failed');
+    }
+    
+    // Login successful
     user = data.user;
     localStorage.setItem('swingy_user', JSON.stringify(user));
     closeLogin();
-    showToast(`Welcome ${user.first_name}!`);
+    showToast(`✅ Welcome ${user.first_name}!`);
+    
+    // Refresh data
     users = await fetchData('customers');
     orders = await fetchData('orders');
     updateNavUser();
     renderContent();
+    
   } catch (err) {
-    showToast(err.message);
+    console.error('❌ Verify OTP error:', err);
+    showToast('❌ ' + err.message);
   }
 }
 
+// ============================================================
+// SIGNUP OTP - FIXED
+// ============================================================
 async function sendSignupOtp() {
   const phone = document.getElementById('signupPhone').value.trim();
   const firstName = document.getElementById('signupFirstName').value.trim();
   const lastName = document.getElementById('signupLastName').value.trim();
   const address = document.getElementById('signupAddress').value.trim();
   const pincode = document.getElementById('signupPincode').value.trim();
+  
   if (!firstName || !lastName || !address || !pincode || !phone || phone.length < 10) {
     showToast('Please fill all mandatory fields and valid phone');
     return;
   }
+  
   window.signupData = { firstName, lastName, address, pincode, phone };
+  
   try {
+    showToast('⏳ Sending OTP...');
     const res = await fetch(`${API_BASE}/auth/send-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone })
     });
     const data = await res.json();
+    console.log('📱 Signup OTP Response:', data);
+    
     if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+    
     otpCode = data.otp;
+    
     if (data.smsFailed) {
-      showToast(`OTP generated but SMS failed. Check console logs. OTP: ${otpCode}`);
+      showToast(`⚠️ OTP generated but SMS failed. OTP: ${otpCode}`);
     } else {
-      showToast(`OTP sent via SMS! Check your phone.`);
+      showToast(`✅ OTP sent via SMS! OTP: ${otpCode} (Demo)`);
     }
+    
     document.getElementById('signupOtpSection').classList.remove('hidden');
     document.getElementById('signupSendOtpBtn').textContent = 'Resend OTP';
+    
   } catch (err) {
-    showToast(err.message);
+    console.error('❌ Send Signup OTP error:', err);
+    showToast('❌ ' + err.message);
   }
 }
 
@@ -932,23 +993,30 @@ async function verifySignupOtp() {
   if (!otp) { showToast('Enter OTP'); return; }
   const data = window.signupData;
   if (!data) { showToast('Please fill details first'); return; }
+  
   try {
+    showToast('⏳ Verifying OTP...');
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...data, otp })
     });
     const result = await res.json();
+    console.log('📝 Register Response:', result);
+    
     if (!res.ok) throw new Error(result.error || 'Registration failed');
+    
     user = result.user;
     localStorage.setItem('swingy_user', JSON.stringify(user));
     closeLogin();
-    showToast(`Welcome ${user.first_name}!`);
+    showToast(`✅ Welcome ${user.first_name}!`);
     users = await fetchData('customers');
     updateNavUser();
     renderContent();
+    
   } catch (err) {
-    showToast(err.message);
+    console.error('❌ Verify Signup OTP error:', err);
+    showToast('❌ ' + err.message);
   }
 }
 
@@ -1060,8 +1128,6 @@ function openModal(html) {
 // RENDER PRODUCT CARD
 // ============================================================
 function renderProductCard(product, onAdd) {
-  console.log('🔍 Rendering product:', product.name);
-  
   const container = document.createElement('div');
   container.className = 'product-card bg-white rounded-xl shadow-md overflow-hidden';
   let qty = 1;
