@@ -365,6 +365,8 @@ function closeOrderSummary() {
 // ============================================================
 function proceedToPayment() {
   console.log('💳 Proceed to Payment clicked');
+  console.log('  Delivery Area:', state.orderSummary.selectedMainArea, state.orderSummary.selectedSubArea);
+  console.log('  User logged in:', !!user);
   
   // Check if delivery area is selected
   if (!state.orderSummary.selectedMainArea || !state.orderSummary.selectedSubArea) {
@@ -380,46 +382,115 @@ function proceedToPayment() {
   }
   
   // Navigate to payment page
+  console.log('  Setting showPayment to true...');
   state.showPayment = true;
   state.showOrderSummary = false;
+  
+  console.log('  Calling renderContent...');
   renderContent();
+  
+  console.log('  Scrolling to top...');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ============================================================
-// RENDER PAYMENT PAGE - FIXED
+// RENDER PAYMENT PAGE - COMPLETE FIX
 // ============================================================
 function renderPaymentPage() {
-  if (!state.showPayment) return null;
+  console.log('🏦 Rendering payment page...');
+  
+  if (!state.showPayment) {
+    console.log('⚠️ showPayment is false, not rendering');
+    return null;
+  }
 
   updateDeliveryCharge();
 
+  // Create a standalone container that covers everything
   const container = document.createElement('div');
-  container.className = 'fixed inset-0 z-50 overflow-y-auto bg-gray-50 p-4 md:p-6';
-  container.style.position = 'fixed';
-  container.style.top = '0';
-  container.style.left = '0';
-  container.style.width = '100%';
-  container.style.height = '100%';
-  container.style.zIndex = '9999';
-  container.style.backgroundColor = '#f9fafb';
-
-  const content = document.createElement('div');
-  content.className = 'max-w-3xl mx-auto bg-white rounded-2xl shadow-xl p-6 mt-20 mb-20';
-
-  const header = document.createElement('div');
-  header.className = 'flex justify-between items-center border-b pb-4 mb-4';
-  header.innerHTML = `
-    <h2 class="text-2xl font-bold">💳 Payment</h2>
-    <button onclick="closePayment()" class="text-gray-500 hover:text-gray-700 text-2xl" style="background:none;border:none;cursor:pointer;">
-      <i class="fas fa-times"></i>
-    </button>
+  container.id = 'paymentPageContainer';
+  container.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 99999;
+    background: #f9fafb;
+    overflow-y: auto;
+    padding: 20px;
   `;
+
+  // Close button at top
+  const closeArea = document.createElement('div');
+  closeArea.style.cssText = `
+    position: sticky;
+    top: 0;
+    background: #f9fafb;
+    padding: 10px 0;
+    z-index: 10;
+    display: flex;
+    justify-content: flex-end;
+  `;
+  
+  const closeBtn = document.createElement('button');
+  closeBtn.style.cssText = `
+    background: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #333;
+  `;
+  closeBtn.innerHTML = '✕';
+  closeBtn.onclick = function() {
+    console.log('❌ Closing payment page');
+    state.showPayment = false;
+    renderContent();
+  };
+  closeArea.appendChild(closeBtn);
+  container.appendChild(closeArea);
+
+  // Main content
+  const content = document.createElement('div');
+  content.style.cssText = `
+    max-width: 600px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  `;
+
+  // Header
+  const header = document.createElement('h2');
+  header.style.cssText = `
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 20px 0;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  `;
+  header.innerHTML = '💳 Payment';
   content.appendChild(header);
 
   // Order Summary
   const summaryDiv = document.createElement('div');
-  summaryDiv.className = 'mb-6';
+  summaryDiv.style.cssText = `
+    margin-bottom: 20px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 12px;
+  `;
+  
   const grouped = state.orderSummary.categoryTotals;
   const items = state.orderSummary.items;
   let itemsHtml = '';
@@ -427,48 +498,69 @@ function renderPaymentPage() {
   Object.keys(grouped).forEach(cat => {
     const catItems = items.filter(item => (item.category || 'Uncategorized') === cat);
     const catTotal = grouped[cat];
-    itemsHtml += `<div class="font-semibold text-primary text-sm mt-2">${cat}</div>`;
+    itemsHtml += `<div style="font-weight:600;color:#007BFF;font-size:14px;margin-top:10px;">${cat}</div>`;
     catItems.forEach(item => {
       const displayName = item.displayName || item.name;
-      itemsHtml += `<div class="flex justify-between text-sm py-1"><span>${displayName} × ${item.quantity}</span><span>₹${(item.price || 0) * item.quantity}</span></div>`;
+      itemsHtml += `<div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0;border-bottom:1px solid #e9edf2;">
+        <span>${displayName} × ${item.quantity}</span>
+        <span>₹${(item.price || 0) * item.quantity}</span>
+      </div>`;
     });
-    itemsHtml += `<div class="flex justify-between text-sm font-semibold border-b border-gray-100 py-1"><span>Subtotal</span><span>₹${catTotal}</span></div>`;
+    itemsHtml += `<div style="display:flex;justify-content:space-between;font-weight:600;font-size:14px;padding:6px 0;border-bottom:2px solid #e9edf2;margin-bottom:4px;">
+      <span>Subtotal</span><span>₹${catTotal}</span>
+    </div>`;
   });
   
   summaryDiv.innerHTML = `
-    <h3 class="font-semibold text-lg mb-2">Order Summary</h3>
+    <h3 style="font-weight:600;font-size:16px;margin:0 0 12px 0;">Order Summary</h3>
     ${itemsHtml}
-    <div class="flex justify-between mt-2 pt-2 border-t">
-      <span>Subtotal</span>
-      <span>₹${state.orderSummary.subtotal}</span>
+    <div style="display:flex;justify-content:space-between;font-size:14px;padding:6px 0;border-bottom:1px solid #e9edf2;">
+      <span>Subtotal</span><span>₹${state.orderSummary.subtotal}</span>
     </div>
-    <div class="flex justify-between">
-      <span>Delivery</span>
-      <span>₹${state.orderSummary.deliveryCharge}</span>
+    <div style="display:flex;justify-content:space-between;font-size:14px;padding:6px 0;border-bottom:1px solid #e9edf2;">
+      <span>Delivery</span><span>₹${state.orderSummary.deliveryCharge}</span>
     </div>
     ${state.orderSummary.rainFare > 0 ? `
-    <div class="flex justify-between">
-      <span>Rain Fare</span>
-      <span>₹${state.orderSummary.rainFare}</span>
+    <div style="display:flex;justify-content:space-between;font-size:14px;padding:6px 0;border-bottom:1px solid #e9edf2;">
+      <span>Rain Fare</span><span>₹${state.orderSummary.rainFare}</span>
     </div>` : ''}
-    <div class="flex justify-between font-bold text-lg text-primary mt-2 pt-2 border-t">
-      <span>Grand Total</span>
-      <span>₹${state.orderSummary.grandTotal}</span>
+    <div style="display:flex;justify-content:space-between;font-weight:700;font-size:18px;color:#007BFF;padding:12px 0 0 0;border-top:2px solid #007BFF;margin-top:8px;">
+      <span>Grand Total</span><span>₹${state.orderSummary.grandTotal}</span>
     </div>
   `;
   content.appendChild(summaryDiv);
 
   // Payment Methods
   const paymentDiv = document.createElement('div');
-  paymentDiv.className = 'mb-4';
   paymentDiv.innerHTML = `
-    <h3 class="font-semibold text-lg mb-2">Choose Payment Method</h3>
-    <div class="flex flex-col gap-3">
-      <button onclick="confirmPayment('cod')" class="gradient-btn text-white py-3 rounded-xl font-semibold w-full" style="background:linear-gradient(135deg, #007BFF 0%, #0056b3 100%);border:none;cursor:pointer;font-size:1rem;">
-        <i class="fas fa-hand-holding-usd mr-2"></i> Cash on Delivery
+    <h3 style="font-weight:600;font-size:16px;margin:0 0 12px 0;">Choose Payment Method</h3>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button onclick="window.confirmPayment('cod')" style="
+        background: linear-gradient(135deg, #007BFF 0%, #0056b3 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 16px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        transition: transform 0.2s;
+      ">
+        <i class="fas fa-hand-holding-usd"></i> Cash on Delivery
       </button>
-      <button onclick="confirmPayment('upi')" class="btn btn-outline py-3 rounded-xl font-semibold w-full" style="background:transparent;border:2px solid #007BFF;color:#007BFF;cursor:pointer;font-size:1rem;">
-        <i class="fas fa-credit-card mr-2"></i> UPI / Bank (Coming Soon)
+      <button onclick="window.confirmPayment('upi')" style="
+        background: transparent;
+        border: 2px solid #007BFF;
+        color: #007BFF;
+        border-radius: 12px;
+        padding: 16px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+      ">
+        <i class="fas fa-credit-card"></i> UPI / Bank (Coming Soon)
       </button>
     </div>
   `;
@@ -476,20 +568,28 @@ function renderPaymentPage() {
 
   // Back button
   const backBtn = document.createElement('button');
-  backBtn.className = 'text-gray-600 hover:text-gray-800 font-medium mt-4';
+  backBtn.style.cssText = `
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 12px;
+    margin-top: 12px;
+    width: 100%;
+    text-align: center;
+  `;
   backBtn.textContent = '← Back to Order Summary';
-  backBtn.style.background = 'none';
-  backBtn.style.border = 'none';
-  backBtn.style.cursor = 'pointer';
-  backBtn.style.padding = '10px';
-  backBtn.addEventListener('click', function() {
+  backBtn.onclick = function() {
     state.showPayment = false;
     state.showOrderSummary = true;
     renderContent();
-  });
+  };
   content.appendChild(backBtn);
 
   container.appendChild(content);
+  
+  console.log('✅ Payment page rendered successfully');
   return container;
 }
 
@@ -1706,6 +1806,82 @@ function renderOrderSummary() {
 }
 
 // ============================================================
+// MAIN RENDER - FIXED
+// ============================================================
+function renderContent() {
+  if (!app) return;
+  app.innerHTML = '';
+  app.className = 'min-h-screen bg-gray-50';
+  
+  if (state.loading) {
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'text-center py-12';
+    loadingDiv.textContent = 'Loading...';
+    app.appendChild(loadingDiv);
+    return;
+  }
+
+  // ============================================================
+  // CRITICAL FIX: Check PAYMENT state FIRST
+  // ============================================================
+  if (state.showPayment) {
+    console.log('💳 Rendering payment page...');
+    const paymentPage = renderPaymentPage();
+    if (paymentPage) {
+      app.appendChild(paymentPage);
+      return;
+    }
+  }
+
+  // ============================================================
+  // Check ORDER SUMMARY state SECOND
+  // ============================================================
+  if (state.showOrderSummary) {
+    console.log('📋 Rendering order summary...');
+    const summary = renderOrderSummary();
+    if (summary) {
+      app.appendChild(summary);
+      return;
+    }
+  }
+
+  // ============================================================
+  // Check SELECTED CATEGORY state THIRD
+  // ============================================================
+  if (state.selectedCategory) {
+    const page = renderCategoryPage();
+    if (page) app.appendChild(page);
+  } else {
+    // Home page
+    const hero = renderHero();
+    if (hero) app.appendChild(hero);
+    const trust = renderTrustBanner();
+    if (trust) app.appendChild(trust);
+    const cats = renderCategoriesSection();
+    if (cats) app.appendChild(cats);
+    const offersSection = renderOffersSection();
+    if (offersSection) app.appendChild(offersSection);
+    const productsGrid = renderProductsGrid();
+    if (productsGrid) app.appendChild(productsGrid);
+  }
+
+  // Modals (rendered on top of everything)
+  const cartSidebar = renderCartSidebar();
+  if (cartSidebar) app.appendChild(cartSidebar);
+  const ordersModal = renderOrdersModal();
+  if (ordersModal) app.appendChild(ordersModal);
+  const categoryModal = renderCategoryModal();
+  if (categoryModal) app.appendChild(categoryModal);
+  const accountDrawer = renderAccountDrawer();
+  if (accountDrawer) app.appendChild(accountDrawer);
+  const toast = renderToast();
+  if (toast) app.appendChild(toast);
+  const footer = renderFooter();
+  if (footer) app.appendChild(footer);
+  updateBadges();
+}
+
+// ============================================================
 // RENDER HERO
 // ============================================================
 function renderHero() {
@@ -2372,81 +2548,6 @@ function renderToast() {
   toast.className = 'fixed bottom-28 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-2 rounded-full shadow-lg z-50 text-sm';
   toast.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${state.toastMsg}`;
   return toast;
-}
-
-// ============================================================
-// MAIN RENDER
-// ============================================================
-function renderContent() {
-  if (!app) return;
-  app.innerHTML = '';
-  app.className = 'min-h-screen bg-gray-50';
-  if (state.loading) {
-    const loadingDiv = document.createElement('div');
-    loadingDiv.className = 'text-center py-12';
-    loadingDiv.textContent = 'Loading...';
-    app.appendChild(loadingDiv);
-    return;
-  }
-
-  if (settings.service_unavailable) {
-    const banner = document.createElement('div');
-    banner.className = 'bg-red-600 text-white text-center py-2 text-sm font-semibold';
-    banner.textContent = '⚠️ Service is currently unavailable. Please check back later.';
-    app.appendChild(banner);
-  } else {
-    const hoursBanner = document.createElement('div');
-    hoursBanner.className = 'bg-blue-50 text-gray-700 text-center py-1 text-xs border-b border-blue-200';
-    hoursBanner.textContent = `🕒 Delivery Hours: ${settings.delivery_hours}`;
-    app.appendChild(hoursBanner);
-  }
-
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-  if (settings.unavailable_days && settings.unavailable_days.includes(today)) {
-    const closedBanner = document.createElement('div');
-    closedBanner.className = 'bg-orange-500 text-white text-center py-2 text-sm font-semibold';
-    closedBanner.textContent = `📢 Closed on ${today}. Orders will be processed on the next working day.`;
-    app.appendChild(closedBanner);
-  }
-
-  if (state.showPayment) {
-    const paymentPage = renderPaymentPage();
-    if (paymentPage) app.appendChild(paymentPage);
-    return;
-  }
-  if (state.showOrderSummary) {
-    const summary = renderOrderSummary();
-    if (summary) app.appendChild(summary);
-    return;
-  }
-  if (state.selectedCategory) {
-    const page = renderCategoryPage();
-    if (page) app.appendChild(page);
-  } else {
-    const hero = renderHero();
-    if (hero) app.appendChild(hero);
-    const trust = renderTrustBanner();
-    if (trust) app.appendChild(trust);
-    const cats = renderCategoriesSection();
-    if (cats) app.appendChild(cats);
-    const offersSection = renderOffersSection();
-    if (offersSection) app.appendChild(offersSection);
-    const productsGrid = renderProductsGrid();
-    if (productsGrid) app.appendChild(productsGrid);
-  }
-  const cartSidebar = renderCartSidebar();
-  if (cartSidebar) app.appendChild(cartSidebar);
-  const ordersModal = renderOrdersModal();
-  if (ordersModal) app.appendChild(ordersModal);
-  const categoryModal = renderCategoryModal();
-  if (categoryModal) app.appendChild(categoryModal);
-  const accountDrawer = renderAccountDrawer();
-  if (accountDrawer) app.appendChild(accountDrawer);
-  const toast = renderToast();
-  if (toast) app.appendChild(toast);
-  const footer = renderFooter();
-  if (footer) app.appendChild(footer);
-  updateBadges();
 }
 
 // ============================================================
