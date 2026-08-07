@@ -62,6 +62,7 @@ let state = {
   showAccountDrawer: false,
   showOrderSummary: false,
   showPayment: false,
+  showLoginModal: false,
   toastMsg: null,
   loading: false,
   orderSummary: {
@@ -376,7 +377,9 @@ function proceedToPayment() {
   
   // Check if user is logged in
   if (!user) {
+    console.log('⚠️ User not logged in - showing login');
     showToast('Please login to place order');
+    // Open the login modal
     openLogin();
     return;
   }
@@ -394,7 +397,7 @@ function proceedToPayment() {
 }
 
 // ============================================================
-// RENDER PAYMENT PAGE - COMPLETE FIX
+// RENDER PAYMENT PAGE
 // ============================================================
 function renderPaymentPage() {
   console.log('🏦 Rendering payment page...');
@@ -406,7 +409,6 @@ function renderPaymentPage() {
 
   updateDeliveryCharge();
 
-  // Create a standalone container that covers everything
   const container = document.createElement('div');
   container.id = 'paymentPageContainer';
   container.style.cssText = `
@@ -421,7 +423,6 @@ function renderPaymentPage() {
     padding: 20px;
   `;
 
-  // Close button at top
   const closeArea = document.createElement('div');
   closeArea.style.cssText = `
     position: sticky;
@@ -457,7 +458,6 @@ function renderPaymentPage() {
   closeArea.appendChild(closeBtn);
   container.appendChild(closeArea);
 
-  // Main content
   const content = document.createElement('div');
   content.style.cssText = `
     max-width: 600px;
@@ -468,7 +468,6 @@ function renderPaymentPage() {
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
   `;
 
-  // Header
   const header = document.createElement('h2');
   header.style.cssText = `
     font-size: 24px;
@@ -482,7 +481,6 @@ function renderPaymentPage() {
   header.innerHTML = '💳 Payment';
   content.appendChild(header);
 
-  // Order Summary
   const summaryDiv = document.createElement('div');
   summaryDiv.style.cssText = `
     margin-bottom: 20px;
@@ -530,7 +528,6 @@ function renderPaymentPage() {
   `;
   content.appendChild(summaryDiv);
 
-  // Payment Methods
   const paymentDiv = document.createElement('div');
   paymentDiv.innerHTML = `
     <h3 style="font-weight:600;font-size:16px;margin:0 0 12px 0;">Choose Payment Method</h3>
@@ -566,7 +563,6 @@ function renderPaymentPage() {
   `;
   content.appendChild(paymentDiv);
 
-  // Back button
   const backBtn = document.createElement('button');
   backBtn.style.cssText = `
     background: none;
@@ -594,7 +590,7 @@ function renderPaymentPage() {
 }
 
 // ============================================================
-// CONFIRM PAYMENT - FIXED
+// CONFIRM PAYMENT
 // ============================================================
 async function confirmPayment(method) {
   console.log('💳 Confirm Payment called with method:', method);
@@ -604,7 +600,6 @@ async function confirmPayment(method) {
     return;
   }
   
-  // Show loading state
   showToast('⏳ Placing your order...');
   
   try {
@@ -624,18 +619,16 @@ function closePayment() {
 }
 
 // ============================================================
-// PLACE ORDER - FIXED
+// PLACE ORDER
 // ============================================================
 async function placeOrder() {
   console.log('📦 Placing order...');
   
-  // Check if cart is empty
   if (cart.length === 0) {
     showToast('Your cart is empty!');
     return;
   }
   
-  // Check if user is logged in
   if (!user) {
     showToast('Please login to place order');
     openLogin();
@@ -725,7 +718,7 @@ async function placeOrder() {
 }
 
 // ============================================================
-// USER AUTHENTICATION
+// USER AUTHENTICATION - FIXED LOGIN
 // ============================================================
 let accountDropdownOpen = false;
 
@@ -807,10 +800,18 @@ function updateNavUser() {
   }
 }
 
+// ============================================================
+// LOGIN FUNCTIONS - FIXED
+// ============================================================
 function openLogin() {
+  console.log('🔐 Opening login modal');
   closeAccountDropdown();
   const overlay = document.getElementById('loginOverlay');
-  if (!overlay) return;
+  if (!overlay) {
+    console.error('❌ Login overlay not found!');
+    showToast('Login system is not available. Please contact support.');
+    return;
+  }
   overlay.classList.remove('hidden');
   document.getElementById('loginForm').classList.remove('hidden');
   document.getElementById('signupForm').classList.add('hidden');
@@ -821,6 +822,7 @@ function openLogin() {
 }
 
 function closeLogin() {
+  console.log('🔐 Closing login modal');
   const overlay = document.getElementById('loginOverlay');
   if (overlay) overlay.classList.add('hidden');
 }
@@ -1055,7 +1057,7 @@ function openModal(html) {
 }
 
 // ============================================================
-// RENDER PRODUCT CARD WITH VARIANTS
+// RENDER PRODUCT CARD
 // ============================================================
 function renderProductCard(product, onAdd) {
   console.log('🔍 Rendering product:', product.name);
@@ -1806,7 +1808,7 @@ function renderOrderSummary() {
 }
 
 // ============================================================
-// MAIN RENDER - FIXED
+// MAIN RENDER
 // ============================================================
 function renderContent() {
   if (!app) return;
@@ -1821,9 +1823,6 @@ function renderContent() {
     return;
   }
 
-  // ============================================================
-  // CRITICAL FIX: Check PAYMENT state FIRST
-  // ============================================================
   if (state.showPayment) {
     console.log('💳 Rendering payment page...');
     const paymentPage = renderPaymentPage();
@@ -1833,9 +1832,6 @@ function renderContent() {
     }
   }
 
-  // ============================================================
-  // Check ORDER SUMMARY state SECOND
-  // ============================================================
   if (state.showOrderSummary) {
     console.log('📋 Rendering order summary...');
     const summary = renderOrderSummary();
@@ -1845,14 +1841,10 @@ function renderContent() {
     }
   }
 
-  // ============================================================
-  // Check SELECTED CATEGORY state THIRD
-  // ============================================================
   if (state.selectedCategory) {
     const page = renderCategoryPage();
     if (page) app.appendChild(page);
   } else {
-    // Home page
     const hero = renderHero();
     if (hero) app.appendChild(hero);
     const trust = renderTrustBanner();
@@ -1865,7 +1857,6 @@ function renderContent() {
     if (productsGrid) app.appendChild(productsGrid);
   }
 
-  // Modals (rendered on top of everything)
   const cartSidebar = renderCartSidebar();
   if (cartSidebar) app.appendChild(cartSidebar);
   const ordersModal = renderOrdersModal();
