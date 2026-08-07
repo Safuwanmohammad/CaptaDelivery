@@ -11,7 +11,6 @@ async function generateOrderNumber() {
   const day = String(now.getDate()).padStart(2, '0');
   const datePrefix = `${year}${month}${day}`;
   
-  // Get the last order number for today
   const result = await pool.query(
     `SELECT order_number FROM orders 
      WHERE order_number LIKE $1 
@@ -32,81 +31,15 @@ async function generateOrderNumber() {
 }
 
 // ============================================================
-// SEND WHATSAPP MESSAGE VIA CLOUD API
+// GENERATE WHATSAPP LINK (wa.me) - WORKS WITH ANY NUMBER
 // ============================================================
-async function sendWhatsAppMessage(to, templateName, components = []) {
-  try {
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-    
-    if (!phoneNumberId || !accessToken) {
-      console.warn('⚠️ WhatsApp credentials not configured');
-      return { success: false, error: 'WhatsApp not configured' };
-    }
-    
-    const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`;
-    
-    const payload = {
-      messaging_product: 'whatsapp',
-      to: to,
-      type: 'template',
-      template: {
-        name: templateName,
-        language: { code: 'en' },
-        components: components
-      }
-    };
-    
-    const response = await axios.post(url, payload, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    console.log(`✅ WhatsApp message sent to ${to}:`, response.data);
-    return { success: true, data: response.data };
-  } catch (err) {
-    console.error('❌ WhatsApp send error:', err.response?.data || err.message);
-    return { success: false, error: err.message };
-  }
-}
-
-// ============================================================
-// SEND CUSTOM WHATSAPP TEXT MESSAGE
-// ============================================================
-async function sendWhatsAppText(to, message) {
-  try {
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-    
-    if (!phoneNumberId || !accessToken) {
-      console.warn('⚠️ WhatsApp credentials not configured');
-      return { success: false, error: 'WhatsApp not configured' };
-    }
-    
-    const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`;
-    
-    const payload = {
-      messaging_product: 'whatsapp',
-      to: to,
-      type: 'text',
-      text: { body: message }
-    };
-    
-    const response = await axios.post(url, payload, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    console.log(`✅ WhatsApp text sent to ${to}`);
-    return { success: true, data: response.data };
-  } catch (err) {
-    console.error('❌ WhatsApp text error:', err.response?.data || err.message);
-    return { success: false, error: err.message };
-  }
+function generateWhatsAppLink(phoneNumber, message) {
+  // Remove + if present, wa.me works with or without +
+  let phone = phoneNumber.replace('+', '');
+  // Remove any spaces
+  phone = phone.replace(/\s/g, '');
+  const encodedMessage = encodeURIComponent(message);
+  return `https://wa.me/${phone}?text=${encodedMessage}`;
 }
 
 // ============================================================
@@ -127,7 +60,6 @@ function generateCustomerInvoice(order, customer) {
     timeZone: 'Asia/Kolkata'
   });
   
-  // Group items by category
   const groupedItems = {};
   (order.items || []).forEach(item => {
     const cat = item.category || 'Uncategorized';
@@ -135,7 +67,6 @@ function generateCustomerInvoice(order, customer) {
     groupedItems[cat].push(item);
   });
   
-  // Calculate category totals
   const categoryTotals = {};
   let subtotal = 0;
   Object.keys(groupedItems).forEach(cat => {
@@ -149,7 +80,6 @@ function generateCustomerInvoice(order, customer) {
   const discount = parseFloat(order.discount) || 0;
   const grandTotal = parseFloat(order.grand_total) || 0;
   
-  // Build invoice text
   let invoice = '🛒 *CaptaDelivery*\n';
   invoice += '━━━━━━━━━━━━━━━━━━━━\n\n';
   invoice += `📋 *Order Number:* ${order.order_number || order.order_id}\n`;
@@ -159,7 +89,6 @@ function generateCustomerInvoice(order, customer) {
   invoice += `📍 *Delivery:* ${order.delivery_address || 'N/A'}\n\n`;
   invoice += '━━━━━━━━━━━━━━━━━━━━\n';
   
-  // Products by category
   Object.keys(groupedItems).forEach(cat => {
     invoice += `\n*${cat}*\n`;
     groupedItems[cat].forEach(item => {
@@ -174,7 +103,6 @@ function generateCustomerInvoice(order, customer) {
   invoice += '\n━━━━━━━━━━━━━━━━━━━━\n';
   invoice += `\n📦 *Delivery Charges:* ₹${deliveryCharge}`;
   
-  // Only show rain fare if enabled and > 0
   const rainFareEnabled = process.env.RAIN_FARE_ENABLED !== 'false';
   if (rainFareEnabled && rainFare > 0) {
     invoice += `\n🌧️ *Rain Fare:* ₹${rainFare}`;
@@ -209,7 +137,6 @@ function generateAdminInvoice(order, customer) {
     timeZone: 'Asia/Kolkata'
   });
   
-  // Group items by category
   const groupedItems = {};
   (order.items || []).forEach(item => {
     const cat = item.category || 'Uncategorized';
@@ -217,7 +144,6 @@ function generateAdminInvoice(order, customer) {
     groupedItems[cat].push(item);
   });
   
-  // Calculate category totals and commissions
   const categoryData = {};
   let subtotal = 0;
   let totalCommission = 0;
@@ -241,7 +167,6 @@ function generateAdminInvoice(order, customer) {
   const discount = parseFloat(order.discount) || 0;
   const grandTotal = parseFloat(order.grand_total) || 0;
   
-  // Build admin invoice
   let invoice = '🧾 *CaptaDelivery - Admin Invoice*\n';
   invoice += '━━━━━━━━━━━━━━━━━━━━\n\n';
   invoice += `📋 *Order Number:* ${order.order_number || order.order_id}\n`;
@@ -253,7 +178,6 @@ function generateAdminInvoice(order, customer) {
   invoice += `💳 *Payment:* ${order.payment_method || 'COD'}\n\n`;
   invoice += '━━━━━━━━━━━━━━━━━━━━\n';
   
-  // Products by category with commission
   Object.keys(categoryData).forEach(cat => {
     const data = categoryData[cat];
     invoice += `\n*${cat}*\n`;
@@ -287,7 +211,7 @@ function generateAdminInvoice(order, customer) {
 }
 
 // ============================================================
-// SEND INVOICES VIA WHATSAPP
+// SEND INVOICES VIA WHATSAPP (wa.me links)
 // ============================================================
 async function sendOrderInvoices(order, customer) {
   const customerPhone = customer?.phone;
@@ -295,36 +219,49 @@ async function sendOrderInvoices(order, customer) {
   
   const results = [];
   
-  // Send customer invoice
+  // Send customer invoice via wa.me link (just generate the link)
   if (customerPhone) {
     const customerInvoice = generateCustomerInvoice(order, customer);
-    const result = await sendWhatsAppText(customerPhone, customerInvoice);
-    results.push({ recipient: customerPhone, type: 'customer', ...result });
+    const whatsappLink = generateWhatsAppLink(customerPhone, customerInvoice);
+    
+    console.log(`📱 Customer WhatsApp Link: ${whatsappLink}`);
     
     // Log to database
     await pool.query(
       `INSERT INTO whatsapp_logs (order_id, recipient_phone, recipient_type, status, error_message)
        VALUES ($1, $2, $3, $4, $5)`,
       [order.order_id || order.id, customerPhone, 'customer', 
-       result.success ? 'sent' : 'failed', 
-       result.success ? null : result.error]
+       'link_generated', null]
     );
+    
+    results.push({ 
+      recipient: customerPhone, 
+      type: 'customer', 
+      success: true, 
+      whatsappLink 
+    });
   }
   
-  // Send admin invoice
+  // Send admin invoice via wa.me link
   if (adminPhone) {
     const adminInvoice = generateAdminInvoice(order, customer);
-    const result = await sendWhatsAppText(adminPhone, adminInvoice);
-    results.push({ recipient: adminPhone, type: 'admin', ...result });
+    const whatsappLink = generateWhatsAppLink(adminPhone, adminInvoice);
     
-    // Log to database
+    console.log(`📱 Admin WhatsApp Link: ${whatsappLink}`);
+    
     await pool.query(
       `INSERT INTO whatsapp_logs (order_id, recipient_phone, recipient_type, status, error_message)
        VALUES ($1, $2, $3, $4, $5)`,
       [order.order_id || order.id, adminPhone, 'admin',
-       result.success ? 'sent' : 'failed',
-       result.success ? null : result.error]
+       'link_generated', null]
     );
+    
+    results.push({ 
+      recipient: adminPhone, 
+      type: 'admin', 
+      success: true, 
+      whatsappLink 
+    });
   }
   
   return results;
@@ -354,10 +291,8 @@ exports.createOrder = async (req, res) => {
   } = req.body;
   
   try {
-    // Generate unique order number
     const orderNumber = await generateOrderNumber();
     
-    // Calculate category-wise commission
     let categoryCommission = {};
     let totalCommission = 0;
     
@@ -384,7 +319,7 @@ exports.createOrder = async (req, res) => {
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
       [
         orderNumber,
-        orderNumber, // order_id also uses the same number
+        orderNumber,
         customerId, 
         items, 
         productTotal, 
@@ -407,11 +342,9 @@ exports.createOrder = async (req, res) => {
     
     const order = result.rows[0];
     
-    // Get customer details
     const customerResult = await pool.query('SELECT * FROM users WHERE id = $1', [customerId]);
     const customer = customerResult.rows[0];
     
-    // Update customer stats
     if (customer) {
       await pool.query(
         `UPDATE users SET 
@@ -454,7 +387,7 @@ exports.updateOrderStatus = async (req, res) => {
     const customerResult = await pool.query('SELECT * FROM users WHERE id = $1', [order.customer_id]);
     const customer = customerResult.rows[0];
     
-    // Send status update via WhatsApp
+    // Send status update via WhatsApp link
     if (customer && customer.phone) {
       const statusMsg = `📦 *Order Status Update - CaptaDelivery*\n\n` +
         `📋 *Order Number:* ${order.order_number || order.order_id}\n` +
@@ -462,7 +395,8 @@ exports.updateOrderStatus = async (req, res) => {
         `📊 *Status:* ${status}\n\n` +
         `Thank you for choosing CaptaDelivery! 🚀`;
       
-      await sendWhatsAppText(customer.phone, statusMsg);
+      const whatsappLink = generateWhatsAppLink(customer.phone, statusMsg);
+      console.log(`📱 Status update link: ${whatsappLink}`);
     }
     
     res.json(result.rows[0]);
@@ -497,6 +431,6 @@ exports.sendWhatsAppInvoice = async (req, res) => {
 // EXPOSE INTERNAL FUNCTIONS FOR TESTING
 // ============================================================
 exports.generateOrderNumber = generateOrderNumber;
-exports.sendWhatsAppText = sendWhatsAppText;
+exports.generateWhatsAppLink = generateWhatsAppLink;
 exports.generateCustomerInvoice = generateCustomerInvoice;
 exports.generateAdminInvoice = generateAdminInvoice;
