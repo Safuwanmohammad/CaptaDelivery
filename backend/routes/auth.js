@@ -243,7 +243,10 @@ router.post('/verify-otp', async (req, res) => {
     console.log('=================================================');
 
     if (!phone || !otp) {
-      return res.status(400).json({ success: false, error: 'Phone and OTP required' });
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Phone and OTP required' 
+      });
     }
 
     const normalizedPhone = normalizePhone(phone);
@@ -261,23 +264,29 @@ router.post('/verify-otp', async (req, res) => {
     console.log(`  Session ID: ${stored.sessionId.substring(0, 8)}...`);
     console.log(`  Attempts: ${stored.attempts}/${MAX_ATTEMPTS}`);
     console.log(`  Expires: ${new Date(stored.expiresAt).toISOString()}`);
+    console.log(`  Time remaining: ${Math.floor((stored.expiresAt - Date.now()) / 1000)}s`);
 
+    // Check attempts
     if (stored.attempts >= MAX_ATTEMPTS) {
       delete sessionStore[normalizedPhone];
+      console.log('❌ Too many failed attempts');
       return res.status(400).json({ 
         success: false, 
         error: 'Too many failed attempts. Please request a new OTP.' 
       });
     }
 
+    // Check expiry
     if (Date.now() > stored.expiresAt) {
       delete sessionStore[normalizedPhone];
+      console.log('❌ Session expired');
       return res.status(400).json({ 
         success: false, 
         error: 'OTP has expired. Please request a new OTP.' 
       });
     }
 
+    // Call 2Factor Verify API
     const result = await call2FactorVerify(stored.sessionId, otp);
 
     if (!result.success) {
@@ -290,22 +299,27 @@ router.post('/verify-otp', async (req, res) => {
       });
     }
 
+    // Verification successful
     delete sessionStore[normalizedPhone];
     console.log('✅ OTP verified successfully');
     console.log('=================================================\n');
 
+    // Check if user exists
     const userResult = await pool.query(
       'SELECT * FROM users WHERE phone = $1',
       [normalizedPhone]
     );
 
+    // If user doesn't exist, return 404 so frontend knows to show signup
     if (userResult.rows.length === 0) {
       return res.status(404).json({ 
         success: false, 
-        error: 'No account found. Please sign up.' 
+        error: 'No account found. Please sign up.',
+        userExists: false
       });
     }
 
+    // Return user data
     res.json({ 
       success: true,
       message: 'Login successful', 

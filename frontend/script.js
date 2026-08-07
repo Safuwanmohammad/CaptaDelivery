@@ -872,13 +872,19 @@ async function sendLoginOtp() {
     otpCode = data.otp;
     
     if (data.smsFailed) {
-      showToast(`⚠️ OTP generated but SMS failed. OTP: ${otpCode} (Check console)`);
+      showToast(`⚠️ OTP generated but SMS failed. Check console for OTP.`);
     } else {
-      showToast(`✅ OTP sent via SMS! Check your phone. OTP: ${otpCode} (Demo)`);
+      showToast(`✅ OTP sent! Check your phone.`);
     }
     
     const otpSection = document.getElementById('loginOtpSection');
     if (otpSection) otpSection.classList.remove('hidden');
+    
+    const otpInput = document.getElementById('loginOtp');
+    if (otpInput && data.otp) {
+      otpInput.value = data.otp;
+      showToast(`📱 Demo OTP: ${data.otp}`);
+    }
     
     const sendBtn = document.getElementById('loginSendOtpBtn');
     if (sendBtn) sendBtn.textContent = 'Resend OTP';
@@ -921,16 +927,21 @@ async function verifyLoginOtp() {
     console.log('🔐 Verify OTP Response:', data);
     
     if (!res.ok) {
+      if (res.status === 404) {
+        showToast('📝 No account found. Please sign up.');
+        switchTab('signup');
+        const signupPhone = document.getElementById('signupPhone');
+        if (signupPhone) signupPhone.value = phone;
+        return;
+      }
       throw new Error(data.error || 'Verification failed');
     }
     
-    // Login successful
     user = data.user;
     localStorage.setItem('swingy_user', JSON.stringify(user));
     closeLogin();
     showToast(`✅ Welcome ${user.first_name}!`);
     
-    // Refresh data
     users = await fetchData('customers');
     orders = await fetchData('orders');
     updateNavUser();
@@ -974,9 +985,15 @@ async function sendSignupOtp() {
     otpCode = data.otp;
     
     if (data.smsFailed) {
-      showToast(`⚠️ OTP generated but SMS failed. OTP: ${otpCode}`);
+      showToast(`⚠️ OTP generated but SMS failed. Check console.`);
     } else {
-      showToast(`✅ OTP sent via SMS! OTP: ${otpCode} (Demo)`);
+      showToast(`✅ OTP sent! Check your phone.`);
+    }
+    
+    const otpInput = document.getElementById('signupOtp');
+    if (otpInput && data.otp) {
+      otpInput.value = data.otp;
+      showToast(`📱 Demo OTP: ${data.otp}`);
     }
     
     document.getElementById('signupOtpSection').classList.remove('hidden');
